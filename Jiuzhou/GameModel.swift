@@ -13,6 +13,9 @@ struct GameDialog: Identifiable {
     var secondary: [MudAction] = []
     var inputCommand: String?
     var numeric = false
+    var layout = MudLayout()
+    var secondaryLayout = MudLayout()
+    var kind = "interaction"
 }
 
 struct GameStat: Identifiable {
@@ -29,7 +32,7 @@ struct GameStat: Identifiable {
 }
 
 final class GameModel: ObservableObject {
-    @Published var host = UserDefaults.standard.string(forKey: "host") ?? "172.20.10.5"
+    @Published var host = UserDefaults.standard.string(forKey: "host") ?? "10.220.35.229"
     @Published var port = "6666"
     @Published var account = UserDefaults.standard.string(forKey: "account") ?? ""
     @Published var password = ""
@@ -48,6 +51,14 @@ final class GameModel: ObservableObject {
     @Published var messages: [GameMessage] = []
     @Published var dialog: GameDialog?
     @Published var notice = ""
+    @Published var chatMessages: [GameMessage] = []
+    @Published var fightMessages: [GameMessage] = []
+    @Published var history: [GameMessage] = []
+    @Published var fighting = false
+    @Published var descriptionHidden = false
+    @Published var customButtonsVisible = false
+    @Published var objectHealth: [String: Double] = [:]
+    @Published var statsLayout = MudLayout("", defaults: [2, 2, 22, 35])
     private let transport = MudTransport()
     private var sentCredentials = false
 
@@ -75,6 +86,8 @@ final class GameModel: ObservableObject {
         dialog = nil
         objects = []; exits = []; buttons = []; topActions = []; stats = []; messages = []
         description = ""; notice = ""
+        chatMessages = []; fightMessages = []; history = []; objectHealth = [:]
+        fighting = false; customButtonsVisible = false
         connecting = true
         transport.connect(host: host.trimmingCharacters(in: .whitespaces), port: number)
     }
@@ -119,12 +132,14 @@ final class GameModel: ObservableObject {
         guard !clean.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         messages.append(GameMessage(text: text))
         if messages.count > 300 { messages.removeFirst(messages.count - 300) }
+        history.append(GameMessage(text: text))
+        if history.count > 500 { history.removeFirst(history.count - 500) }
     }
 
     private func merge(_ additions: [MudAction], into current: [MudAction]) -> [MudAction] {
         var result = current
         for action in additions {
-            if let index = result.firstIndex(where: { $0.command == action.command }) { result[index] = action }
+            if let index = result.firstIndex(where: { $0.id == action.id }) { result[index] = action }
             else { result.append(action) }
         }
         return result
@@ -158,7 +173,8 @@ final class GameModel: ObservableObject {
             let parts = text.components(separatedBy: "$zj#")
             if parts.count >= 2 { dialog = GameDialog(text: parts[0], inputCommand: parts[1]) }
         case "002":
-            room = MudText.plain(text); objects = []; exits = []; dialog = nil
+            room = text; objects = []; exits = []; dialog = nil
+            fighting = false; customButtonsVisible = false; objectHealth = [:]
         case "003": exits = merge(MudText.actions(text, exits: true), into: exits)
         case "004": description = text
         case "005": objects = merge(MudText.actions(text), into: objects)
@@ -166,29 +182,50 @@ final class GameModel: ObservableObject {
             for button in MudText.actions(text, slots: true) {
                 buttons.removeAll { $0.slot == button.slot }
                 buttons.append(button)
+                if let slot = Int(button.slot.dropFirst()), (1...10).contains(slot) { customButtonsVisible = true }
             }
             buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
         case "007": dialog = GameDialog(text: text)
         case "008", "009":
             var next = dialog ?? GameDialog()
-            if frame.code == "008" { next.actions = MudText.actions(text) }
-            else { next.secondary = MudText.actions(text) }
+            if frame.code == "008" { next.actions = MudText.actions(text); next.layout = MudLayout(text) }
+            else { next.secondary = MudText.actions(text); next.secondaryLayout = MudLayout(text) }
             dialog = next
         case "010": receiveConfirmation(text)
-        case "011", "013": dialog = GameDialog(text: text)
+        case "011", "013": dialog = GameDialog(text: text, kind: frame.code == "011" ? "map" : "pages")
         case "012":
+            let count = MudText.withoutLayout(text).components(separatedBy: "║").count
+            statsLayout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35])
             stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }
-                return GameStat(label: MudText.plain(parts[0]), value: parts[1], color: parts[2],
+                return GameStat(label: parts[0], value: parts[1], color: parts[2],
                                 command: parts.count > 3 ? parts[3] : "")
             }
         case "014": transport.send(text)
         case "015":
             notice = MudText.plain(text); log(text)
             if !inWorld { status = notice }
-        case "016", "024", "100": log(text)
-        case "017", "022", "023": break
+        case "016":
+            fighting = true
+            fightMessages.append(GameMessage(text: text))
+            if fightMessages.count > 50 { fightMessages.removeFirst() }
+            history.append(GameMessage(text: text))
+            if history.count > 500 { history.removeFirst() }
+        case "100":
+            chatMessages.append(GameMessage(text: text))
+            if chatMessages.count > 500 { chatMessages.removeFirst() }
+        case "024": notice = MudText.plain(text)
+        case "017": fighting = false; fightMessages = []
+        case "022":
+            let parts = text.components(separatedBy: "$zj#")
+            if parts.count == 2 {
+                let values = parts[1].split(separator: "/").compactMap { Double($0) }
+                if values.count >= 2, let maximum = values.last, maximum > 0 {
+                    objectHealth[parts[0]] = min(1, max(0, values[0] / maximum))
+                }
+            }
+        case "023": descriptionHidden = text == "屏蔽描述"
         case "020": dialog = GameDialog(actions: MudText.actions(text))
         case "021": topActions = MudText.actions(text)
         case "903": exits.removeAll { $0.slot == text || $0.command == text }

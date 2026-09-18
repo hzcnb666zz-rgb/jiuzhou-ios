@@ -18,14 +18,13 @@ struct GameView: View {
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-            if game.inWorld { world }
+            if game.inWorld { AndroidWorldView(game: game) }
             else if game.needsCharacter { character }
             else { login }
         }
         .foregroundStyle(Theme.foreground)
         .font(.system(size: 14))
         .tint(Theme.foreground)
-        .sheet(item: $game.dialog) { _ in DialogView(game: game) }
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 Form {

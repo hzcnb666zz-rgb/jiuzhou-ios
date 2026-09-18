@@ -5,7 +5,7 @@ struct JiuzhouApp: App {
     @StateObject private var game = GameModel()
     var body: some Scene {
         WindowGroup {
-            GameView(game: game)
+            AndroidEntryView(game: game)
                 .preferredColorScheme(.dark)
         }
     }

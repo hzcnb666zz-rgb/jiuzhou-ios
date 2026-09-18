@@ -68,10 +68,31 @@ struct MudDecoder {
 }
 
 struct MudAction: Identifiable, Equatable {
-    var id: String { command }
+    var id: String { slot.isEmpty ? command : slot }
     let label: String
     let command: String
     var slot: String = ""
+    var styledLabel: String? = nil
+    var display: String { styledLabel ?? label }
+}
+
+struct MudLayout: Equatable {
+    var columns = 1
+    var widthDivisor = 3
+    var heightDivisor = 9
+    var fontDivisor = 30
+
+    init(_ raw: String = "", defaults: [Int] = [1, 3, 9, 30]) {
+        var values = defaults
+        if raw.hasPrefix("$"), let end = raw.firstIndex(of: "#") {
+            let parsed = raw[raw.index(after: raw.startIndex)..<end].split(separator: ",").compactMap { Int($0) }
+            if parsed.count == 4 { values = parsed }
+        }
+        columns = min(12, max(1, values[0]))
+        widthDivisor = max(1, values[1])
+        heightDivisor = max(1, values[2])
+        fontDivisor = max(1, values[3])
+    }
 }
 
 enum MudText {
@@ -79,6 +100,7 @@ enum MudText {
         raw.replacingOccurrences(of: "\u{001B}\\[[us]:[^\\]]*\\]", with: "", options: .regularExpression)
             .replacingOccurrences(of: "\u{001B}\\[[0-9;]*m", with: "", options: .regularExpression)
             .replacingOccurrences(of: "\u{001B}\\[[fb]#[0-9A-Fa-f]{6}m", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "\u{001B}\\[(?:2J|H)", with: "", options: .regularExpression)
             .replacingOccurrences(of: "$br#", with: "\n")
             .replacingOccurrences(of: "\u{001B}", with: "")
     }
@@ -90,15 +112,23 @@ enum MudText {
     static func actions(_ raw: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
         var seen = Set<String>()
         return withoutLayout(raw).components(separatedBy: "$zj#").compactMap { entry in
-            // Strip styling before locating separators (style tags can contain colons).
-            let parts = plain(entry).split(separator: ":", maxSplits: slots || exits ? 2 : 1,
-                                          omittingEmptySubsequences: false).map(String.init)
+            // A colon inside an ANSI link/size tag is not an action separator.
+            let tag = try! NSRegularExpression(pattern: "\u{001B}\\[[us]:[^\\]]*\\]")
+            let protected = NSMutableString(string: entry)
+            for match in tag.matches(in: entry, range: NSRange(location: 0, length: protected.length)).reversed() {
+                protected.replaceCharacters(in: match.range, with: protected.substring(with: match.range).replacingOccurrences(of: ":", with: "\u{E000}"))
+            }
+            let parts = (protected as String).split(separator: ":", maxSplits: slots || exits ? 2 : 1,
+                    omittingEmptySubsequences: false).map { String($0).replacingOccurrences(of: "\u{E000}", with: ":") }
             guard parts.count >= 2 else { return nil }
             let command = slots ? (parts.count == 3 ? parts[2] : "") :
                 (exits ? (parts.count == 3 ? parts[2] : parts[0]) : parts[1])
-            guard !command.isEmpty, seen.insert(command).inserted else { return nil }
-            return MudAction(label: slots || exits ? parts[1] : parts[0], command: command,
-                             slot: slots || exits ? parts[0] : "")
+            let slot = slots || exits ? plain(parts[0]) : ""
+            guard !command.isEmpty, seen.insert(slot.isEmpty ? command : slot).inserted else { return nil }
+            let label = slots || exits ? parts[1] : parts[0]
+            let clean = plain(label)
+            return MudAction(label: clean, command: command, slot: slot,
+                             styledLabel: clean == label ? nil : label)
         }
     }
 }
