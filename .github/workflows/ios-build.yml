@@ -1,0 +1,22 @@
+name: Build Personal iOS Test Package
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ios:
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Test and compile
+        run: bash build-unsigned.sh
+      - name: Upload unsigned IPA for personal signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jiuzhou-unsigned-IPA
+          path: build/Jiuzhou-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
