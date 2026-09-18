@@ -8,7 +8,7 @@ struct AndroidButtonStyle: ButtonStyle {
         configuration.label
             .background {
                 if let image {
-                    Image(image + (configuration.isPressed ? "2" : "")).resizable()
+                    Image(image + (configuration.isPressed ? "2" : "") + ".png").resizable()
                 } else {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(configuration.isPressed ? Color(red: 0.05, green: 0.46, blue: 0.88) :
@@ -42,7 +42,7 @@ struct AndroidWorldView: View {
 
     private let compass = ["northwest", "north", "northeast", "west", "", "east", "southwest", "south", "southeast"]
     private var ink: Color { mode == "day" ? Color(red: 0.31, green: 0.15, blue: 0.08) : mode == "mud" ? Color(white: 0.67) : .white }
-    private var background: String { mode == "day" ? "bk1" : mode == "mud" ? "huashan" : "bk2" }
+    private var background: String { mode == "day" ? "bk1.jpeg" : mode == "mud" ? "huashan.png" : "bk2.jpeg" }
 
     var body: some View {
         GeometryReader { geometry in
@@ -165,7 +165,7 @@ struct AndroidWorldView: View {
                 .font(.system(size: 14)).padding(.horizontal, 8).frame(height: 28)
                 .background(Color.white.opacity(0.13))
         }.padding(3).frame(height: 40)
-            .background { if mode == "night" { Image("bar").resizable() } }
+            .background { if mode == "night" { Image("bar.png").resizable() } }
     }
 
     private func messages(_ items: [GameMessage]) -> some View {
@@ -258,11 +258,11 @@ struct AndroidWorldView: View {
     private func bottomBar(unit: CGFloat) -> some View {
         HStack(spacing: 1) {
             Button { game.dialog = GameDialog(text: "请输入指令：", inputCommand: "$txt#") } label: {
-                Image("command").resizable().scaledToFit().frame(width: 38, height: unit / 8)
+                Image("command.png").resizable().scaledToFit().frame(width: 38, height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("输入指令")
             ForEach(12...17, id: \.self) { slot in quickButton(slot, height: unit / 8) }
             Button { menuVisible.toggle() } label: {
-                Image("mainbt").resizable().scaledToFit().frame(width: 30, height: unit / 8)
+                Image("mainbt.png").resizable().scaledToFit().frame(width: 30, height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("菜单")
         }.background(Color.white.opacity(0.13))
     }

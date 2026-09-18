@@ -31,7 +31,7 @@ struct AndroidEntryView: View {
 
     private var login: some View {
         ZStack(alignment: .top) {
-            Image("splash").resizable().ignoresSafeArea()
+            Image("splash.jpeg").resizable().ignoresSafeArea()
             if chooseServer {
                 VStack(spacing: 10) {
                     Text("分区列表").font(.system(size: 18)).foregroundStyle(.white)
