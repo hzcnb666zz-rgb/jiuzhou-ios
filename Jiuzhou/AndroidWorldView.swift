@@ -1,4 +1,18 @@
 import SwiftUI
+import UIKit
+
+private struct BundleImage: View {
+    let name: String
+    let ext: String
+    var body: some View {
+        if let path = Bundle.main.path(forResource: name, ofType: ext),
+           let image = UIImage(contentsOfFile: path) {
+            Image(uiImage: image).resizable()
+        } else {
+            Color.clear
+        }
+    }
+}
 
 struct AndroidButtonStyle: ButtonStyle {
     var image: String? = nil
@@ -8,7 +22,7 @@ struct AndroidButtonStyle: ButtonStyle {
         configuration.label
             .background {
                 if let image {
-                    Image(image + (configuration.isPressed ? "2" : "") + ".png").resizable()
+                    BundleImage(name: image + (configuration.isPressed ? "2" : ""), ext: "png")
                 } else {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(configuration.isPressed ? Color(red: 0.05, green: 0.46, blue: 0.88) :
@@ -49,7 +63,7 @@ struct AndroidWorldView: View {
             let width = geometry.size.width
             let unit = min(width, 600)
             ZStack(alignment: .top) {
-                Image(background).resizable().ignoresSafeArea()
+                BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png").ignoresSafeArea()
                 VStack(spacing: 0) {
                     if !game.chatMessages.isEmpty {
                         messages(Array(game.chatMessages.suffix(100)))
@@ -165,7 +179,7 @@ struct AndroidWorldView: View {
                 .font(.system(size: 14)).padding(.horizontal, 8).frame(height: 28)
                 .background(Color.white.opacity(0.13))
         }.padding(3).frame(height: 40)
-            .background { if mode == "night" { Image("bar.png").resizable() } }
+            .background { if mode == "night" { BundleImage(name: "bar", ext: "png") } }
     }
 
     private func messages(_ items: [GameMessage]) -> some View {
@@ -258,11 +272,11 @@ struct AndroidWorldView: View {
     private func bottomBar(unit: CGFloat) -> some View {
         HStack(spacing: 1) {
             Button { game.dialog = GameDialog(text: "请输入指令：", inputCommand: "$txt#") } label: {
-                Image("command.png").resizable().scaledToFit().frame(width: 38, height: unit / 8)
+                BundleImage(name: "command", ext: "png").scaledToFit().frame(width: 38, height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("输入指令")
             ForEach(12...17, id: \.self) { slot in quickButton(slot, height: unit / 8) }
             Button { menuVisible.toggle() } label: {
-                Image("mainbt.png").resizable().scaledToFit().frame(width: 30, height: unit / 8)
+                BundleImage(name: "mainbt", ext: "png").scaledToFit().frame(width: 30, height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("菜单")
         }.background(Color.white.opacity(0.13))
     }
@@ -327,7 +341,7 @@ struct AndroidWorldView: View {
                 }.buttonStyle(AndroidButtonStyle())
             }
         }.padding(3).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background { Image(background).resizable() }
+            .background { BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png") }
     }
 
     private func actionGrid(_ items: [MudAction], layout: MudLayout) -> some View {

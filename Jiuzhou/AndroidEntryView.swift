@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AndroidEntryView: View {
     @ObservedObject var game: GameModel
@@ -31,7 +32,7 @@ struct AndroidEntryView: View {
 
     private var login: some View {
         ZStack(alignment: .top) {
-            Image("splash.jpeg").resizable().ignoresSafeArea()
+            SplashBackground().ignoresSafeArea()
             if chooseServer {
                 VStack(spacing: 10) {
                     Text("分区列表").font(.system(size: 18)).foregroundStyle(.white)
@@ -119,9 +120,20 @@ struct AndroidEntryView: View {
 
 private struct LoginButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.frame(maxWidth: .infinity, minHeight: 45)
+        configuration.label.foregroundStyle(Color.black).frame(maxWidth: .infinity, minHeight: 45)
             .background(configuration.isPressed ? Color.white.opacity(0.3) : .clear)
             .overlay(RoundedRectangle(cornerRadius: 20).stroke(.gray, lineWidth: 1))
+    }
+}
+
+private struct SplashBackground: View {
+    var body: some View {
+        if let path = Bundle.main.path(forResource: "splash", ofType: "jpeg"),
+           let image = UIImage(contentsOfFile: path) {
+            Image(uiImage: image).resizable().scaledToFill()
+        } else {
+            Color.white
+        }
     }
 }
 
