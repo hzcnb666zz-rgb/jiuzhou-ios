@@ -89,136 +89,243 @@ struct GameView: View {
 
     private var world: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text(game.account).lineLimit(1)
+            HStack(spacing: 6) {
+                Text(game.account).font(.system(size: 16)).lineLimit(1)
                 Spacer()
-                Circle().fill(game.connected ? Color.green : Color.red).frame(width: 8, height: 8)
-                Button { showSettings = true } label: { Image(systemName: "gearshape") }
-                    .frame(width: 44, height: 36).accessibilityLabel("连接设置")
-            }.padding(.leading, 8)
-            if !game.connected {
-                HStack {
-                    Text(game.status).font(.caption)
-                    Spacer()
-                    Button("重新连接", action: game.login)
-                }.padding(8).background(Color.red.opacity(0.15))
+                Circle().fill(game.connected ? Color.green : Color.red).frame(width: 10, height: 10)
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape").font(.system(size: 22))
+                }
+                .frame(width: 38, height: 30)
+                .accessibilityLabel("连接设置")
             }
+            .padding(.horizontal, 8)
+            .frame(height: 34)
+
             if !game.stats.isEmpty {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 2) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)], spacing: 2) {
                     ForEach(game.stats) { stat in
-                        Button { game.act(stat.command) } label: {
-                            ZStack(alignment: .leading) {
-                                Rectangle().fill(Color.white.opacity(0.05))
-                                GeometryReader { geo in
-                                    Rectangle().fill(statColor(stat.color).opacity(0.55))
-                                        .frame(width: geo.size.width * stat.fraction)
-                                }
-                                Text(stat.label + " " + stat.value).font(.system(size: 11))
-                                    .lineLimit(1).minimumScaleFactor(0.65).padding(.horizontal, 4)
-                            }.frame(height: 24)
-                        }.buttonStyle(.plain)
+                        statBar(stat)
                     }
-                }.padding(.horizontal, 2)
+                }
+                .padding(.horizontal, 3)
+                .padding(.vertical, 2)
             }
+
             rule
-            HStack {
-                Text(game.room).font(.system(size: 16, weight: .semibold)).lineLimit(2)
-                Spacer(minLength: 4)
+            HStack(spacing: 0) {
+                Text(game.room)
+                    .font(.system(size: 18))
+                    .lineLimit(1)
+                    .padding(.leading, 10)
+                Spacer()
                 Button { showDescription.toggle() } label: {
                     Image(systemName: showDescription ? "eye.slash" : "eye")
-                }.frame(width: 40, height: 40).accessibilityLabel("切换场景描述")
-            }.padding(.leading, 8)
-            if !game.topActions.isEmpty { actionStrip(game.topActions) }
+                        .font(.system(size: 20))
+                }
+                .frame(width: 42, height: 34)
+                .accessibilityLabel("切换场景描述")
+            }
+            .frame(height: 38)
+
+            if !game.topActions.isEmpty {
+                actionStrip(game.topActions, buttonHeight: 38)
+            }
             rule
+
             GeometryReader { geometry in
                 HStack(spacing: 0) {
                     ScrollView {
                         VStack(spacing: 2) {
                             ForEach(game.objects) { item in
-                                actionButton(item).frame(maxWidth: .infinity, minHeight: 44)
+                                actionButton(item, minHeight: 42)
                             }
-                        }.padding(3)
-                    }.frame(width: min(100, geometry.size.width * 0.23))
+                        }
+                        .padding(3)
+                    }
+                    .frame(width: min(164, max(116, geometry.size.width * 0.25)))
+
                     Rectangle().fill(Theme.divider).frame(width: 1)
+
                     VStack(spacing: 0) {
                         if showDescription {
                             ScrollView {
-                                MudRichText(raw: game.description, send: game.act).frame(maxWidth: .infinity, alignment: .leading)
-                                    .textSelection(.enabled).padding(8)
-                            }.frame(maxHeight: geometry.size.height * 0.42)
+                                MudRichText(raw: game.description, send: game.act)
+                                    .font(.system(size: 15))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
+                                    .padding(8)
+                            }
+                            .frame(maxHeight: geometry.size.height * 0.48)
                             rule
                         }
+
                         directions
+
                         if !game.notice.isEmpty {
-                            Text(game.notice).font(.caption).lineLimit(3)
-                                .frame(maxWidth: .infinity, alignment: .leading).padding(8)
+                            Text(game.notice)
+                                .font(.system(size: 12))
+                                .lineLimit(3)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
                         }
                         Spacer(minLength: 0)
                     }
                 }
-            }.frame(minHeight: 150)
-            if !game.buttons.isEmpty { actionStrip(game.buttons) }
+            }
+            .frame(minHeight: 250)
+
+            if !game.buttons.isEmpty {
+                bottomTabs(game.buttons)
+            }
             rule
+
             HStack {
-                Text("消息").font(.caption)
+                Text("消息").font(.system(size: 15))
                 Spacer()
-                Button { game.messages = [] } label: { Image(systemName: "trash") }
-                    .accessibilityLabel("清空消息").frame(width: 32, height: 28)
-            }.padding(.horizontal, 8)
+                Button { game.messages = [] } label: {
+                    Image(systemName: "trash").font(.system(size: 18))
+                }
+                .frame(width: 34, height: 30)
+                .accessibilityLabel("清空消息")
+            }
+            .padding(.horizontal, 8)
+
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 5) {
                         ForEach(game.messages) { message in
-                            MudRichText(raw: message.text, send: game.act).font(.system(size: 12)).textSelection(.enabled).id(message.id)
+                            MudRichText(raw: message.text, send: game.act)
+                                .font(.system(size: 14))
+                                .textSelection(.enabled)
+                                .id(message.id)
                         }
-                    }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 8)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 8)
                 }
                 .onChange(of: game.messages.last?.id) { id in
                     if let id { proxy.scrollTo(id, anchor: .bottom) }
                 }
-            }.frame(height: 110)
+            }
+            .frame(minHeight: 150, maxHeight: 250)
             rule
-            HStack(spacing: 8) {
-                TextField("指令", text: $command).textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .submitLabel(.send).onSubmit(sendCommand)
-                Button(action: sendCommand) { Image(systemName: "paperplane.fill") }
-                    .frame(width: 44, height: 44).accessibilityLabel("发送指令").disabled(!game.connected)
-            }.padding(.leading, 10)
+
+            HStack(spacing: 6) {
+                TextField("指令", text: $command)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.send)
+                    .onSubmit(sendCommand)
+                    .padding(.leading, 8)
+                Button(action: sendCommand) {
+                    Image(systemName: "paperplane.fill").font(.system(size: 22))
+                }
+                .frame(width: 46, height: 42)
+                .accessibilityLabel("发送指令")
+                .disabled(!game.connected)
+            }
+            .frame(height: 46)
         }
     }
 
     private var directions: some View {
         VStack(spacing: 4) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 3), spacing: 3) {
-                ForEach(["northwest", "north", "northeast", "west", "look", "east", "southwest", "south", "southeast"], id: \.self) { direction in
-                    if direction == "look" {
-                        Button { game.act("look") } label: { Image(systemName: "arrow.clockwise") }
-                            .frame(maxWidth: .infinity, minHeight: 44).accessibilityLabel("查看当前场景")
-                    } else if let exit = game.exits.first(where: { $0.slot == direction || $0.slot == direction + "up" || $0.slot == direction + "down" }) {
-                        actionButton(exit).frame(maxWidth: .infinity, minHeight: 44)
-                    } else { Color.clear.frame(height: 44) }
+            HStack(spacing: 4) {
+                directionButton("west")
+                Button { game.act("look") } label: {
+                    Image(systemName: "arrow.clockwise").font(.system(size: 20))
+                        .frame(maxWidth: .infinity, minHeight: 48)
                 }
+                .buttonStyle(.plain)
+                .overlay(Rectangle().stroke(Theme.divider, lineWidth: 0.5))
+                .accessibilityLabel("查看当前场景")
+                directionButton("east")
             }
-            let extras = game.exits.filter { !["north", "south", "east", "west"].contains(where: $0.slot.hasPrefix) }
-            if !extras.isEmpty { actionStrip(extras) }
-        }.padding(5)
+            HStack(spacing: 4) {
+                directionButton("south")
+                    .frame(maxWidth: .infinity)
+            }
+            let extras = game.exits.filter {
+                !["north", "south", "east", "west", "northwest", "northeast", "southwest", "southeast"]
+                    .contains($0.slot)
+            }
+            if !extras.isEmpty { actionStrip(extras, buttonHeight: 40) }
+        }
+        .padding(5)
     }
 
-    private func actionButton(_ action: MudAction) -> some View {
+    @ViewBuilder
+    private func directionButton(_ slot: String) -> some View {
+        if let exit = game.exits.first(where: { $0.slot == slot || $0.slot == slot + "up" || $0.slot == slot + "down" }) {
+            actionButton(exit, minHeight: 48)
+        } else {
+            Color.clear.frame(maxWidth: .infinity, minHeight: 48)
+        }
+    }
+
+    private func statBar(_ stat: GameStat) -> some View {
+        Button { game.act(stat.command) } label: {
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Rectangle().fill(Color.black.opacity(0.22))
+                    Rectangle()
+                        .fill(statColor(stat.color).opacity(0.78))
+                        .frame(width: geometry.size.width * stat.fraction)
+                    Text(stat.label + " " + stat.value)
+                        .font(.system(size: 14))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .padding(.horizontal, 6)
+                }
+            }
+            .frame(height: 32)
+        }
+        .buttonStyle(.plain)
+        .overlay(Rectangle().stroke(Color.black.opacity(0.2), lineWidth: 0.5))
+    }
+
+    private func actionButton(_ action: MudAction, minHeight: CGFloat = 40) -> some View {
         Button { game.act(action.command) } label: {
             Text(action.label).font(.system(size: 12)).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true).padding(4)
-                .frame(maxWidth: .infinity, minHeight: 40)
-                .background(Color.white.opacity(0.045))
+                .frame(maxWidth: .infinity, minHeight: minHeight)
+                .background(Color.black.opacity(0.12))
                 .overlay(Rectangle().stroke(Theme.divider, lineWidth: 0.5))
         }.buttonStyle(.plain).disabled(!game.connected)
     }
 
-    private func actionStrip(_ actions: [MudAction]) -> some View {
+    private func actionStrip(_ actions: [MudAction], buttonHeight: CGFloat = 40) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 3) { ForEach(actions) { action in actionButton(action).frame(minWidth: 65) } }
+            HStack(spacing: 3) {
+                ForEach(actions) { action in
+                    actionButton(action, minHeight: buttonHeight).frame(minWidth: 65)
+                }
+            }
                 .padding(3)
         }.fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func bottomTabs(_ actions: [MudAction]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(actions) { action in
+                    Button { game.act(action.command) } label: {
+                        Text(action.label)
+                            .font(.system(size: 14))
+                            .lineLimit(1)
+                            .frame(minWidth: 74, minHeight: 42)
+                            .padding(.horizontal, 8)
+                    }
+                    .buttonStyle(.plain)
+                    .overlay(Rectangle().stroke(Theme.divider, lineWidth: 0.5))
+                    .disabled(!game.connected)
+                }
+            }
+            .padding(.horizontal, 3)
+            .padding(.vertical, 2)
+        }
+        .background(Color.black.opacity(0.10))
     }
 
     private var rule: some View { Rectangle().fill(Theme.divider).frame(height: 1) }
