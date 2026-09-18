@@ -61,7 +61,8 @@ struct AndroidWorldView: View {
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            let unit = min(width, 600)
+            // Android uses the actual screen width (scrw) for every main-face dimension.
+            let unit = width
             ZStack(alignment: .top) {
                 BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png").ignoresSafeArea()
                 VStack(spacing: 0) {
@@ -69,8 +70,11 @@ struct AndroidWorldView: View {
                         messages(Array(game.chatMessages.suffix(100)))
                             .frame(height: shortChat ? unit / 8 : unit / 5)
                     }
+                    if !game.stats.isEmpty {
+                        stats(unit: unit)
+                    }
                     rule
-                    titleBar
+                    titleBar(unit: unit)
                     rule
                     HStack(spacing: 0) {
                         VStack(spacing: 0) {
@@ -85,7 +89,7 @@ struct AndroidWorldView: View {
                                                     }.frame(height: 4)
                                                 }
                                                 MudRichText(raw: object.display, send: game.act)
-                                                    .font(.system(size: 11)).multilineTextAlignment(.center)
+                                                    .font(.system(size: unit / 35)).multilineTextAlignment(.center)
                                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                             }.padding(2).frame(height: unit / 10)
                                         }.buttonStyle(AndroidButtonStyle(filled: true))
@@ -103,7 +107,7 @@ struct AndroidWorldView: View {
                                     if !game.descriptionHidden && !game.fighting {
                                         ScrollView {
                                             MudRichText(raw: game.description, send: game.act)
-                                                .font(.system(size: 15)).frame(maxWidth: .infinity, alignment: .leading).padding(5)
+                                                .font(.system(size: unit / 25)).frame(maxWidth: .infinity, alignment: .leading).padding(5)
                                         }.frame(maxHeight: geometry.size.height * 0.26)
                                         rule
                                     }
@@ -125,8 +129,6 @@ struct AndroidWorldView: View {
                             exits(unit: unit)
                         }
                     }.frame(maxHeight: .infinity)
-                    stats(unit: unit)
-                    rule
                     bottomBar(unit: unit)
                 }.padding(1)
                 if menuVisible { mainMenu.padding(.top, 45) }
@@ -166,9 +168,9 @@ struct AndroidWorldView: View {
 
     private var rule: some View { Color(white: 0.4).frame(height: 1) }
 
-    private var titleBar: some View {
+    private func titleBar(unit: CGFloat) -> some View {
         HStack(spacing: 3) {
-            MudRichText(raw: game.room, send: game.act).font(.system(size: 20))
+            MudRichText(raw: game.room, send: game.act).font(.system(size: unit / 18))
                 .lineLimit(1).minimumScaleFactor(0.6).padding(.leading, 18)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 3) {
@@ -176,7 +178,7 @@ struct AndroidWorldView: View {
                 }
             }
             Button(game.descriptionHidden ? "显示" : "隐藏") { game.descriptionHidden.toggle() }
-                .font(.system(size: 14)).padding(.horizontal, 8).frame(height: 28)
+                .font(.system(size: unit / 25)).padding(.horizontal, 8).frame(height: unit / 13)
                 .background(Color.white.opacity(0.13))
         }.padding(3).frame(height: 40)
             .background { if mode == "night" { BundleImage(name: "bar", ext: "png") } }
@@ -216,7 +218,7 @@ struct AndroidWorldView: View {
                             Button { game.act(game.buttons.first { $0.slot == "bs" }?.command ?? "look") } label: {
                                 MudRichText(raw: game.room, send: game.act).font(.system(size: 12))
                                     .lineLimit(1).minimumScaleFactor(0.5)
-                                    .frame(width: min(unit / 4, g.size.width * 0.44), height: unit / 15)
+                                    .frame(width: 92, height: 35)
                                     .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(red: 0.86, green: 0.93, blue: 0.78).opacity(0.44)))
                             }.buttonStyle(.plain).position(x: g.size.width / 2, y: g.size.height / 2)
                         } else if let exit = game.exits.first(where: { $0.slot == slot || $0.slot == slot + "up" || $0.slot == slot + "down" }) {
@@ -237,7 +239,7 @@ struct AndroidWorldView: View {
                 Button(game.customButtonsVisible ? "关闭" : "自定") { game.customButtonsVisible.toggle() }
                     .frame(maxWidth: .infinity, maxHeight: .infinity).buttonStyle(AndroidButtonStyle())
                 quickButton(11, height: unit * 3 / 22 - 2)
-            }.frame(width: unit / 7, height: unit * 3 / 11)
+            }.frame(width: 40, height: unit * 3 / 11)
         }.frame(height: unit * 4 / 13).padding(.horizontal, 2)
     }
 
@@ -274,7 +276,9 @@ struct AndroidWorldView: View {
             Button { game.dialog = GameDialog(text: "请输入指令：", inputCommand: "$txt#") } label: {
                 BundleImage(name: "command", ext: "png").scaledToFit().frame(width: 38, height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("输入指令")
-            ForEach(12...17, id: \.self) { slot in quickButton(slot, height: unit / 8) }
+            ForEach(12...17, id: \.self) { slot in
+                quickButton(slot, height: unit / 8).frame(width: 40)
+            }
             Button { menuVisible.toggle() } label: {
                 BundleImage(name: "mainbt", ext: "png").scaledToFit().frame(width: 30, height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("菜单")
