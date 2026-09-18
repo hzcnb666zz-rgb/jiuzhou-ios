@@ -1,0 +1,216 @@
+import Foundation
+import Combine
+
+struct GameMessage: Identifiable {
+    let id = UUID()
+    let text: String
+}
+
+struct GameDialog: Identifiable {
+    let id = UUID()
+    var text = ""
+    var actions: [MudAction] = []
+    var secondary: [MudAction] = []
+    var inputCommand: String?
+    var numeric = false
+}
+
+struct GameStat: Identifiable {
+    var id: String { label }
+    let label: String
+    let value: String
+    let color: String
+    let command: String
+    var fraction: Double {
+        let values = value.split(separator: "/").compactMap { Double($0) }
+        guard let first = values.first, let last = values.last, values.count > 1, last > 0 else { return 1 }
+        return min(1, max(0, first / last))
+    }
+}
+
+final class GameModel: ObservableObject {
+    @Published var host = UserDefaults.standard.string(forKey: "host") ?? "172.20.10.5"
+    @Published var port = "6666"
+    @Published var account = UserDefaults.standard.string(forKey: "account") ?? ""
+    @Published var password = ""
+    @Published var status = "未连接"
+    @Published var connected = false
+    @Published var connecting = false
+    @Published var inWorld = false
+    @Published var needsCharacter = false
+    @Published var room = "九州书剑录"
+    @Published var description = ""
+    @Published var objects: [MudAction] = []
+    @Published var exits: [MudAction] = []
+    @Published var topActions: [MudAction] = []
+    @Published var buttons: [MudAction] = []
+    @Published var stats: [GameStat] = []
+    @Published var messages: [GameMessage] = []
+    @Published var dialog: GameDialog?
+    @Published var notice = ""
+    private let transport = MudTransport()
+    private var sentCredentials = false
+
+    init() {
+        transport.onFrame = { [weak self] in self?.receive($0) }
+        transport.onStatus = { [weak self] text, ready in
+            self?.status = text
+            self?.connected = ready
+            if ready || !text.hasPrefix("等待网络") && text != "正在连接" { self?.connecting = false }
+        }
+    }
+
+    func login() {
+        guard account.range(of: "^[A-Za-z][A-Za-z0-9]{3,19}$", options: .regularExpression) != nil,
+              !password.isEmpty, !password.contains(where: { "║\r\n".contains($0) }),
+              let number = UInt16(port), number > 0, !host.trimmingCharacters(in: .whitespaces).isEmpty else {
+            status = "账号需为4至20位字母数字，以字母开头；请填写密码和有效地址端口"
+            return
+        }
+        UserDefaults.standard.set(host, forKey: "host")
+        UserDefaults.standard.set(account, forKey: "account")
+        sentCredentials = false
+        needsCharacter = false
+        inWorld = false
+        dialog = nil
+        objects = []; exits = []; buttons = []; topActions = []; stats = []; messages = []
+        description = ""; notice = ""
+        connecting = true
+        transport.connect(host: host.trimmingCharacters(in: .whitespaces), port: number)
+    }
+
+    func logout() {
+        transport.disconnect()
+        connected = false; connecting = false; inWorld = false; needsCharacter = false
+        dialog = nil; status = "未连接"
+    }
+
+    func createCharacter(name: String, gender: String) {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard name.range(of: "^[\\u4E00-\\u9FFF]{2,4}$", options: .regularExpression) != nil else {
+            notice = "请输入2至4个汉字的角色名"; return
+        }
+        transport.send(gender + "║║" + name)
+    }
+
+    func act(_ command: String) {
+        guard connected, !command.isEmpty else { return }
+        if command.hasPrefix("\u{001B}020") {
+            dialog = GameDialog(actions: MudText.actions(String(command.dropFirst(4))))
+        } else if command.contains("$txt#") {
+            // Let the server produce its INPUTTXT prompt, matching the Android client.
+            transport.send(command)
+        } else {
+            dialog = nil
+            command.components(separatedBy: "$sock#").filter { !$0.isEmpty }.forEach(transport.send)
+        }
+    }
+
+    func submitInput(_ value: String) {
+        guard let template = dialog?.inputCommand, !value.isEmpty,
+              !value.contains(where: { "\r\n".contains($0) }) else { return }
+        let command = template.replacingOccurrences(of: "$txt#", with: value)
+            .replacingOccurrences(of: "$N", with: value)
+        act(command)
+    }
+
+    private func log(_ text: String) {
+        let clean = MudText.plain(text)
+        guard !clean.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        messages.append(GameMessage(text: text))
+        if messages.count > 300 { messages.removeFirst(messages.count - 300) }
+    }
+
+    private func merge(_ additions: [MudAction], into current: [MudAction]) -> [MudAction] {
+        var result = current
+        for action in additions {
+            if let index = result.firstIndex(where: { $0.command == action.command }) { result[index] = action }
+            else { result.append(action) }
+        }
+        return result
+    }
+
+    private func receive(_ frame: MudFrame) {
+        let text = frame.text
+        if frame.code == nil {
+            if text.hasPrefix("ver1.0,") { transport.send("local") }
+            else if text == "版本验证成功", !sentCredentials {
+                sentCredentials = true
+                transport.send(account + "║" + password + "║123456789abcd║local@localhost")
+            } else {
+                log(text)
+                if !inWorld { status = MudText.plain(text) }
+            }
+            return
+        }
+        switch frame.code {
+        case "000":
+            if text == "0008" { needsCharacter = true }
+            if text == "0007" {
+                needsCharacter = false; inWorld = true; status = "已进入江湖"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                    if self?.connected == true && self?.inWorld == true { self?.transport.send("look") }
+                }
+            }
+            if text == "0003" { transport.send(password) }
+            if text == "重连完毕" { transport.send("look") }
+        case "001":
+            let parts = text.components(separatedBy: "$zj#")
+            if parts.count >= 2 { dialog = GameDialog(text: parts[0], inputCommand: parts[1]) }
+        case "002":
+            room = MudText.plain(text); objects = []; exits = []; dialog = nil
+        case "003": exits = merge(MudText.actions(text, exits: true), into: exits)
+        case "004": description = text
+        case "005": objects = merge(MudText.actions(text), into: objects)
+        case "006":
+            for button in MudText.actions(text, slots: true) {
+                buttons.removeAll { $0.slot == button.slot }
+                buttons.append(button)
+            }
+            buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
+        case "007": dialog = GameDialog(text: text)
+        case "008", "009":
+            var next = dialog ?? GameDialog()
+            if frame.code == "008" { next.actions = MudText.actions(text) }
+            else { next.secondary = MudText.actions(text) }
+            dialog = next
+        case "010": receiveConfirmation(text)
+        case "011", "013": dialog = GameDialog(text: text)
+        case "012":
+            stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
+                let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
+                guard parts.count >= 3 else { return nil }
+                return GameStat(label: MudText.plain(parts[0]), value: parts[1], color: parts[2],
+                                command: parts.count > 3 ? parts[3] : "")
+            }
+        case "014": transport.send(text)
+        case "015":
+            notice = MudText.plain(text); log(text)
+            if !inWorld { status = notice }
+        case "016", "024", "100": log(text)
+        case "017", "022", "023": break
+        case "020": dialog = GameDialog(actions: MudText.actions(text))
+        case "021": topActions = MudText.actions(text)
+        case "903": exits.removeAll { $0.slot == text || $0.command == text }
+        case "913": exits = []
+        case "905": objects.removeAll { $0.command == text || $0.command == "look " + text }
+        case "999": logout()
+        default: log(text)
+        }
+    }
+
+    private func receiveConfirmation(_ text: String) {
+        var next = GameDialog()
+        var confirm: [String] = []
+        for part in text.components(separatedBy: "$dh#") {
+            if part.hasPrefix("ok11.") { confirm.append(String(part.dropFirst(5))) }
+            else if part.hasPrefix("no11.") { next.secondary.append(MudAction(label: "取消", command: String(part.dropFirst(5)))) }
+            else if part.hasPrefix("numb.") { next.numeric = true }
+            else { next.text += part + "\n" }
+        }
+        let command = confirm.joined(separator: "$sock#")
+        if next.numeric { next.inputCommand = command }
+        else if !command.isEmpty { next.actions = [MudAction(label: "确定", command: command)] }
+        dialog = next
+    }
+}

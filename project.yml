@@ -1,0 +1,40 @@
+name: Jiuzhou
+options:
+  bundleIdPrefix: com.jiuzhou
+  deploymentTarget:
+    iOS: '16.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    TARGETED_DEVICE_FAMILY: '1,2'
+    IPHONEOS_DEPLOYMENT_TARGET: '16.0'
+targets:
+  Jiuzhou:
+    type: application
+    platform: iOS
+    sources:
+      - path: Jiuzhou
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jiuzhou.localtest
+        PRODUCT_NAME: Jiuzhou
+        MARKETING_VERSION: '0.1.0'
+        CURRENT_PROJECT_VERSION: 1
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: Generated/Info.plist
+      properties:
+        CFBundleDisplayName: 九州书剑录
+        NSLocalNetworkUsageDescription: 连接同一网络中电脑上的九州书剑录游戏服务器。
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIApplicationSupportsIndirectInputEvents: true
+schemes:
+  Jiuzhou:
+    build:
+      targets:
+        Jiuzhou: all
