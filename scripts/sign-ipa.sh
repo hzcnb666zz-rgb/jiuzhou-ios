@@ -10,6 +10,7 @@ cleanup() {
 trap cleanup EXIT
 printf '%s' "$IOS_P12_BASE64" | base64 --decode > "$SIGN_DIR/certificate.p12"
 printf '%s' "$IOS_PROFILE_BASE64" | base64 --decode > "$SIGN_DIR/profile.mobileprovision"
+IOS_P12_PASSWORD="$(printf '%s' "$IOS_P12_PASSWORD" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 security cms -D -i "$SIGN_DIR/profile.mobileprovision" > "$SIGN_DIR/profile.plist"
 python3 - "$SIGN_DIR/profile.plist" "$SIGN_DIR/entitlements.plist" <<'PY'
 import datetime, plistlib, sys
