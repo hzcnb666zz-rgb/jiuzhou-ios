@@ -196,6 +196,7 @@ struct AndroidEntryView: View {
                     .foregroundStyle(value.isEmpty ? Color.gray : Color.black)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20).modifier(LoginFieldStyle())
+                    .contentShape(Rectangle())
             }.buttonStyle(.plain).padding(.horizontal, 10)
                 .accessibilityIdentifier("register.\(["account", "password", "confirmation", "phone"][index])")
         }.padding(.bottom, 20)
