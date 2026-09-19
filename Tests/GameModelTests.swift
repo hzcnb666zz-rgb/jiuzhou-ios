@@ -14,6 +14,20 @@ private final class RecordingTransport: MudTransporting {
 }
 
 final class GameModelTests: XCTestCase {
+    func testOrdinaryCommandDoesNotSplitConfirmationDelimiter() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        game.act("say literal$sock#text")
+        XCTAssertEqual(wire.commands, ["say literal$sock#text"])
+        wire.receive("045", "https://example.com/test")
+        XCTAssertEqual(game.webURL?.absoluteString, "https://example.com/test")
+        wire.receive("045", "javascript:alert(1)")
+        XCTAssertEqual(game.webURL?.absoluteString, "https://example.com/test")
+        game.logout()
+        XCTAssertNil(game.webURL)
+    }
+
     func testRedirectAndPagedTextClose() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)

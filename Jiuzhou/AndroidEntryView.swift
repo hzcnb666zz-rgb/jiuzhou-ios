@@ -20,6 +20,7 @@ struct AndroidEntryView: View {
             if game.inWorld { AndroidWorldView(game: game) }
             else if game.needsCharacter { character }
             else { login }
+            if let url = game.webURL { AndroidWebPanel(url: url) { game.webURL = nil } }
         }
         .environment(\.mudDisplayWidth, geometry.size.width)
         }
@@ -116,7 +117,7 @@ struct AndroidEntryView: View {
             Text(value.isEmpty ? (password ? "请输入你的密码" : "请输入你的账号") : password ? String(repeating: "•", count: value.count) : value)
                 .foregroundStyle(value.isEmpty ? Color.gray : Color.black)
                 .frame(maxWidth: .infinity, alignment: .leading).modifier(LoginFieldStyle())
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).accessibilityIdentifier(password ? "login.password" : "login.account")
     }
 
     private var character: some View {

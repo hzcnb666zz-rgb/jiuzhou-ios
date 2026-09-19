@@ -195,7 +195,7 @@ struct AndroidWorldView: View {
                     ForEach(game.topActions) { item in action(item, height: 28) }
                 }
             }
-            Button(game.descriptionHidden ? "显示" : "隐藏") { game.toggleDescription() }
+            Button(game.descriptionToggleLabel) { game.toggleDescription() }
                 .font(.android(size: (unit - 14) / 25)).padding(.horizontal, 8).frame(height: unit / 13)
                 .background(Color.white.opacity(0.13))
         }.padding(3).frame(minHeight: 40)
@@ -256,9 +256,11 @@ struct AndroidWorldView: View {
                 }
             }
             VStack(spacing: 2) {
-                Button(game.customButtonsVisible ? "关闭" : "自定") { game.toggleCustomButtons() }
-                    .font(.android(size: unit / 31))
-                    .frame(maxWidth: .infinity).frame(height: unit * 3 / 22 - 2).buttonStyle(AndroidButtonStyle())
+                Button { game.toggleCustomButtons() } label: {
+                    Text(game.customButtonsVisible ? "关闭" : "自定")
+                        .font(.android(size: unit / 31))
+                        .frame(maxWidth: .infinity).frame(height: unit * 3 / 22 - 2)
+                }.buttonStyle(AndroidButtonStyle()).accessibilityIdentifier("world.custom")
                 quickButton(11, height: unit * 3 / 22 - 2, unit: unit)
             }.frame(width: unit / 7 + 2, height: unit * 3 / 11, alignment: .top)
                 .frame(maxHeight: .infinity, alignment: .top)
@@ -307,7 +309,7 @@ struct AndroidWorldView: View {
             Button { menuVisible.toggle() } label: {
                 BundleImage(name: "mainbt", ext: "png").scaledToFit().frame(width: max(0, (unit - 2 - 40 - 260) / 7 + 20), height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("菜单")
-        }.background(Color.white.opacity(0.13))
+        }.background(Color.white.opacity(0.13)).accessibilityIdentifier("world.bottom")
     }
 
     private func stats(unit: CGFloat) -> some View {
@@ -401,7 +403,7 @@ struct AndroidWorldView: View {
     }
 
     private func mainMenu(unit: CGFloat) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
             HStack(spacing: 3) {
                 ForEach(0..<3, id: \.self) { index in
                     let modes = [("日间模式", "day"), ("夜间模式", "mud"), ("正常模式", "night")]
@@ -418,10 +420,10 @@ struct AndroidWorldView: View {
                 menuButton("信息记录", unit: unit) { historyVisible = true; menuVisible = false }
             }
             Color.gray.opacity(0.4).frame(width: 200, height: 1)
-            menuButton("退 出", unit: unit) { quitVisible = true; menuVisible = false }
+            menuButton("退　出", unit: unit) { quitVisible = true; menuVisible = false }
         }.padding(5)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black.opacity(0.3).onTapGesture { menuVisible = false })
+            .background(Color.clear.contentShape(Rectangle()).onTapGesture { menuVisible = false })
     }
 
     private func menuButton(_ label: String, unit: CGFloat, action: @escaping () -> Void) -> some View {

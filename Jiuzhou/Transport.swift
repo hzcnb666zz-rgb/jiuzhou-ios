@@ -69,7 +69,10 @@ final class MudTransport: MudTransporting {
                 do {
                     let frames = try self.decoder.feed(data)
                     if !self.decoder.replies.isEmpty { self.send(self.decoder.replies) }
-                    frames.forEach { self.onFrame?($0) }
+                    for frame in frames {
+                        guard self.generation == token else { return }
+                        self.onFrame?(frame)
+                    }
                 } catch { self.fail("服务器消息过长，连接已关闭"); return }
             }
             if let error { self.fail(error.localizedDescription) }

@@ -26,5 +26,8 @@ while read -r family device; do
     sleep 3
     xcrun simctl io "$device" screenshot "build/screenshots/$family-$scene.png"
   done
+  if [ "$family" = iPhone ]; then
+    xcodebuild -project Jiuzhou.xcodeproj -scheme Jiuzhou -destination "platform=iOS Simulator,id=$device" -derivedDataPath build/simulator -resultBundlePath build/InteractionTests.xcresult test CODE_SIGNING_ALLOWED=NO
+  fi
   xcrun simctl shutdown "$device"
 done < build/screenshot-devices.txt

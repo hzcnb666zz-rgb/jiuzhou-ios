@@ -29,3 +29,10 @@ jobs:
           name: Jiuzhou-runtime-screenshots
           path: build/screenshots
           retention-days: 1
+      - name: Upload interaction test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jiuzhou-interaction-tests
+          path: build/InteractionTests.xcresult
+          retention-days: 1

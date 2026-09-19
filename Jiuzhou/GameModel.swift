@@ -56,6 +56,8 @@ final class GameModel: ObservableObject {
     @Published var history: [GameMessage] = []
     @Published var fighting = false
     @Published var descriptionHidden = UserDefaults.standard.bool(forKey: "descriptionHidden")
+    @Published var descriptionToggleLabel = UserDefaults.standard.bool(forKey: "descriptionHidden") ? "显示" : "-"
+    @Published var webURL: URL?
     @Published var customButtonsVisible = false
     @Published var objectHealth: [String: Double] = [:]
     @Published var statsLayout = MudLayout("", defaults: [2, 2, 22, 35])
@@ -64,6 +66,7 @@ final class GameModel: ObservableObject {
 
     func toggleDescription() {
         descriptionHidden.toggle()
+        descriptionToggleLabel = descriptionHidden ? "显示" : "隐藏"
         UserDefaults.standard.set(descriptionHidden, forKey: "descriptionHidden")
     }
 
@@ -136,7 +139,7 @@ final class GameModel: ObservableObject {
     func logout() {
         transport.disconnect()
         connected = false; connecting = false; inWorld = false; needsCharacter = false
-        dialog = nil; status = "未连接"
+        dialog = nil; webURL = nil; status = "未连接"
     }
 
     func createCharacter(name: String, gender: String) {
@@ -155,8 +158,10 @@ final class GameModel: ObservableObject {
             // Let the server produce its INPUTTXT prompt, matching the Android client.
             transport.send(command)
         } else {
+            let confirmation = dialog?.kind == "confirmation"
             dialog = nil
-            command.components(separatedBy: "$sock#").filter { !$0.isEmpty }.forEach(transport.send)
+            if confirmation { command.components(separatedBy: "$sock#").filter { !$0.isEmpty }.forEach(transport.send) }
+            else { transport.send(command) }
         }
     }
 
@@ -274,8 +279,10 @@ final class GameModel: ObservableObject {
                 }
             }
         case "023":
-            if text == "屏蔽描述" { descriptionHidden = true }
-            else if !UserDefaults.standard.bool(forKey: "descriptionHidden") { descriptionHidden = false }
+            if text == "屏蔽描述" { descriptionHidden = true; descriptionToggleLabel = "显示" }
+            else if !UserDefaults.standard.bool(forKey: "descriptionHidden") { descriptionHidden = false; descriptionToggleLabel = "隐藏" }
+        case "045":
+            if let url = URL(string: text), ["http", "https"].contains(url.scheme ?? "") { webURL = url }
         case "020": dialog = GameDialog(actions: MudText.actions(text))
         case "021": topActions = MudText.actions(text)
         case "903": exits.removeAll { $0.slot == text || $0.command == text }
@@ -286,7 +293,7 @@ final class GameModel: ObservableObject {
                   let number = UInt16(text[text.index(after: separator)...]), number > 0 else { return }
             let target = String(text[..<separator])
             guard !target.isEmpty else { return }
-            host = target; port = String(number); connecting = true
+            host = target; port = String(number); connecting = true; sentCredentials = false
             transport.connect(host: target, port: number)
         case "913": exits = []
         case "905": objects.removeAll { $0.command == text || $0.command == "look " + text }
@@ -296,7 +303,7 @@ final class GameModel: ObservableObject {
     }
 
     private func receiveConfirmation(_ text: String) {
-        var next = GameDialog()
+        var next = GameDialog(kind: "confirmation")
         var confirm: [String] = []
         for part in text.components(separatedBy: "$dh#") {
             if part.hasPrefix("ok11.") { confirm.append(String(part.dropFirst(5))) }
