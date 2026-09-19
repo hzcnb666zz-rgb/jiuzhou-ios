@@ -67,11 +67,12 @@ struct MudRichText: View {
             let code = String(ns.substring(with: match.range).dropFirst(2))
             if code.hasPrefix("u:") {
                 let target = String(code.dropFirst(2).dropLast())
-                if target.hasPrefix("cmds:") || target.hasPrefix("pops:") {
+                if target.hasPrefix("cmds:") || target.hasPrefix("pops:") || target.hasPrefix("voice:") {
                     var components = URLComponents()
                     components.scheme = "mudcmd"
                     components.host = "send"
-                    components.queryItems = [URLQueryItem(name: "command", value: (target.hasPrefix("pops:") ? "\u{001B}020" : "") + String(target.dropFirst(5)))]
+                    let command = target.hasPrefix("voice:") ? target : (target.hasPrefix("pops:") ? "\u{001B}020" : "") + String(target.dropFirst(5))
+                    components.queryItems = [URLQueryItem(name: "command", value: command)]
                     link = components.url
                 } else { link = URL(string: target) }
             } else if code.hasPrefix("s:") {

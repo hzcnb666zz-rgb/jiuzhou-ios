@@ -2,6 +2,15 @@ import XCTest
 @testable import JiuzhouProtocol
 
 final class MudProtocolTests: XCTestCase {
+    func testRepeatedCommandsPreserveLabelsOrderAndIdentity() {
+        let items = MudText.actions("查看:look$zj#刷新:look$zj#查看:look")
+        XCTAssertEqual(items.map(\.label), ["查看", "刷新", "查看"])
+        XCTAssertEqual(Set(items.map(\.id)).count, 3)
+        let popup = MudText.popupActions("查看|look$z2#刷新|look")
+        XCTAssertEqual(popup.count, 2)
+        XCTAssertNotEqual(popup[0].id, popup[1].id)
+    }
+
     func testPopupPayloadAndLinkedCommandsDoNotBecomeFrames() {
         let actions = "更多:\u{001B}020交谈|ask elder"
         XCTAssertEqual(MudDecoder.frames("\u{001B}008" + actions), [MudFrame(code: "008", text: actions)])

@@ -29,7 +29,7 @@ struct GameReward: Identifiable {
 }
 
 struct GameStat: Identifiable {
-    var id: String { label }
+    let id = UUID()
     let label: String
     let value: String
     let color: String
@@ -64,6 +64,9 @@ final class GameModel: ObservableObject {
     @Published var notice = ""
     @Published var chatMessages: [GameMessage] = []
     @Published var fightMessages: [GameMessage] = []
+    @Published var combatEffects: [GameMessage] = []
+    @Published var voiceRecorderVisible = false
+    @Published var voiceFilename: String?
     @Published var history: [GameMessage] = []
     @Published var fighting = false
     @Published var descriptionHidden = UserDefaults.standard.bool(forKey: "descriptionHidden")
@@ -74,6 +77,15 @@ final class GameModel: ObservableObject {
     @Published var statsLayout = MudLayout("", defaults: [2, 2, 22, 35])
     private let transport: MudTransporting
     private var sentCredentials = false
+    private var styleStream = MudStyleStream()
+
+    private func styledActions(_ text: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
+        MudText.actions(text, exits: exits, slots: slots).map { action in
+            var result = action
+            result.styledLabel = styleStream.render(action.display)
+            return result
+        }
+    }
 
     func toggleDescription() {
         descriptionHidden.toggle()
@@ -111,6 +123,7 @@ final class GameModel: ObservableObject {
     }
 
     func toggleCustomButtons() {
+        voiceRecorderVisible = false
         buttons.removeAll { action in
             guard let slot = Int(action.slot.dropFirst()) else { return false }
             return (1...11).contains(slot)
@@ -154,9 +167,13 @@ final class GameModel: ObservableObject {
             if ProcessInfo.processInfo.arguments.contains("--ui-check-pages") {
                 dialog = GameDialog(text: "未明谷记事$br#清溪沿着山脚流过。$br#村长记得这里的往事。", kind: "pages")
             }
-            for scene in ["common", "inventory", "item", "player", "npc"] where ProcessInfo.processInfo.arguments.contains("--ui-check-" + scene) {
+            for scene in ["common", "inventory", "item", "player", "npc", "edge"] where ProcessInfo.processInfo.arguments.contains("--ui-check-" + scene) {
                 replayParityScene("common")
                 replayParityScene(scene)
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-voice") { voiceRecorderVisible = true }
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-combat") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.receive(MudFrame(code: "024", text: "伤害 100")) }
             }
         }
         #endif
@@ -173,6 +190,7 @@ final class GameModel: ObservableObject {
         UserDefaults.standard.set(port, forKey: "port")
         UserDefaults.standard.set(account, forKey: "account")
         sentCredentials = false
+        styleStream = MudStyleStream(); combatEffects = []
         needsCharacter = false
         inWorld = false
         dialog = nil; popup = nil; webURL = nil
@@ -188,6 +206,7 @@ final class GameModel: ObservableObject {
         transport.disconnect()
         connected = false; connecting = false; inWorld = false; needsCharacter = false
         dialog = nil; popup = nil; webURL = nil; status = "未连接"
+        combatEffects = []; voiceRecorderVisible = false; voiceFilename = nil
     }
 
     func createCharacter(name: String, gender: String) {
@@ -198,7 +217,19 @@ final class GameModel: ObservableObject {
         transport.send(gender + "║║" + name)
     }
 
+    func act(_ action: MudAction) {
+        if action.label.components(separatedBy: "|").first == "发送语音" {
+            voiceRecorderVisible = true; customButtonsVisible = false
+            if !action.command.contains("$txt#") { dialog = nil }
+        } else { act(action.command) }
+    }
+
     func act(_ command: String) {
+        if command.hasPrefix("voice:"), LegacyService.voiceURL(String(command.dropFirst(6))) != nil {
+            voiceFilename = String(command.dropFirst(6))
+            voiceRecorderVisible = true
+            return
+        }
         guard connected, !command.isEmpty else { return }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-check-common"),
@@ -229,18 +260,19 @@ final class GameModel: ObservableObject {
 
     private func log(_ text: String) {
         if text.contains("\u{001B}[2J") { messages = [] }
+        let styled = styleStream.render(text)
         let clean = MudText.plain(text)
         guard !clean.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        messages.append(GameMessage(text: text))
+        messages.append(GameMessage(text: styled))
         if messages.count > 50 { messages.removeFirst(messages.count - 50) }
-        history.append(GameMessage(text: text))
+        history.append(GameMessage(text: styled))
         if history.count > 500 { history.removeFirst(history.count - 500) }
     }
 
     private func merge(_ additions: [MudAction], into current: [MudAction]) -> [MudAction] {
         var result = current
         for action in additions {
-            if let index = result.firstIndex(where: { $0.id == action.id }) { result[index] = action }
+            if let index = result.firstIndex(where: { action.direction != nil && $0.direction == action.direction }) { result[index] = action }
             else { result.append(action) }
         }
         return result
@@ -272,15 +304,17 @@ final class GameModel: ObservableObject {
             if text == "重连完毕" { transport.send("look") }
         case "001":
             let parts = text.components(separatedBy: "$zj#")
-            if parts.count >= 2 { dialog = GameDialog(text: parts[0], inputCommand: parts[1]) }
+            if parts.count >= 2 { dialog = GameDialog(text: styleStream.render(parts[0]), inputCommand: parts[1]) }
         case "002":
-            room = text; objects = []; exits = []; dialog = nil
+            room = styleStream.render(text); objects = []; exits = []; dialog = nil
+            combatEffects = []
+            voiceRecorderVisible = false
             fighting = false; customButtonsVisible = false; objectHealth = [:]
-        case "003": exits = merge(MudText.actions(text, exits: true), into: exits)
-        case "004": description = text
-        case "005": objects = merge(MudText.actions(text), into: objects)
+        case "003": exits = merge(styledActions(text, exits: true), into: exits)
+        case "004": description = styleStream.render(text)
+        case "005": objects += styledActions(text)
         case "006":
-            for button in MudText.actions(text, slots: true) {
+            for button in styledActions(text, slots: true) {
                 buttons.removeAll { $0.slot == button.slot }
                 buttons.append(button)
                 if let slot = Int(button.slot.dropFirst()), (12...17).contains(slot) {
@@ -290,14 +324,14 @@ final class GameModel: ObservableObject {
                 if let slot = Int(button.slot.dropFirst()), (1...10).contains(slot) { customButtonsVisible = true }
             }
             buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
-        case "007": dialog = GameDialog(text: text)
+        case "007": dialog = GameDialog(text: styleStream.render(text))
         case "008", "009":
             var next = dialog ?? GameDialog()
-            if frame.code == "008" { next.actions = MudText.actions(text); next.layout = MudLayout(text) }
-            else { next.secondary = MudText.actions(text); next.secondaryLayout = MudLayout(text) }
+            if frame.code == "008" { next.actions = styledActions(text); next.layout = MudLayout(text) }
+            else { next.secondary = styledActions(text); next.secondaryLayout = MudLayout(text) }
             dialog = next
         case "010": receiveConfirmation(text)
-        case "011", "013": dialog = GameDialog(text: text, kind: frame.code == "011" ? "map" : "pages")
+        case "011", "013": dialog = GameDialog(text: styleStream.render(text), kind: frame.code == "011" ? "map" : "pages")
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
             statsLayout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35])
@@ -310,20 +344,26 @@ final class GameModel: ObservableObject {
             }
         case "014": transport.send(text)
         case "015":
-            notice = MudText.plain(text)
-            history.append(GameMessage(text: text))
+            notice = styleStream.render(text)
+            history.append(GameMessage(text: notice))
             if history.count > 500 { history.removeFirst(history.count - 500) }
-            if !inWorld { status = notice }
+            if !inWorld { status = MudText.plain(notice) }
         case "016":
             fighting = true
-            fightMessages.append(GameMessage(text: text))
+            let styled = styleStream.render(text)
+            fightMessages.append(GameMessage(text: styled))
             if fightMessages.count > 50 { fightMessages.removeFirst() }
-            history.append(GameMessage(text: text))
+            history.append(GameMessage(text: styled))
             if history.count > 500 { history.removeFirst() }
         case "100":
-            chatMessages.append(GameMessage(text: text))
+            chatMessages.append(GameMessage(text: styleStream.render(text)))
             if chatMessages.count > 500 { chatMessages.removeFirst() }
-        case "024": notice = MudText.plain(text)
+        case "024":
+            let effect = GameMessage(text: styleStream.render(text))
+            combatEffects.append(effect)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.1) { [weak self] in
+                self?.combatEffects.removeAll { $0.id == effect.id }
+            }
         case "017": fighting = false; fightMessages = []
         case "022":
             let parts = text.components(separatedBy: "$zj#")
@@ -339,7 +379,7 @@ final class GameModel: ObservableObject {
         case "045":
             if let url = URL(string: text), ["http", "https"].contains(url.scheme ?? "") { webURL = url }
         case "020": showPopup(text)
-        case "021": topActions = MudText.actions(text)
+        case "021": topActions = styledActions(text)
         case "903": exits.removeAll { $0.slot == text || $0.command == text }
         case "997": transport.preservesNewlines = false
         case "998": transport.preservesNewlines = true
@@ -386,7 +426,12 @@ final class GameModel: ObservableObject {
     }
 
     private func showPopup(_ text: String) {
-        popup = GameDialog(actions: MudText.popupActions(text), layout: MudLayout(text, defaults: [1, 2, 8, 25]), kind: "popup")
+        let actions = MudText.popupActions(text).map { action in
+            var result = action
+            result.styledLabel = styleStream.render(action.display)
+            return result
+        }
+        popup = GameDialog(actions: actions, layout: MudLayout(text, defaults: [1, 2, 8, 25]), kind: "popup")
     }
 
     #if DEBUG

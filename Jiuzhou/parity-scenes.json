@@ -16,6 +16,16 @@
     {"code":"007","text":"江湖侠客$br#他看起来约二十多岁，身穿一件布衣。$br#他看起来气血充盈。"},
     {"code":"008","text":"$2,3,9,30#交谈:ask player$zj#查看装备:equipment player$zj#切磋:fight player$zj#加为好友:friend player$zj#组队:team player"}
   ],
+  "edge": [
+    {"code":"002","text":"校对场景"},
+    {"code":"005","text":"同名村民:look villager$zj#同名村民:look villager"},
+    {"code":"003","text":"north:旧北路$zj#enter:小院"},
+    {"code":"003","text":"northup:上山:climb"},
+    {"code":"021","text":"标题甲:look$zj#标题乙:look"},
+    {"code":"012","text":"$2,2,40,35#气血:8/10:#aa3300:hp║内力:5/10:#0000aa:hp║潜能:30:#ffffff:score"},
+    {"code":"007","text":"重复指令保留不同按钮"},
+    {"code":"008","text":"$2,3,9,30#查看:look$zj#刷新:look$zj#发送语音:record"}
+  ],
   "npc": [
     {"code":"007","text":"老村长$br#你想打听什么？"},
     {"code":"008","text":"$2,3,9,30#交谈|未明谷的故事:ask elder$zj#交易|查看随身物品:list elder"}

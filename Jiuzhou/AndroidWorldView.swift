@@ -47,8 +47,37 @@ struct AndroidButtonStyle: ButtonStyle {
     }
 }
 
+private struct CombatEffect: View {
+    let text: String
+    let unit: CGFloat
+    @State private var scale: CGFloat = 0
+    @State private var rise: CGFloat = 0
+    @State private var opacity = 0.0
+
+    var body: some View {
+        GeometryReader { geometry in
+            let pixels = UIScreen.main.scale
+            MudRichText(raw: text, send: { _ in }).font(.android(size: unit / 22))
+                .foregroundStyle(.red).shadow(color: .black, radius: 0, x: 1, y: 1)
+                .scaleEffect(scale, anchor: .bottomLeading).opacity(opacity)
+                .offset(x: 10 / pixels, y: max(0, geometry.size.height - 100 / pixels - unit / 22) - rise / pixels)
+        }.allowsHitTesting(false).accessibilityIdentifier("world.combatEffect")
+            .task {
+                withAnimation(.easeInOut(duration: 0.1)) { scale = 2; rise = 100; opacity = 1 }
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeInOut(duration: 1.8)) { rise = 1100 }
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeInOut(duration: 1.8)) { opacity = 0 }
+            }
+    }
+}
+
+@MainActor
 struct AndroidWorldView: View {
     @ObservedObject var game: GameModel
+    @StateObject private var voice = MudVoice()
     @AppStorage("androidMode") private var mode = "night"
     @AppStorage("androidChatDivisor") private var chatDivisor = 5
     @FocusState private var inputFocused: Bool
@@ -111,7 +140,12 @@ struct AndroidWorldView: View {
                                 }.padding(.top, 2).frame(maxWidth: .infinity, alignment: .leading)
                             }
                             ForEach(extraExits) { exit in
-                                action(exit, height: unit / 11)
+                                Button { game.act(exit.command) } label: {
+                                    MudRichText(raw: exit.display, send: game.act)
+                                        .font(.android(size: unit / 35)).multilineTextAlignment(.center)
+                                        .frame(width: unit / 7, height: unit / 11)
+                                }.buttonStyle(AndroidButtonStyle(image: mode == "night" ? "exitbt" : nil))
+                                    .padding(.top, 3).padding(.bottom, 1)
                             }
                         }.frame(width: unit / 7 + 2)
                         Rectangle().fill(Color(white: 0.4)).frame(width: 1)
@@ -132,7 +166,7 @@ struct AndroidWorldView: View {
                                     else if dialog.kind == "interaction" { interaction(unit: unit) }
                                 }
                                 if !game.notice.isEmpty {
-                                    Text(game.notice).font(.android(size: 14)).foregroundStyle(.cyan)
+                                    MudRichText(raw: game.notice, send: game.act).font(.android(size: 14)).foregroundStyle(.cyan)
                                         .padding(2).frame(maxWidth: .infinity, alignment: .leading)
                                         .background(Color(white: 0.4)).allowsHitTesting(false)
                                         .task(id: game.notice) {
@@ -140,6 +174,9 @@ struct AndroidWorldView: View {
                                             try? await Task.sleep(nanoseconds: 5_000_000_000)
                                             if !Task.isCancelled && game.notice == notice { game.notice = "" }
                                         }
+                                }
+                                ForEach(game.combatEffects) { effect in
+                                    CombatEffect(text: effect.text, unit: unit)
                                 }
                             }.frame(maxWidth: .infinity, maxHeight: .infinity)
                             rule
@@ -170,6 +207,11 @@ struct AndroidWorldView: View {
             dialogInput = ""
             inputFocused = game.dialog?.inputCommand != nil
         }
+        .onChange(of: game.voiceFilename) { filename in
+            if let filename { voice.play(filename: filename); game.voiceFilename = nil }
+        }
+        .onChange(of: game.voiceRecorderVisible) { visible in if !visible { voice.cancel() } }
+        .onDisappear { voice.cancel() }
         .alert("请输入快捷键指令：", isPresented: $centerEditVisible) {
             TextField("指令", text: $editCommand)
             Button("确定") { centerCommand = editCommand; game.buttons.removeAll { $0.slot == "bs" } }
@@ -212,7 +254,12 @@ struct AndroidWorldView: View {
                 .lineLimit(1).minimumScaleFactor(0.6).padding(3).padding(.leading, 18).padding(.bottom, 2)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 3) {
-                    ForEach(game.topActions) { item in action(item, height: 28) }
+                    ForEach(game.topActions) { item in
+                        Button { game.act(item.command) } label: {
+                            MudRichText(raw: item.display, send: game.act).font(.android(size: unit / 30))
+                                .padding(.horizontal, 1).frame(minHeight: unit / 13)
+                        }.buttonStyle(AndroidButtonStyle())
+                    }
                 }
             }
             Button(game.descriptionToggleLabel) { game.toggleDescription() }
@@ -243,7 +290,22 @@ struct AndroidWorldView: View {
 
     private func exits(unit: CGFloat) -> some View {
         HStack(alignment: .top, spacing: 0) {
-            if game.customButtonsVisible {
+            if game.voiceRecorderVisible {
+                HStack(spacing: 2) {
+                    VStack(spacing: 2) {
+                        ProgressView(value: voice.level).tint(.green).frame(maxHeight: .infinity)
+                        Button { voice.play() } label: {
+                            Text(voice.status).font(.android(size: 15)).frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }.buttonStyle(AndroidButtonStyle()).disabled(voice.recording || voice.busy)
+                    }
+                    Button {
+                        if voice.recording { voice.finish(send: game.act) } else { voice.start() }
+                    } label: {
+                        Text(voice.recording ? "结束并发送" : "开始录音").font(.android(size: 15))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }.buttonStyle(AndroidButtonStyle()).disabled(voice.busy)
+                }.padding(3)
+            } else if game.customButtonsVisible {
                 VStack(spacing: 0) {
                     ForEach(0..<2, id: \.self) { row in
                         HStack(spacing: 0) {
@@ -338,8 +400,12 @@ struct AndroidWorldView: View {
     }
 
     private func stats(unit: CGFloat) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1), count: game.statsLayout.columns), spacing: 1) {
-            ForEach(game.stats) { stat in
+        let columns = game.statsLayout.columns
+        return VStack(spacing: 0) {
+            ForEach(0..<((game.stats.count + columns - 1) / columns), id: \.self) { row in
+            HStack(spacing: 0) {
+            ForEach((row * columns)..<min(game.stats.count, (row + 1) * columns), id: \.self) { index in
+                let stat = game.stats[index]
                 Button { game.act(stat.command) } label: {
                     GeometryReader { g in
                         ZStack(alignment: .leading) {
@@ -348,8 +414,11 @@ struct AndroidWorldView: View {
                             MudRichText(raw: stat.label + (stat.value.contains("/") ? "" : ":" + stat.value), send: game.act)
                                 .font(.android(size: unit / CGFloat(game.statsLayout.fontDivisor))).lineLimit(1).minimumScaleFactor(0.6)
                         }
-                    }.frame(height: max(16, unit / CGFloat(game.statsLayout.heightDivisor)))
-                }.buttonStyle(.plain)
+                    }.frame(height: unit / CGFloat(game.statsLayout.heightDivisor))
+                }.buttonStyle(.plain).padding(.bottom, 1)
+                    .accessibilityIdentifier("world.stat.\(index)")
+            }
+            }.padding(.trailing, 1)
             }
         }
     }
@@ -357,13 +426,6 @@ struct AndroidWorldView: View {
     private func color(_ hex: String) -> Color {
         let value = UInt32(hex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0
         return Color(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255)
-    }
-
-    private func action(_ item: MudAction, height: CGFloat) -> some View {
-        Button { game.act(item.command) } label: {
-            MudRichText(raw: item.display, send: game.act).font(.android(size: 12))
-                .multilineTextAlignment(.center).padding(3).frame(maxWidth: .infinity, minHeight: height)
-        }.buttonStyle(AndroidButtonStyle())
     }
 
     private func interaction(unit: CGFloat) -> some View {
@@ -444,7 +506,7 @@ struct AndroidWorldView: View {
                 HStack(spacing: 0) {
                 ForEach((row * layout.columns)..<min(items.count, (row + 1) * layout.columns), id: \.self) { index in
                 let item = items[index]
-                Button { game.act(item.command) } label: {
+                Button { game.act(item) } label: {
                     let parts = item.display.components(separatedBy: "|")
                     VStack(spacing: 0) {
                         MudRichText(raw: parts[0], send: game.act)

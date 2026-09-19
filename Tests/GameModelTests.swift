@@ -14,6 +14,55 @@ private final class RecordingTransport: MudTransporting {
 }
 
 final class GameModelTests: XCTestCase {
+    func testStyleInheritanceAndCombatAreSeparateFromNotices() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive(nil, "\u{001B}[31m红色")
+        wire.receive(nil, "继承")
+        XCTAssertEqual(game.messages.last?.text, "\u{001B}[31m继承")
+        wire.receive(nil, "\u{001B}[0m恢复")
+        wire.receive(nil, "普通")
+        XCTAssertEqual(game.messages.last?.text, "普通")
+        wire.receive("015", "通知")
+        wire.receive("024", "伤害 100")
+        XCTAssertEqual(game.notice, "通知")
+        XCTAssertEqual(game.combatEffects.first?.text, "伤害 100")
+        wire.receive("002", "新房间")
+        XCTAssertTrue(game.combatEffects.isEmpty)
+    }
+
+    func testVoiceActionsDoNotSendPlaceholderCommands() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        game.act(MudAction(label: "发送语音", command: "record"))
+        XCTAssertTrue(game.voiceRecorderVisible)
+        XCTAssertTrue(wire.commands.isEmpty)
+        game.act("voice:123.amr")
+        XCTAssertEqual(game.voiceFilename, "123.amr")
+        XCTAssertTrue(wire.commands.isEmpty)
+        game.logout()
+        XCTAssertFalse(game.voiceRecorderVisible)
+        XCTAssertNil(game.voiceFilename)
+    }
+
+    func testObjectDuplicatesAndDirectionalReplacement() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive("005", "村民:look villager$zj#村民:look villager")
+        wire.receive("005", "村民:look villager")
+        XCTAssertEqual(game.objects.count, 3)
+        XCTAssertEqual(Set(game.objects.map(\.id)).count, 3)
+        wire.receive("003", "north:北路$zj#east:东路")
+        wire.receive("003", "northup:山路:climb$zj#northdown:山谷:descend")
+        XCTAssertEqual(game.exits.count, 2)
+        XCTAssertEqual(game.exits.first?.command, "descend")
+        wire.receive("903", "northdown")
+        XCTAssertEqual(game.exits.map(\.slot), ["east"])
+        wire.receive("905", "villager")
+        XCTAssertTrue(game.objects.isEmpty)
+    }
+
     func testHandshakeAndRejectedLoginCanRetry() {
         let keys = ["account", "host", "port"]
         let saved = keys.map { UserDefaults.standard.object(forKey: $0) }

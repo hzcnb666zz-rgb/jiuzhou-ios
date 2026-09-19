@@ -5,6 +5,9 @@ struct AndroidEntryView: View {
     @ObservedObject var game: GameModel
     @State private var registering = false
     @State private var confirmedPassword = ""
+    @State private var phone = ""
+    @State private var email = ""
+    @State private var registeringRequest = false
     @State private var characterName = ""
     @State private var gender = "男性"
     @State private var chooseServer = false
@@ -85,11 +88,17 @@ struct AndroidEntryView: View {
                         if registering {
                             fieldLabel("确认你的密码")
                             SecureField("请再输一次密码", text: $confirmedPassword).modifier(LoginFieldStyle())
+                            fieldLabel("你的手机号码")
+                            TextField("", text: $phone).keyboardType(.phonePad).modifier(LoginFieldStyle())
+                                .accessibilityIdentifier("register.phone")
+                            fieldLabel("你的邮箱")
+                            TextField("", text: $email).keyboardType(.emailAddress).textInputAutocapitalization(.never)
+                                .autocorrectionDisabled().modifier(LoginFieldStyle()).accessibilityIdentifier("register.email")
                         }
                         HStack(spacing: 8) {
                             Button(registering ? "注 册" : "登 录") {
-                                if registering && confirmedPassword != game.password {
-                                    game.status = "两次输入的密码不一致"
+                                if registering {
+                                    register()
                                 } else if game.account.isEmpty || game.password.isEmpty {
                                     game.status = "请输入账号和密码"
                                 } else {
@@ -97,7 +106,7 @@ struct AndroidEntryView: View {
                                 }
                             }
                             Button("退 出") { game.logout(); game.password = "" }
-                        }.buttonStyle(LoginButtonStyle()).padding(.top, 50)
+                        }.buttonStyle(LoginButtonStyle()).padding(.top, 50).disabled(registeringRequest)
                         Text(game.status == "未连接" ? "" : game.status).font(.android(size: 13)).padding(10)
                     }.padding(.horizontal, 10)
                 }
@@ -107,6 +116,28 @@ struct AndroidEntryView: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text).padding(.leading, 20).frame(height: 80, alignment: .center)
+    }
+
+    private func register() {
+        guard ![game.account, game.password, confirmedPassword, phone, email].contains(where: { $0.isEmpty }) else {
+            game.status = "请确保各项都不为空！"; return
+        }
+        guard confirmedPassword == game.password else { game.status = "两次输入密码不一致！"; return }
+        registeringRequest = true
+        game.status = "正在注册"
+        let request = LegacyService.registration(account: game.account, password: game.password, phone: phone, email: email)
+        Task { @MainActor in
+            defer { registeringRequest = false }
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+                      let result = String(data: data, encoding: .utf8), !result.isEmpty else {
+                    game.status = "注册失败，服务器连接错误！"; return
+                }
+                game.status = result
+                if result == "注册成功" { registering = false; confirmedPassword = "" }
+            } catch { game.status = "注册失败，请检查网络！" }
+        }
     }
 
     private func credentialField(password: Bool) -> some View {

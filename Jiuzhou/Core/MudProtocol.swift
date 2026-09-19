@@ -74,12 +74,22 @@ struct MudDecoder {
 }
 
 struct MudAction: Identifiable, Equatable {
-    var id: String { slot.isEmpty ? command : slot }
+    let occurrence = UUID()
+    var id: UUID { occurrence }
     let label: String
     let command: String
     var slot: String = ""
     var styledLabel: String? = nil
     var display: String { styledLabel ?? label }
+
+    static func == (lhs: MudAction, rhs: MudAction) -> Bool {
+        lhs.label == rhs.label && lhs.command == rhs.command && lhs.slot == rhs.slot && lhs.styledLabel == rhs.styledLabel
+    }
+
+    var direction: String? {
+        for name in ["north", "south", "east", "west"] where [name, name + "up", name + "down"].contains(slot) { return name }
+        return ["northwest", "northeast", "southwest", "southeast"].contains(slot) ? slot : nil
+    }
 }
 
 struct MudLayout: Equatable {
@@ -134,7 +144,6 @@ enum MudText {
     }
 
     static func actions(_ raw: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
-        var seen = Set<String>()
         return withoutLayout(raw).components(separatedBy: "$zj#").compactMap { entry in
             // A colon inside an ANSI link/size tag is not an action separator.
             let tag = try! NSRegularExpression(pattern: "\u{001B}\\[[us]:[^\\]]*\\]")
@@ -148,7 +157,7 @@ enum MudText {
             let command = slots ? (parts.count == 3 ? parts[2] : "") :
                 (exits ? (parts.count == 3 ? parts[2] : parts[0]) : parts[1])
             let slot = slots || exits ? plain(parts[0]) : ""
-            guard !command.isEmpty, seen.insert(slot.isEmpty ? command : slot).inserted else { return nil }
+            guard !command.isEmpty else { return nil }
             let label = slots || exits ? parts[1] : parts[0]
             let clean = plain(label)
             return MudAction(label: clean, command: command, slot: slot,

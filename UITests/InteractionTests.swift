@@ -1,6 +1,56 @@
 import XCTest
 
 final class InteractionTests: XCTestCase {
+    func testRepeatedActionsStatsAndUpdatedDirection() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-check-world", "--ui-check-edge"]
+        app.launch()
+        XCTAssertTrue(app.buttons["刷新"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["查看"].exists)
+        XCTAssertEqual(app.buttons.matching(identifier: "同名村民").count, 2)
+        XCTAssertTrue(app.buttons["标题甲"].exists)
+        XCTAssertTrue(app.buttons["标题乙"].exists)
+        let first = app.buttons["world.stat.0"].frame
+        let last = app.buttons["world.stat.2"].frame
+        XCTAssertEqual(last.width, first.width * 2, accuracy: 1)
+        XCTAssertEqual(first.height, app.windows.firstMatch.frame.width / 40, accuracy: 1)
+        app.buttons["发送语音"].tap()
+        XCTAssertTrue(app.buttons["开始录音"].waitForExistence(timeout: 5))
+        app.buttons["world.custom"].tap()
+        XCTAssertTrue(app.buttons["world.custom"].exists)
+        app.buttons["world.custom"].tap()
+        XCTAssertTrue(app.buttons["上山"].exists)
+        XCTAssertFalse(app.buttons["旧北路"].exists)
+    }
+
+    func testRegistrationIncludesPhoneAndEmailWithoutSubmitting() {
+        let app = XCUIApplication()
+        app.launch()
+        app.buttons["注 册"].tap()
+        app.swipeUp()
+        XCTAssertTrue(app.textFields["register.phone"].exists)
+        XCTAssertTrue(app.textFields["register.email"].exists)
+    }
+
+    func testThemeSwitchesAndRotationKeepWorldControls() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-check-world"]
+        app.launch()
+        for theme in ["日间模式", "夜间模式", "正常模式"] {
+            app.buttons["菜单"].tap()
+            XCTAssertTrue(app.buttons[theme].waitForExistence(timeout: 5))
+            app.buttons[theme].tap()
+            XCTAssertTrue(app.buttons["山路"].exists)
+        }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        XCTAssertTrue(app.buttons["菜单"].waitForExistence(timeout: 5))
+        let capture = XCTAttachment(screenshot: app.screenshot())
+        capture.name = "landscape-world"
+        capture.lifetime = .keepAlways
+        add(capture)
+    }
+
     override func setUpWithError() throws { continueAfterFailure = false }
 
     func testCommonInventoryAndItemGeometry() {
