@@ -1,0 +1,29 @@
+name: Inspect Failed UI Evidence
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: macos-14
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Jiuzhou-interaction-tests
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: build
+      - name: Export failure evidence
+        run: python3 scripts/export-test-screenshots.py build/InteractionTests-iPhone.xcresult build/failure-evidence --all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: failure-evidence
+          path: build/failure-evidence
+          retention-days: 1

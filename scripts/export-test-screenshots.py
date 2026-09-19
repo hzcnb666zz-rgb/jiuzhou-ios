@@ -5,7 +5,8 @@ import subprocess
 import sys
 
 
-bundle, destination = sys.argv[1:]
+bundle, destination = sys.argv[1:3]
+include_all = "--all" in sys.argv[3:]
 output = Path(destination)
 output.mkdir(parents=True, exist_ok=True)
 visited = set()
@@ -29,8 +30,10 @@ def walk(value):
     elif isinstance(value, dict):
         name = value.get("name", {}).get("_value", "")
         payload = value.get("payloadRef", {}).get("id", {}).get("_value")
-        if payload and any(label in name for label in ("landscape-world", "common-to-inventory")) and payload not in exported:
-            filename = "landscape-world" if "landscape-world" in name else "common-to-inventory"
+        image_type = value.get("uniformTypeIdentifier", {}).get("_value", "")
+        named = any(label in name for label in ("landscape-world", "common-to-inventory"))
+        if payload and (named or include_all and image_type == "public.png") and payload not in exported:
+            filename = ("landscape-world" if "landscape-world" in name else "common-to-inventory") if named else "failure-" + str(len(exported))
             subprocess.run(["xcrun", "xcresulttool", "export", "--type", "file", "--path", bundle,
                             "--id", payload, "--output-path", str(output / (filename + ".png"))], check=True)
             exported.add(payload)
