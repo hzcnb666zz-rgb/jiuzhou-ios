@@ -21,7 +21,7 @@ while read -r family device; do
   xcrun simctl launch --terminate-running-process "$device" app.vanilla7419.emerald5335 --ui-check-world
   sleep 3
   xcrun simctl io "$device" screenshot "build/screenshots/$family-world.png"
-  for scene in menu dialog input history confirmation popup; do
+  for scene in menu dialog input history confirmation popup map pages; do
     xcrun simctl launch --terminate-running-process "$device" app.vanilla7419.emerald5335 --ui-check-world "--ui-check-$scene"
     sleep 3
     xcrun simctl io "$device" screenshot "build/screenshots/$family-$scene.png"

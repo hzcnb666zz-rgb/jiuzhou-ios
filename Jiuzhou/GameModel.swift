@@ -89,6 +89,11 @@ final class GameModel: ObservableObject {
 
     func inspectReward(_ item: GameReward) { transport.send("litem " + item.command) }
 
+    func turnPage(next: Bool) {
+        guard dialog?.kind == "pages", connected else { return }
+        transport.send(next ? "n" : "b")
+    }
+
     func confirmDialog(_ value: String) {
         guard let current = dialog else { return }
         if current.numeric {
@@ -143,6 +148,12 @@ final class GameModel: ObservableObject {
                 receiveConfirmation("#ffffff你获得了村长赠送的礼物。$br#$exp#经验 100$br#$god#银两 10$br#$obj#gift,missing,2$dh#ok11.accept$dh#no11.cancel")
             }
             if ProcessInfo.processInfo.arguments.contains("--ui-check-popup") { showPopup("交谈|ask elder$z2#观察|look elder") }
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-map") {
+                dialog = GameDialog(text: "山路$br# |$br#未明谷 -- 村口$br# |$br#青石桥", kind: "map")
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-pages") {
+                dialog = GameDialog(text: "未明谷记事$br#清溪沿着山脚流过。$br#村长记得这里的往事。", kind: "pages")
+            }
         }
         #endif
     }

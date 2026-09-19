@@ -3,6 +3,18 @@ import XCTest
 final class InteractionTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    func testPagedTextStaysOpenUntilClose() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-check-world", "--ui-check-pages"]
+        app.launch()
+        app.buttons["下一页"].tap()
+        XCTAssertTrue(app.buttons["上一页"].exists)
+        app.buttons["上一页"].tap()
+        XCTAssertTrue(app.buttons["下一页"].exists)
+        app.buttons["关闭"].tap()
+        XCTAssertTrue(app.buttons["菜单"].waitForExistence(timeout: 5))
+    }
+
     func testRewardConfirmationRequiresInputAndCancelCloses() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-check-world", "--ui-check-confirmation"]

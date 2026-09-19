@@ -41,6 +41,8 @@ try {
                 elseif ($command -eq 'score') {
                     Send-Line "${esc}010#ffffff你获得了村长赠送的礼物。`$br#`$exp#经验 100`$br#`$god#银两 10`$br#`$obj#gift,missing,2`$dh#ok11.accept`$dh#no11.cancel"
                 }
+                elseif ($command -eq 'skills') { Send-Line "${esc}011山路`$br# |`$br#未明谷 -- 村口`$br# |`$br#青石桥" }
+                elseif ($command -in @('i','n','b')) { Send-Line "${esc}013未明谷记事`$br#清溪沿着山脚流过。`$br#村长记得这里的往事。" }
             }
         } finally { $client.Dispose() }
     }

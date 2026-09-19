@@ -90,13 +90,17 @@ final class GameModelTests: XCTestCase {
         wire.receive("900", "127.0.0.1:6667")
         XCTAssertEqual(wire.endpoint, "127.0.0.1:6667")
         wire.receive("013", "第一页")
+        let pageID = game.dialog?.id
+        game.turnPage(next: true)
+        game.turnPage(next: false)
+        XCTAssertEqual(game.dialog?.id, pageID)
         game.closeDialog()
-        XCTAssertEqual(wire.commands, ["q"])
+        XCTAssertEqual(wire.commands, ["n", "b", "q"])
         wire.receive("900", "broken:0")
         XCTAssertEqual(wire.endpoint, "127.0.0.1:6667")
         wire.receive("007", "对话")
         game.closeDialog()
-        XCTAssertEqual(wire.commands, ["q"])
+        XCTAssertEqual(wire.commands, ["n", "b", "q"])
     }
 
     func testServerShowRespectsLocalPreferenceAndClearScreen() {

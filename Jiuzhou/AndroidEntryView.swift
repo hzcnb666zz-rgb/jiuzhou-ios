@@ -49,7 +49,7 @@ struct AndroidEntryView: View {
 
     private var login: some View {
         ZStack(alignment: .top) {
-            SplashBackground().ignoresSafeArea()
+            SplashBackground()
             if chooseServer {
                 VStack(spacing: 10) {
                     Text("分区列表").font(.android(size: 18)).foregroundStyle(.white)

@@ -67,7 +67,7 @@ struct AndroidWorldView: View {
             // Android uses the actual screen width (scrw) for every main-face dimension.
             let unit = width
             ZStack(alignment: .top) {
-                BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png").ignoresSafeArea()
+                BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png")
                 VStack(spacing: 0) {
                     if !game.chatMessages.isEmpty {
                         messages(Array(game.chatMessages.suffix(100)))
@@ -114,7 +114,10 @@ struct AndroidWorldView: View {
                                     }
                                     messages(game.fighting ? game.fightMessages : game.messages)
                                 }
-                                if let dialog = game.dialog, dialog.kind != "confirmation" { interaction(unit: unit) }
+                                if let dialog = game.dialog {
+                                    if dialog.kind == "map" { mapPanel(dialog, unit: unit) }
+                                    else if dialog.kind == "interaction" { interaction(unit: unit) }
+                                }
                                 if !game.notice.isEmpty {
                                     Text(game.notice).font(.android(size: 14)).foregroundStyle(.cyan)
                                         .padding(2).frame(maxWidth: .infinity, alignment: .leading)
@@ -137,6 +140,7 @@ struct AndroidWorldView: View {
                 if menuVisible { mainMenu(unit: unit).frame(maxHeight: .infinity) }
                 if historyVisible { historyPanel(unit: unit) }
                 if let popup = game.popup { popupMenu(popup, unit: unit) }
+                if let dialog = game.dialog, dialog.kind == "pages" { pagesPanel(dialog, unit: unit) }
                 if game.dialog?.kind == "confirmation" { confirmation(unit: unit) }
             }
             .foregroundStyle(ink).font(.android(size: unit / 28))
@@ -192,7 +196,7 @@ struct AndroidWorldView: View {
     private func titleBar(unit: CGFloat) -> some View {
         HStack(spacing: 3) {
             MudRichText(raw: game.room, send: game.act).font(.android(size: (unit - 14) / 18))
-                .lineLimit(1).minimumScaleFactor(0.6).padding(.leading, 18)
+                .lineLimit(1).minimumScaleFactor(0.6).padding(3).padding(.leading, 18).padding(.bottom, 2)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 3) {
                     ForEach(game.topActions) { item in action(item, height: 28) }
@@ -240,8 +244,7 @@ struct AndroidWorldView: View {
                                 MudRichText(raw: game.room, send: game.act).font(.android(size: unit / 33))
                                     .lineLimit(1).minimumScaleFactor(0.5)
                                     .frame(width: unit / 4, height: unit / 15)
-                                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(red: 0.86, green: 0.93, blue: 0.78).opacity(0.44)))
-                            }.buttonStyle(.plain)
+                            }.buttonStyle(AndroidButtonStyle(image: mode == "night" ? "exitbt" : nil))
                                 .simultaneousGesture(LongPressGesture().onEnded { _ in editCommand = centerCommand; centerEditVisible = true })
                                 .position(x: g.size.width / 2, y: g.size.height / 2)
                         } else if let exit = game.exits.first(where: { $0.slot == slot || $0.slot == slot + "up" || $0.slot == slot + "down" }) {
@@ -366,12 +369,6 @@ struct AndroidWorldView: View {
                         if !dialog.secondary.isEmpty { actionGrid(dialog.secondary, layout: dialog.secondaryLayout, unit: unit) }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
-                HStack {
-                    if dialog.kind == "pages" {
-                        Button("上一页") { game.act("b") }
-                        Button("下一页") { game.act("n") }
-                    }
-                }.buttonStyle(AndroidButtonStyle())
             }
         }.padding(3).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background {
@@ -451,6 +448,36 @@ struct AndroidWorldView: View {
         }.fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.clear.contentShape(Rectangle()).onTapGesture { game.popup = nil })
+    }
+
+    private func mapPanel(_ dialog: GameDialog, unit: CGFloat) -> some View {
+        GeometryReader { geometry in
+            ScrollView([.horizontal, .vertical]) {
+                MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
+                    .fixedSize().frame(minWidth: geometry.size.width, minHeight: geometry.size.height)
+            }.background(.black)
+                .overlay(alignment: .topTrailing) {
+                    Button { game.closeDialog() } label: {
+                        Text("Ｘ").font(.android(size: unit / 16)).foregroundStyle(Color.red.opacity(0.67))
+                            .frame(width: unit / 12, height: unit / 12)
+                    }.buttonStyle(AndroidButtonStyle()).accessibilityLabel("关闭地图")
+                }
+        }
+    }
+
+    private func pagesPanel(_ dialog: GameDialog, unit: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack(spacing: 0) {
+                Spacer()
+                Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: unit / 10) }
+                Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: unit / 10) }
+                Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: unit / 10) }
+            }.font(.android(size: unit / 26)).buttonStyle(AndroidButtonStyle())
+        }.foregroundStyle(Color(white: 221/255)).background(.black)
     }
 
     private func historyPanel(unit: CGFloat) -> some View {
