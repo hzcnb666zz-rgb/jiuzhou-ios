@@ -7,7 +7,8 @@ final class InteractionTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-check-world", "--ui-check-common"]
         app.launch()
-        let width = app.windows.firstMatch.frame.width
+        let window = app.windows.firstMatch.frame
+        let width = window.width
         let backpack = app.buttons["world.slot.1"]
         XCTAssertTrue(backpack.waitForExistence(timeout: 5), app.debugDescription)
         let nextRow = app.buttons["world.slot.6"]
@@ -21,7 +22,7 @@ final class InteractionTests: XCTestCase {
         let category = app.scrollViews["interaction.primary"].buttons["物品"]
         XCTAssertEqual(category.frame.width, width / 8 - 2, accuracy: 1)
         XCTAssertEqual(category.frame.minY, cloth.frame.minY, accuracy: 1)
-        XCTAssertLessThan(app.buttons["干粮"].frame.maxX, width - 5)
+        XCTAssertLessThan(app.buttons["干粮"].frame.maxX, window.maxX - 5)
         XCTAssertEqual(cloth.frame.height, width / 11 - 2, accuracy: 1)
         if !app.buttons["仓库"].isHittable {
             let clothY = cloth.frame.minY
@@ -36,7 +37,7 @@ final class InteractionTests: XCTestCase {
         cloth.tap()
         XCTAssertTrue(app.buttons["丢弃"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["干粮"].exists)
-        XCTAssertLessThan(app.buttons["给予"].frame.maxX, width - 5)
+        XCTAssertLessThan(app.buttons["给予"].frame.maxX, window.maxX - 5)
         XCTAssertEqual(app.scrollViews["interaction.primary"].buttons["装备"].frame.height, width / 9 - 2, accuracy: 1)
         XCTAssertTrue(app.buttons["interaction.close"].exists, app.debugDescription)
         app.buttons["interaction.close"].tap()
