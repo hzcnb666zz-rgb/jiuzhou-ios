@@ -249,7 +249,7 @@ struct AndroidWorldView: View {
                             }
                         }
                     }
-                }.padding(.vertical, 1).accessibilityIdentifier("world.common")
+                }.padding(.vertical, 1)
             } else {
                 GeometryReader { g in
                     ForEach(Array(compass.enumerated()), id: \.offset) { index, slot in
@@ -412,10 +412,12 @@ struct AndroidWorldView: View {
                     BundleImage(name: "exitxx", ext: "png").frame(width: unit / 12, height: unit / 14)
                 }.buttonStyle(.plain).accessibilityLabel("关闭").accessibilityIdentifier("interaction.close")
             }
-            .padding(.horizontal, 5).padding(.vertical, 4)
+            .padding(1)
             .background(RoundedRectangle(cornerRadius: 4).fill(Color(white: 34/255)).overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(red: 238/255, green: 232/255, blue: 205/255).opacity(0.6))))
+            .padding(.horizontal, 4).padding(.vertical, 3)
+            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
             .onPreferenceChange(InteractionTextHeight.self) { interactionTextHeight = $0 }
-        }.accessibilityIdentifier("interaction.panel")
+        }
     }
 
     private func actionList(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat, maxHeight: CGFloat, identifier: String) -> some View {
@@ -427,8 +429,12 @@ struct AndroidWorldView: View {
     }
 
     private func actionGrid(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.fixed(width / CGFloat(layout.columns)), spacing: 0), count: layout.columns), alignment: .leading, spacing: 2) {
-            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+        let rows = (items.count + layout.columns - 1) / layout.columns
+        return VStack(spacing: 2) {
+            ForEach(0..<rows, id: \.self) { row in
+                HStack(spacing: 0) {
+                ForEach((row * layout.columns)..<min(items.count, (row + 1) * layout.columns), id: \.self) { index in
+                let item = items[index]
                 Button { game.act(item.command) } label: {
                     let parts = item.display.components(separatedBy: "|")
                     VStack(spacing: 0) {
@@ -439,6 +445,9 @@ struct AndroidWorldView: View {
                         .padding(.leading, 2)
                 }.buttonStyle(AndroidButtonStyle()).padding(1)
                     .frame(height: unit / CGFloat(layout.heightDivisor))
+                    .frame(maxWidth: .infinity)
+                }
+                }
             }
         }.padding(.bottom, 2).frame(width: width, alignment: .leading)
     }

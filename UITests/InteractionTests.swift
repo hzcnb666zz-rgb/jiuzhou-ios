@@ -9,7 +9,7 @@ final class InteractionTests: XCTestCase {
         app.launch()
         let width = app.windows.firstMatch.frame.width
         let backpack = app.buttons["world.slot.1"]
-        XCTAssertTrue(backpack.waitForExistence(timeout: 5))
+        XCTAssertTrue(backpack.waitForExistence(timeout: 5), app.debugDescription)
         let nextRow = app.buttons["world.slot.6"]
         let custom = app.buttons["world.custom"]
         XCTAssertEqual(backpack.frame.minY, custom.frame.minY, accuracy: 1)
@@ -32,6 +32,7 @@ final class InteractionTests: XCTestCase {
         XCTAssertFalse(app.buttons["干粮"].exists)
         XCTAssertLessThan(app.buttons["给予"].frame.maxX, width - 5)
         XCTAssertEqual(app.buttons["装备"].firstMatch.frame.height, width / 9 - 2, accuracy: 1)
+        XCTAssertTrue(app.buttons["interaction.close"].exists, app.debugDescription)
         app.buttons["interaction.close"].tap()
         XCTAssertTrue(backpack.exists)
     }
@@ -43,7 +44,7 @@ final class InteractionTests: XCTestCase {
         let talk = app.buttons["交谈"]
         XCTAssertTrue(talk.waitForExistence(timeout: 5))
         XCTAssertEqual(talk.frame.width, app.windows.firstMatch.frame.width / 3 - 2, accuracy: 1)
-        XCTAssertEqual(app.buttons["组队"].frame.width, talk.frame.width, accuracy: 1)
+        XCTAssertEqual(app.buttons["组队"].frame.width, talk.frame.width * 2 + 2, accuracy: 1)
         XCTAssertEqual(app.buttons["组队"].frame.minX, talk.frame.minX, accuracy: 1)
         app.buttons["interaction.close"].tap()
         XCTAssertFalse(talk.exists)

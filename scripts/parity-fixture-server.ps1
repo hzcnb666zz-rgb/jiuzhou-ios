@@ -43,8 +43,7 @@ try {
                 elseif ($command -eq 'look cloth') { Send-Scene 'item' }
                 elseif ($command -eq 'look player') { Send-Scene 'player' }
                 elseif ($command -eq 'look elder') {
-                    Send-Line "${esc}007${esc}[1;32m老村长${esc}[0m`$br#你想打听什么？"
-                    Send-Line "${esc}008`$2,3,9,30#交谈|未明谷的故事:ask elder`$zj#交易|查看随身物品:list elder"
+                    Send-Scene 'npc'
                 }
                 elseif ($command -eq 'ask elder') { Send-Line "${esc}001你想对老村长说些什么？`$zj#say `$txt#" }
                 elseif ($command -eq 'score') {
