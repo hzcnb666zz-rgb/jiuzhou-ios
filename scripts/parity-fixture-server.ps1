@@ -1,4 +1,4 @@
-param([int]$Port = 16666)
+param([int]$Port = 16666, [string]$Scene = '')
 $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
 $listener.Start()
 $esc = [char]27
@@ -20,6 +20,7 @@ function Send-World {
     Send-Line "${esc}[2J你来到未明谷。"
     Send-Line '老村长向你点了点头。'
     Send-Line "${esc}006b12:常用:mycmds ofen`$zj#b13:修炼:skills`$zj#b14:战斗:look player`$zj#b15:任务:look cloth`$zj#b16:指南:look elder`$zj#b17:频道:i"
+    if ($Scene) { Send-Scene $Scene }
 }
 try {
     Write-Output "Fixture listening on loopback:$Port"

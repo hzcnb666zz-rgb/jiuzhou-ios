@@ -39,9 +39,10 @@ final class MudVoice: ObservableObject {
                     self.recording = true; self.status = "录音中"
                     self.meter?.invalidate()
                     self.meter = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+                        guard let model = self else { return }
                         Task { @MainActor in
-                            self?.recorder?.updateMeters()
-                            self?.level = pow(10, Double(self?.recorder?.averagePower(forChannel: 0) ?? -160) / 20)
+                            model.recorder?.updateMeters()
+                            model.level = pow(10, Double(model.recorder?.averagePower(forChannel: 0) ?? -160) / 20)
                         }
                     }
                 } catch { self.status = "录音失败"; self.cancel() }
