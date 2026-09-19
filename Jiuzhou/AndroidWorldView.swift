@@ -566,7 +566,7 @@ struct AndroidWorldView: View {
 
     private func popupMenu(_ popup: GameDialog, unit: CGFloat) -> some View {
         let popupLayout = popup.layout.resolved(for: popup.actions.count)
-        ScrollView {
+        return ScrollView {
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(unit / CGFloat(popupLayout.widthDivisor)), spacing: 0), count: popupLayout.columns), spacing: 0) {
                 ForEach(popup.actions) { item in
                     Button { game.act(item.command) } label: {
