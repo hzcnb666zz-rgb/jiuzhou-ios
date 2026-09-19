@@ -89,7 +89,8 @@ struct AndroidWorldView: View {
                                                     }.frame(height: 4)
                                                 }
                                                 MudRichText(raw: object.display, send: game.act)
-                                                    .font(.system(size: unit / 35)).multilineTextAlignment(.center)
+                                                    .foregroundStyle(mode == "night" ? Color(red: 221/255, green: 187/255, blue: 153/255) : ink)
+                                                    .font(.android(size: unit / 35)).multilineTextAlignment(.center)
                                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                             }.padding(2).frame(height: unit / 10)
                                         }.buttonStyle(AndroidButtonStyle(filled: true))
@@ -106,7 +107,7 @@ struct AndroidWorldView: View {
                                 VStack(spacing: 0) {
                                     if !game.descriptionHidden && !game.fighting {
                                         MudRichText(raw: game.description, send: game.act)
-                                            .font(.system(size: (unit - 14) / 25))
+                                            .font(.android(size: (unit - 14) / 25))
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                             .fixedSize(horizontal: false, vertical: true).padding(5)
                                         rule
@@ -115,7 +116,7 @@ struct AndroidWorldView: View {
                                 }
                                 if game.dialog != nil { interaction(unit: unit) }
                                 if !game.notice.isEmpty {
-                                    Text(game.notice).font(.system(size: 14)).foregroundStyle(.cyan)
+                                    Text(game.notice).font(.android(size: 14)).foregroundStyle(.cyan)
                                         .padding(2).frame(maxWidth: .infinity, alignment: .leading)
                                         .background(Color(white: 0.4)).allowsHitTesting(false)
                                         .task(id: game.notice) {
@@ -136,7 +137,7 @@ struct AndroidWorldView: View {
                 if menuVisible { mainMenu(unit: unit).frame(maxHeight: .infinity) }
                 if historyVisible { historyPanel }
             }
-            .foregroundStyle(ink).font(.system(size: unit / 28))
+            .foregroundStyle(ink).font(.android(size: unit / 28))
             .environment(\.mudDisplayWidth, unit)
         }
         .onAppear {
@@ -187,15 +188,15 @@ struct AndroidWorldView: View {
 
     private func titleBar(unit: CGFloat) -> some View {
         HStack(spacing: 3) {
-            MudRichText(raw: game.room, send: game.act).font(.system(size: (unit - 14) / 18))
+            MudRichText(raw: game.room, send: game.act).font(.android(size: (unit - 14) / 18))
                 .lineLimit(1).minimumScaleFactor(0.6).padding(.leading, 18)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 3) {
                     ForEach(game.topActions) { item in action(item, height: 28) }
                 }
             }
-            Button(game.descriptionHidden ? "显示" : "隐藏") { game.descriptionHidden.toggle() }
-                .font(.system(size: (unit - 14) / 25)).padding(.horizontal, 8).frame(height: unit / 13)
+            Button(game.descriptionHidden ? "显示" : "隐藏") { game.toggleDescription() }
+                .font(.android(size: (unit - 14) / 25)).padding(.horizontal, 8).frame(height: unit / 13)
                 .background(Color.white.opacity(0.13))
         }.padding(3).frame(minHeight: 40)
             .background { if mode == "night" { BundleImage(name: "bar", ext: "png") } }
@@ -233,7 +234,7 @@ struct AndroidWorldView: View {
                         let row = index / 3
                         if slot.isEmpty {
                             Button { game.act(game.buttons.first { $0.slot == "bs" }?.command ?? centerCommand) } label: {
-                                MudRichText(raw: game.room, send: game.act).font(.system(size: unit / 33))
+                                MudRichText(raw: game.room, send: game.act).font(.android(size: unit / 33))
                                     .lineLimit(1).minimumScaleFactor(0.5)
                                     .frame(width: unit / 4, height: unit / 15)
                                     .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(red: 0.86, green: 0.93, blue: 0.78).opacity(0.44)))
@@ -244,7 +245,7 @@ struct AndroidWorldView: View {
                             let bw = unit / 5
                             let bh = unit / 12
                             Button { game.act(exit.command) } label: {
-                                MudRichText(raw: exit.display, send: game.act).font(.system(size: unit / 33))
+                                MudRichText(raw: exit.display, send: game.act).font(.android(size: unit / 33))
                                     .lineLimit(2).minimumScaleFactor(0.65).multilineTextAlignment(.center)
                                     .frame(width: bw, height: bh)
                             }.buttonStyle(AndroidButtonStyle(image: mode == "night" ? imageName(slot) : nil))
@@ -256,10 +257,11 @@ struct AndroidWorldView: View {
             }
             VStack(spacing: 2) {
                 Button(game.customButtonsVisible ? "关闭" : "自定") { game.toggleCustomButtons() }
-                    .font(.system(size: unit / 31))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity).buttonStyle(AndroidButtonStyle())
+                    .font(.android(size: unit / 31))
+                    .frame(maxWidth: .infinity).frame(height: unit * 3 / 22 - 2).buttonStyle(AndroidButtonStyle())
                 quickButton(11, height: unit * 3 / 22 - 2, unit: unit)
-            }.frame(width: unit / 7 + 2, height: unit * 3 / 11)
+            }.frame(width: unit / 7 + 2, height: unit * 3 / 11, alignment: .top)
+                .frame(maxHeight: .infinity, alignment: .top)
         }.frame(height: unit * 4 / 13).padding(.horizontal, 2)
     }
 
@@ -279,10 +281,13 @@ struct AndroidWorldView: View {
     private func quickButton(_ slot: Int, height: CGFloat, unit: CGFloat) -> some View {
         let item = quickAction(slot)
         return MudRichText(raw: item.display, send: game.act)
-            .font(.system(size: unit / 31)).multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.6)
+            .font(.android(size: unit / 31)).multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.6)
             .frame(maxWidth: .infinity).frame(height: height)
-            .background(Color.white.opacity(0.04))
-            .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color(red: 0.71, green: 0.41, blue: 0.24).opacity(0.2)))
+            .foregroundStyle(slot >= 12 ? Color(white: 170/255) : ink)
+            .background(Color.white.opacity(slot >= 12 ? 0.13 : 0))
+            .overlay {
+                if slot < 12 { RoundedRectangle(cornerRadius: 3).stroke(Color(red: 0.71, green: 0.41, blue: 0.24).opacity(0.2)) }
+            }
             .contentShape(Rectangle())
             .onTapGesture { game.act(item.command) }
             .onLongPressGesture {
@@ -314,7 +319,7 @@ struct AndroidWorldView: View {
                             Color.clear
                             color(stat.color).frame(width: g.size.width * stat.fraction)
                             MudRichText(raw: stat.label + (stat.value.contains("/") ? "" : ":" + stat.value), send: game.act)
-                                .font(.system(size: unit / CGFloat(game.statsLayout.fontDivisor))).lineLimit(1).minimumScaleFactor(0.6)
+                                .font(.android(size: unit / CGFloat(game.statsLayout.fontDivisor))).lineLimit(1).minimumScaleFactor(0.6)
                         }
                     }.frame(height: max(16, unit / CGFloat(game.statsLayout.heightDivisor)))
                 }.buttonStyle(.plain)
@@ -329,16 +334,16 @@ struct AndroidWorldView: View {
 
     private func action(_ item: MudAction, height: CGFloat) -> some View {
         Button { game.act(item.command) } label: {
-            MudRichText(raw: item.display, send: game.act).font(.system(size: 12))
+            MudRichText(raw: item.display, send: game.act).font(.android(size: 12))
                 .multilineTextAlignment(.center).padding(3).frame(maxWidth: .infinity, minHeight: height)
         }.buttonStyle(AndroidButtonStyle())
     }
 
     private func interaction(unit: CGFloat) -> some View {
-        VStack(spacing: 3) {
+        VStack(alignment: .leading, spacing: 3) {
             if let dialog = game.dialog {
-                ScrollView([.vertical, .horizontal]) {
-                    MudRichText(raw: dialog.text, send: game.act).font(.system(size: unit / (dialog.kind == "map" || dialog.kind == "pages" ? 32 : 30)))
+                ScrollView(dialog.kind == "map" ? [.vertical, .horizontal] : [.vertical]) {
+                    MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / (dialog.kind == "map" || dialog.kind == "pages" ? 32 : 30)))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
                 }.fixedSize(horizontal: false, vertical: dialog.kind != "map" && dialog.kind != "pages")
                 if dialog.inputCommand != nil {
@@ -346,43 +351,53 @@ struct AndroidWorldView: View {
                         TextField("", text: $dialogInput).textInputAutocapitalization(.never).autocorrectionDisabled()
                             .focused($inputFocused)
                             .keyboardType(dialog.numeric ? .numberPad : .default).onSubmit { game.submitInput(dialogInput) }
-                            .padding(5).background(Color.white.opacity(0.1))
-                        Button("确定") { game.submitInput(dialogInput) }.frame(width: 60, height: 40).buttonStyle(AndroidButtonStyle())
+                            .font(.android(size: 15)).padding(.horizontal, 15).frame(height: 40).background(Color.white.opacity(0.1))
+                        Button("确定") { game.submitInput(dialogInput) }.frame(width: 65, height: 40).buttonStyle(AndroidButtonStyle())
                     }.padding(.horizontal, 5)
                 }
                 ScrollView {
                     HStack(alignment: .top, spacing: 3) {
                         actionGrid(dialog.actions, layout: dialog.layout, unit: unit)
                         if !dialog.secondary.isEmpty { actionGrid(dialog.secondary, layout: dialog.secondaryLayout, unit: unit) }
-                    }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
                 }
                 HStack {
                     if dialog.kind == "pages" {
                         Button("上一页") { game.act("b") }
                         Button("下一页") { game.act("n") }
                     }
-                    Spacer()
-                    Button("关闭") { game.dialog = nil }.padding(6)
                 }.buttonStyle(AndroidButtonStyle())
             }
         }.padding(3).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background { BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png") }
+            .background {
+                if mode == "mud" {
+                    RoundedRectangle(cornerRadius: 4).fill(Color(white: 34/255))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color(red: 238/255, green: 232/255, blue: 205/255).opacity(0.6)))
+                } else {
+                    BundleImage(name: mode == "day" ? "bk1" : "bk2", ext: "jpeg")
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                Button { game.closeDialog() } label: {
+                    BundleImage(name: "exitxx", ext: "png").frame(width: unit / 12, height: unit / 14)
+                }.buttonStyle(.plain).accessibilityLabel("关闭").padding(3)
+            }
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color(red: 238/255, green: 232/255, blue: 205/255).opacity(0.6)))
     }
 
     private func actionGrid(_ items: [MudAction], layout: MudLayout, unit: CGFloat) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.fixed(unit * 0.75 / CGFloat(layout.widthDivisor)), spacing: 0), count: layout.columns), spacing: 2) {
+        LazyVGrid(columns: Array(repeating: GridItem(.fixed(unit / CGFloat(layout.widthDivisor)), spacing: 0), count: layout.columns), alignment: .leading, spacing: 2) {
             ForEach(items) { item in
                 Button { game.act(item.command) } label: {
                     let parts = item.display.components(separatedBy: "|")
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(spacing: 0) {
                         MudRichText(raw: parts[0], send: game.act)
-                        if parts.count > 1 { MudRichText(raw: parts[1], send: game.act).foregroundStyle(Color(white: 0.6)) }
-                    }.font(.system(size: unit / CGFloat(layout.fontDivisor)))
-                        .padding(.horizontal, 2).frame(maxWidth: .infinity, alignment: .leading)
+                    }.font(.android(size: unit / CGFloat(layout.fontDivisor)))
+                        .padding(.horizontal, 2).frame(maxWidth: .infinity)
                         .frame(height: unit / CGFloat(layout.heightDivisor))
                 }.buttonStyle(AndroidButtonStyle())
             }
-        }
+        }.frame(width: unit * CGFloat(layout.columns) / CGFloat(layout.widthDivisor), alignment: .leading)
     }
 
     private func mainMenu(unit: CGFloat) -> some View {
@@ -411,7 +426,7 @@ struct AndroidWorldView: View {
 
     private func menuButton(_ label: String, unit: CGFloat, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(label).font(.system(size: unit / 22)).foregroundStyle(Color(red: 244/255, green: 164/255, blue: 96/255))
+            Text(label).font(.android(size: unit / 22)).foregroundStyle(Color(red: 244/255, green: 164/255, blue: 96/255))
                 .frame(width: unit / 4, height: unit / 9)
         }.buttonStyle(AndroidButtonStyle(image: "buttonx1"))
     }

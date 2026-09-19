@@ -55,12 +55,23 @@ final class GameModel: ObservableObject {
     @Published var fightMessages: [GameMessage] = []
     @Published var history: [GameMessage] = []
     @Published var fighting = false
-    @Published var descriptionHidden = false
+    @Published var descriptionHidden = UserDefaults.standard.bool(forKey: "descriptionHidden")
     @Published var customButtonsVisible = false
     @Published var objectHealth: [String: Double] = [:]
     @Published var statsLayout = MudLayout("", defaults: [2, 2, 22, 35])
     private let transport: MudTransporting
     private var sentCredentials = false
+
+    func toggleDescription() {
+        descriptionHidden.toggle()
+        UserDefaults.standard.set(descriptionHidden, forKey: "descriptionHidden")
+    }
+
+    func closeDialog() {
+        let pages = dialog?.kind == "pages"
+        dialog = nil
+        if pages { transport.send("q") }
+    }
 
     func toggleCustomButtons() {
         buttons.removeAll { action in
@@ -157,6 +168,7 @@ final class GameModel: ObservableObject {
     }
 
     private func log(_ text: String) {
+        if text.contains("\u{001B}[2J") { messages = [] }
         let clean = MudText.plain(text)
         guard !clean.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         messages.append(GameMessage(text: text))
@@ -261,12 +273,21 @@ final class GameModel: ObservableObject {
                     objectHealth[parts[0]] = min(1, max(0, values[0] / maximum))
                 }
             }
-        case "023": descriptionHidden = text == "屏蔽描述"
+        case "023":
+            if text == "屏蔽描述" { descriptionHidden = true }
+            else if !UserDefaults.standard.bool(forKey: "descriptionHidden") { descriptionHidden = false }
         case "020": dialog = GameDialog(actions: MudText.actions(text))
         case "021": topActions = MudText.actions(text)
         case "903": exits.removeAll { $0.slot == text || $0.command == text }
         case "997": transport.preservesNewlines = false
         case "998": transport.preservesNewlines = true
+        case "900":
+            guard let separator = text.lastIndex(of: ":"),
+                  let number = UInt16(text[text.index(after: separator)...]), number > 0 else { return }
+            let target = String(text[..<separator])
+            guard !target.isEmpty else { return }
+            host = target; port = String(number); connecting = true
+            transport.connect(host: target, port: number)
         case "913": exits = []
         case "905": objects.removeAll { $0.command == text || $0.command == "look " + text }
         case "999": logout()

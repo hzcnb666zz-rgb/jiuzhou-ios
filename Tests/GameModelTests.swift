@@ -6,13 +6,48 @@ private final class RecordingTransport: MudTransporting {
     var onStatus: ((String, Bool) -> Void)?
     var preservesNewlines = true
     var commands: [String] = []
-    func connect(host: String, port: UInt16) { onStatus?("已连接", true) }
+    var endpoint = ""
+    func connect(host: String, port: UInt16) { endpoint = "\(host):\(port)"; onStatus?("已连接", true) }
     func send(_ command: String) { commands.append(command) }
     func disconnect() {}
     func receive(_ code: String?, _ text: String) { onFrame?(MudFrame(code: code, text: text)) }
 }
 
 final class GameModelTests: XCTestCase {
+    func testRedirectAndPagedTextClose() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive("900", "127.0.0.1:6667")
+        XCTAssertEqual(wire.endpoint, "127.0.0.1:6667")
+        wire.receive("013", "第一页")
+        game.closeDialog()
+        XCTAssertEqual(wire.commands, ["q"])
+        wire.receive("900", "broken:0")
+        XCTAssertEqual(wire.endpoint, "127.0.0.1:6667")
+        wire.receive("007", "对话")
+        game.closeDialog()
+        XCTAssertEqual(wire.commands, ["q"])
+    }
+
+    func testServerShowRespectsLocalPreferenceAndClearScreen() {
+        let saved = UserDefaults.standard.object(forKey: "descriptionHidden")
+        defer { UserDefaults.standard.set(saved, forKey: "descriptionHidden") }
+        UserDefaults.standard.set(false, forKey: "descriptionHidden")
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        game.toggleDescription()
+        wire.receive("023", "显示描述")
+        XCTAssertTrue(game.descriptionHidden)
+        game.toggleDescription()
+        wire.receive("023", "屏蔽描述")
+        wire.receive("023", "显示描述")
+        XCTAssertFalse(game.descriptionHidden)
+        wire.receive(nil, "old")
+        wire.receive(nil, "\u{001B}[2Jnew")
+        XCTAssertEqual(game.messages.count, 1)
+        XCTAssertEqual(game.history.count, 2)
+    }
+
     func testInputSurvivesActionUpdateAndSubmitsValue() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)

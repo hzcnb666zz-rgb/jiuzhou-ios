@@ -50,7 +50,13 @@ struct MudDecoder {
     static func frames(_ text: String) -> [MudFrame] {
         let ns = text as NSString
         let regex = try! NSRegularExpression(pattern: "\u{001B}[0-9]{3}")
-        let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        let linkPattern = try! NSRegularExpression(pattern: "\u{001B}\\[u:[^\\]]*\\]")
+        let linkRanges = linkPattern.matches(in: text, range: NSRange(location: 0, length: ns.length)).map(\.range)
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length)).filter { match in
+            if linkRanges.contains(where: { NSLocationInRange(match.range.location, $0) }) { return false }
+            // ESC020 immediately after an action's colon is the popup command payload.
+            return !(ns.substring(with: match.range) == "\u{001B}020" && match.range.location > 0 && ns.character(at: match.range.location - 1) == 58)
+        }
         guard !matches.isEmpty else { return text.isEmpty ? [] : [MudFrame(code: nil, text: text)] }
         var result: [MudFrame] = []
         if matches[0].range.location > 0 {

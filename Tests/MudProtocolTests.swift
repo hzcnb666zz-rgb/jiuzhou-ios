@@ -2,6 +2,14 @@ import XCTest
 @testable import JiuzhouProtocol
 
 final class MudProtocolTests: XCTestCase {
+    func testPopupPayloadAndLinkedCommandsDoNotBecomeFrames() {
+        let actions = "更多:\u{001B}020交谈:ask elder"
+        XCTAssertEqual(MudDecoder.frames("\u{001B}008" + actions), [MudFrame(code: "008", text: actions)])
+        XCTAssertEqual(MudText.actions(actions).first?.command, "\u{001B}020交谈:ask elder")
+        let linked = "\u{001B}[u:cmds:\u{001B}020交谈:ask elder]更多\u{001B}[0m"
+        XCTAssertEqual(MudDecoder.frames(linked + "\u{001B}002村庄"), [MudFrame(code: nil, text: linked), MudFrame(code: "002", text: "村庄")])
+    }
+
     func testInputCommandMatchesAndroidInputAndConfirmation() {
         XCTAssertEqual(MudText.inputCommand(template: "give", value: "银两", confirmation: false), "give 银两")
         XCTAssertEqual(MudText.inputCommand(template: "ask $txt# about $txt#", value: "村长", confirmation: false), "ask 村长 about 村长")

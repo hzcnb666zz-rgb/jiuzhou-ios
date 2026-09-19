@@ -1,5 +1,11 @@
 import SwiftUI
 
+extension Font {
+    static func android(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        .custom("NotoSansCJKsc-Regular", fixedSize: size).weight(weight)
+    }
+}
+
 private struct MudDisplayWidthKey: EnvironmentKey { static let defaultValue: CGFloat = 390 }
 extension EnvironmentValues {
     var mudDisplayWidth: CGFloat {
@@ -52,7 +58,7 @@ struct MudRichText: View {
             part.backgroundColor = background
             part.link = link
             if link != nil { part.underlineStyle = .single }
-            if let size { part.font = .system(size: size, weight: bold ? .bold : .regular) }
+            if let size { part.font = .android(size: size, weight: bold ? .bold : .regular) }
             else if bold { part.inlinePresentationIntent = .stronglyEmphasized }
             result += part
         }
