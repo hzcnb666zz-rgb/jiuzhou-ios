@@ -20,7 +20,10 @@ def inspect(reference=None):
             return
         visited.add(reference)
         command += ["--id", reference]
-    walk(json.loads(subprocess.check_output(command)))
+    document = json.loads(subprocess.check_output(command))
+    if include_all:
+        (output / ("record-%d.json" % len(visited))).write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+    walk(document)
 
 
 def walk(value):
@@ -32,7 +35,7 @@ def walk(value):
         payload = value.get("payloadRef", {}).get("id", {}).get("_value")
         image_type = value.get("uniformTypeIdentifier", {}).get("_value", "")
         named = any(label in name for label in ("landscape-world", "common-to-inventory"))
-        if payload and (named or include_all and image_type == "public.png") and payload not in exported:
+        if payload and (named or include_all and (image_type in ("public.png", "public.jpeg") or "screenshot" in name.lower())) and payload not in exported:
             filename = ("landscape-world" if "landscape-world" in name else "common-to-inventory") if named else "failure-" + str(len(exported))
             subprocess.run(["xcrun", "xcresulttool", "export", "--type", "file", "--path", bundle,
                             "--id", payload, "--output-path", str(output / (filename + ".png"))], check=True)
