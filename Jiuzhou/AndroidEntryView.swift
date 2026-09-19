@@ -270,7 +270,7 @@ private struct LoginButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.foregroundStyle(Color.black).frame(maxWidth: .infinity, minHeight: width / heightDivisor)
             .background(configuration.isPressed ? Color.white.opacity(0.3) : .clear)
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(.gray, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(.gray, lineWidth: 1))
     }
 }
 
@@ -289,6 +289,6 @@ private struct LoginFieldStyle: ViewModifier {
     @Environment(\.mudDisplayWidth) private var width
     func body(content: Content) -> some View {
         content.font(.android(size: 20)).padding(.horizontal, 20).frame(height: width / 11)
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(.gray, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(.gray, lineWidth: 1))
     }
 }

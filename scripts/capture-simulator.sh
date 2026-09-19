@@ -41,7 +41,7 @@ done < build/screenshot-devices.txt
 test_status=0
 while read -r family device; do
   xcodebuild -project Jiuzhou.xcodeproj -scheme Jiuzhou -destination "platform=iOS Simulator,id=$device" -derivedDataPath build/simulator -resultBundlePath "build/InteractionTests-$family.xcresult" test CODE_SIGNING_ALLOWED=NO || test_status=$?
-  xcrun xcresulttool export attachments --path "build/InteractionTests-$family.xcresult" --output-path "build/screenshots/attachments-$family" || true
+  python3 scripts/export-test-screenshots.py "build/InteractionTests-$family.xcresult" "build/screenshots/attachments-$family"
   xcrun simctl shutdown "$device" || true
 done < build/screenshot-devices.txt
 exit "$test_status"
