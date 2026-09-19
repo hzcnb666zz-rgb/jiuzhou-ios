@@ -69,7 +69,9 @@ final class InteractionTests: XCTestCase {
         app.launchArguments = ["--ui-check-world"]
         app.launch()
         for theme in ["日间模式", "夜间模式", "正常模式"] {
-            app.buttons["菜单"].tap()
+            let menu = app.buttons["菜单"]
+            XCTAssertTrue(menu.waitForExistence(timeout: 5))
+            menu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             XCTAssertTrue(app.buttons[theme].waitForExistence(timeout: 5))
             app.buttons[theme].tap()
             XCTAssertTrue(app.buttons["山路"].exists)
@@ -77,7 +79,8 @@ final class InteractionTests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         defer { XCUIDevice.shared.orientation = .portrait }
         XCTAssertTrue(app.buttons["菜单"].waitForExistence(timeout: 8))
-        app.buttons["菜单"].tap()
+        let landscapeMenu = app.buttons["菜单"]
+        landscapeMenu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(app.buttons["正常模式"].waitForExistence(timeout: 5))
         app.buttons["正常模式"].tap()
         let capture = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
