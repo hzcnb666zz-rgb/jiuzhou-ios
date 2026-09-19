@@ -8,6 +8,9 @@ struct AndroidAccountView: View {
     @State private var serverName = "我的测试服"
     @State private var serverHost = "127.0.0.1"
     @State private var serverPort = "3000"
+    @State private var draftServerName = ""
+    @State private var draftServerHost = ""
+    @State private var draftServerPort = ""
     @State private var editingServer = false
     @State private var editing = ""
     @State private var draft = ""
@@ -23,44 +26,53 @@ struct AndroidAccountView: View {
                     Image(uiImage: image).resizable()
                 }
                 VStack(spacing: 0) {
-                    Text(editingServer ? "服 务 器 设 置" : "用  户  中  心")
-                        .font(.android(size: 25)).frame(height: 40).padding(.top, 40)
                     if editingServer {
-                        VStack(spacing: 0) {
-                            serverField("名称：", value: $serverName)
-                            serverField("地址：", value: $serverHost)
-                            serverField("端口：", value: $serverPort)
-                        }.padding(.top, 20)
+                        Text("服 务 器 设 置").font(.android(size: 18))
+                            .frame(maxWidth: .infinity).frame(height: 40)
+                            .background {
+                                if let url = Bundle.main.url(forResource: "flag", withExtension: "png"), let image = UIImage(contentsOfFile: url.path) {
+                                    Image(uiImage: image).resizable()
+                                }
+                            }.padding(.bottom, 5)
+                        VStack(spacing: 5) {
+                            serverField("名称：", value: $draftServerName)
+                            serverField("地址：", value: $draftServerHost)
+                            serverField("端口：", value: $draftServerPort)
+                        }
                         Spacer(minLength: 0)
-                        HStack {
+                        HStack(spacing: 5) {
                             Button("确 认", action: updateServer)
                             Button("取 消") { editingServer = false }
                         }.buttonStyle(AccountButtonStyle(height: width / 9))
                     } else {
+                        Text("用  户  中  心").font(.android(size: 25)).frame(height: 40).padding(.top, 40)
                         VStack(spacing: 5) {
                             accountRow("账　号：" + game.account, key: nil, width: width)
                             accountRow("密　码：" + game.password, key: "newpwd", width: width)
                             accountRow("手机号：" + phone, key: "phone", width: width)
                             accountRow("邮　箱：" + email, key: "email", width: width)
                             Color.clear.frame(height: width / 10)
-                        }.padding(.top, 20)
+                        }.padding(.top, 20).padding(.horizontal, 8)
                         ScrollView {
                             VStack(alignment: .leading, spacing: 0) {
                                 Text("我 的 服 务 器").font(.android(size: 18)).frame(maxWidth: .infinity).frame(height: 40)
-                                Text("名　称：" + serverName).frame(height: width / 10)
-                                Text("地　址：" + serverHost).frame(height: width / 10)
-                                Text("端　口：" + serverPort).frame(height: width / 10)
-                                Text("密　钥：123456789abcd").frame(height: 35)
+                                Text("名　称：" + serverName).padding(.leading, 5).frame(height: width / 10)
+                                Text("地　址：" + serverHost).padding(.leading, 5).frame(height: width / 10).padding(.top, 5)
+                                Text("端　口：" + serverPort).padding(.leading, 5).frame(height: width / 10).padding(.top, 5)
+                                Text("密　钥：123456789abcd").padding(.leading, 5).frame(height: 35).padding(.top, 5)
                             }.frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        HStack {
-                            Button("更改信息") { editingServer = true }.accessibilityIdentifier("account.server")
+                        }.padding(.horizontal, 8)
+                        HStack(spacing: 16) {
+                            Button("更改信息") {
+                                draftServerName = serverName; draftServerHost = serverHost; draftServerPort = serverPort
+                                editingServer = true
+                            }.accessibilityIdentifier("account.server")
                             Button("关 闭", action: close)
-                        }.buttonStyle(AccountButtonStyle(height: width / 9))
+                        }.buttonStyle(AccountButtonStyle(height: width / 9)).padding(.horizontal, 8)
                     }
                     if !status.isEmpty { Text(status).font(.android(size: 13)).padding(5) }
                     if busy { ProgressView() }
-                }.padding(8).padding(.horizontal, 8).disabled(busy)
+                }.padding(.bottom, 5).padding(editingServer ? 23 : 8).disabled(busy)
             }.foregroundStyle(.black).font(.android(size: 13)).tint(.black)
         }.task {
             #if DEBUG
@@ -91,17 +103,19 @@ struct AndroidAccountView: View {
 
     private func serverField(_ label: String, value: Binding<String>) -> some View {
         HStack {
-            Text(label)
+            Text(label).font(.android(size: 18))
             TextField("", text: value).textInputAutocapitalization(.never).autocorrectionDisabled()
+                .accessibilityIdentifier("account.serverfield." + label)
+                .font(.android(size: 16))
                 .overlay(alignment: .bottom) { Color.gray.frame(height: 1) }
         }.frame(height: 40)
     }
 
     private func updateServer() {
-        guard !serverName.isEmpty, !serverHost.isEmpty, let port = UInt16(serverPort), port > 0, port < 65535 else {
+        guard !draftServerName.isEmpty, !draftServerHost.isEmpty, let port = UInt16(draftServerPort), port > 0, port < 65535 else {
             status = "请保证信息完整，端口有效"; return
         }
-        let value = "\(serverName)&\(serverHost)&\(port)&\(Int(port) + 1)"
+        let value = "\(draftServerName)&\(draftServerHost)&\(port)&\(Int(port) + 1)"
         Task { await request(changes: ["myserver": value]) }
     }
 
@@ -125,7 +139,10 @@ struct AndroidAccountView: View {
                 if text.hasPrefix("密码修改成功"), let value = changes["newpwd"] { game.password = value }
                 if text.hasPrefix("手机号绑定成功"), let value = changes["phone"] { phone = value }
                 if text.hasPrefix("邮箱绑定成功"), let value = changes["email"] { email = value }
-                if text.hasPrefix("测试服务器修改成功") { editingServer = false }
+                if text.hasPrefix("测试服务器修改成功") {
+                    serverName = draftServerName; serverHost = draftServerHost; serverPort = draftServerPort
+                    editingServer = false
+                }
             }
         } catch is CancellationError { }
         catch { status = "连接失败，请检查网络" }

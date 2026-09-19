@@ -36,7 +36,9 @@ final class InteractionTests: XCTestCase {
         let account = app.buttons["register.account"].frame
         let password = app.buttons["register.password"].frame
         XCTAssertEqual(account.height, app.windows.firstMatch.frame.width / 11, accuracy: 1)
-        XCTAssertEqual(password.minY - account.maxY, 60, accuracy: 1)
+        let layoutWidth = try! XCTUnwrap(Double(app.buttons["register.submit"].value as? String ?? ""))
+        let windowScale = app.windows.firstMatch.frame.width / CGFloat(layoutWidth)
+        XCTAssertEqual(password.minY - account.maxY, 60 * windowScale, accuracy: 1)
         app.buttons["register.account"].tap()
         XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
         app.alerts.buttons["取消"].tap()
@@ -52,7 +54,11 @@ final class InteractionTests: XCTestCase {
         app.alerts.buttons["取消"].tap()
         app.buttons["account.server"].tap()
         XCTAssertTrue(app.buttons["取 消"].waitForExistence(timeout: 5))
+        let name = app.textFields["account.serverfield.名称："]
+        name.tap()
+        name.typeText("-cancel-test")
         app.buttons["取 消"].tap()
+        XCTAssertTrue(app.staticTexts["名　称：我的测试服"].exists)
         app.buttons["关 闭"].tap()
         XCTAssertTrue(app.buttons["login.account"].exists)
     }

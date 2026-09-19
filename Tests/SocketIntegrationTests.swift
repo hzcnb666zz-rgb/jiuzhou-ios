@@ -9,19 +9,16 @@ final class SocketIntegrationTests: XCTestCase {
         let saved = keys.map { UserDefaults.standard.object(forKey: $0) }
         defer { for (key, value) in zip(keys, saved) { UserDefaults.standard.set(value, forKey: key) } }
         let parameters = NWParameters.tcp
-        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
+        parameters.requiredInterfaceType = .loopback
         let listener = try NWListener(using: parameters)
         let listening = expectation(description: "listening")
         listener.stateUpdateHandler = { state in
             if case .ready = state { listening.fulfill() }
             if case .failed(let error) = state { XCTFail("Local listener failed: \(error)"); listening.fulfill() }
         }
-        listener.start(queue: .main)
-        await fulfillment(of: [listening], timeout: 5)
-        let port = try XCTUnwrap(listener.port)
         let game = GameModel()
         game.account = "paritytest"; game.password = "fixture-only"
-        game.host = "127.0.0.1"; game.port = String(port.rawValue)
+        game.host = "127.0.0.1"
         var peer: NWConnection?
         var buffer = Data()
         var received: [String] = []
@@ -79,6 +76,10 @@ final class SocketIntegrationTests: XCTestCase {
             roomObserver.cancel(); connectionObserver.cancel()
             game.logout(); peer?.cancel(); listener.cancel()
         }
+        listener.start(queue: .main)
+        await fulfillment(of: [listening], timeout: 5)
+        let port = try XCTUnwrap(listener.port)
+        game.port = String(port.rawValue)
         game.login()
         await fulfillment(of: [entered], timeout: 8)
         XCTAssertTrue(game.inWorld)

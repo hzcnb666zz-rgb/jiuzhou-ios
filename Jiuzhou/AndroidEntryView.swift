@@ -172,6 +172,9 @@ struct AndroidEntryView: View {
                     registrationField("你的手机号", hint: "请输入您的手机号码", value: phone, index: 3)
                     Button("注 册", action: register).buttonStyle(LoginButtonStyle())
                         .accessibilityIdentifier("register.submit")
+                        #if DEBUG
+                        .accessibilityValue(String(Double(width)))
+                        #endif
                         .padding(.leading, 13).padding(.trailing, 16).padding(.top, 43)
                         .disabled(registeringRequest)
                     Text(game.status == "未连接" ? "" : game.status).font(.android(size: 13)).padding(10)
