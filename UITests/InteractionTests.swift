@@ -14,7 +14,7 @@ final class InteractionTests: XCTestCase {
         app.buttons["多行聊天"].tap()
         XCTAssertFalse(app.buttons["日间模式"].exists)
         app.buttons["world.custom"].tap()
-        XCTAssertTrue(app.staticTexts["长按"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["长按"].firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         app.buttons["world.custom"].tap()
         XCTAssertTrue(app.buttons["山路"].exists)
     }
@@ -36,7 +36,7 @@ final class InteractionTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         app.buttons["login.account"].tap()
-        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         app.alerts.textFields.firstMatch.typeText("paritytest")
         app.alerts.buttons["确定"].tap()
         XCTAssertTrue(app.buttons["login.account"].label.contains("paritytest"))

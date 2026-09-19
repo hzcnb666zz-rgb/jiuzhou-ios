@@ -22,7 +22,7 @@ struct AndroidButtonStyle: ButtonStyle {
         configuration.label
             .background {
                 if let image {
-                    BundleImage(name: image == "buttonx1" ? (configuration.isPressed ? "buttonx2" : "buttonx1") : image + (configuration.isPressed ? "2" : ""), ext: "png")
+                    BundleImage(name: image == "buttonx1" ? (configuration.isPressed ? "buttonx2" : "buttonx1") : image == "bt1" ? (configuration.isPressed ? "bt2" : "bt1") : image + (configuration.isPressed ? "2" : ""), ext: "png")
                 } else {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(configuration.isPressed ? Color(red: 0.05, green: 0.46, blue: 0.88) :
@@ -114,7 +114,7 @@ struct AndroidWorldView: View {
                                     }
                                     messages(game.fighting ? game.fightMessages : game.messages)
                                 }
-                                if game.dialog != nil { interaction(unit: unit) }
+                                if let dialog = game.dialog, dialog.kind != "confirmation" { interaction(unit: unit) }
                                 if !game.notice.isEmpty {
                                     Text(game.notice).font(.android(size: 14)).foregroundStyle(.cyan)
                                         .padding(2).frame(maxWidth: .infinity, alignment: .leading)
@@ -135,7 +135,8 @@ struct AndroidWorldView: View {
                     bottomBar(unit: unit)
                 }.padding(1)
                 if menuVisible { mainMenu(unit: unit).frame(maxHeight: .infinity) }
-                if historyVisible { historyPanel }
+                if historyVisible { historyPanel(unit: unit) }
+                if game.dialog?.kind == "confirmation" { confirmation(unit: unit) }
             }
             .foregroundStyle(ink).font(.android(size: unit / 28))
             .environment(\.mudDisplayWidth, unit)
@@ -143,6 +144,7 @@ struct AndroidWorldView: View {
         .onAppear {
             #if DEBUG
             menuVisible = ProcessInfo.processInfo.arguments.contains("--ui-check-menu")
+            historyVisible = ProcessInfo.processInfo.arguments.contains("--ui-check-history")
             #endif
             inputFocused = game.dialog?.inputCommand != nil
         }
@@ -433,11 +435,67 @@ struct AndroidWorldView: View {
         }.buttonStyle(AndroidButtonStyle(image: "buttonx1"))
     }
 
-    private var historyPanel: some View {
+    private func historyPanel(unit: CGFloat) -> some View {
         VStack(spacing: 3) {
-            Picker("记录", selection: $historyTab) { Text("聊天").tag(0); Text("信息").tag(1) }.pickerStyle(.segmented)
+            HStack(spacing: 0) {
+                ForEach(0..<2, id: \.self) { tab in
+                    Button { historyTab = tab } label: {
+                        Text(tab == 0 ? "聊天" : "信息").font(.android(size: 14)).foregroundStyle(.black)
+                            .frame(maxWidth: .infinity).frame(height: unit / 10)
+                            .overlay(alignment: .bottom) { if historyTab == tab { Color.gray.frame(height: 2) } }
+                    }.buttonStyle(.plain)
+                }
+            }
             messages(historyTab == 0 ? game.chatMessages : game.history)
-            Button("关 闭") { historyVisible = false }.frame(maxWidth: .infinity, minHeight: 40).buttonStyle(AndroidButtonStyle())
-        }.padding(3).background(Color(white: 0.14)).foregroundStyle(.white)
+            HStack {
+                Spacer()
+                Button { historyVisible = false } label: {
+                    Text("关 闭").font(.android(size: unit / 20)).foregroundStyle(Color(red: 221/255, green: 187/255, blue: 153/255))
+                        .frame(width: 150, height: unit / 10)
+                }.buttonStyle(AndroidButtonStyle(image: "bt1"))
+            }
+        }.padding(3).background(Color(white: 36/255)).foregroundStyle(.white)
+    }
+
+    private func confirmation(unit: CGFloat) -> some View {
+        VStack(spacing: 5) {
+            if let dialog = game.dialog {
+                ScrollView {
+                    MudRichText(raw: dialog.text, send: game.act)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }.padding(10)
+                HStack(spacing: 5) {
+                    ForEach(dialog.rewards) { reward in
+                        Button { game.inspectReward(reward) } label: {
+                            BundleImage(name: "icon", ext: "jpeg").scaledToFit().padding(2)
+                                .frame(width: unit / 6, height: unit / 6)
+                                .background(rewardBackground(reward.grade))
+                        }.buttonStyle(.plain).accessibilityLabel("查看物品")
+                    }
+                }
+                if dialog.numeric {
+                    TextField("", text: $dialogInput).focused($inputFocused)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .frame(width: 90, height: unit / 10)
+                        .onChange(of: dialogInput) { value in if value.count > 3 { dialogInput = String(value.prefix(3)) } }
+                }
+                if !dialog.experience.isEmpty { Text(dialog.experience).foregroundStyle(.green).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 10) }
+                if !dialog.money.isEmpty { Text(dialog.money).foregroundStyle(.yellow).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 10) }
+                HStack(spacing: 30) {
+                    Button { game.confirmDialog(dialogInput) } label: { Text("确 定").frame(width: unit / 4, height: unit / 9) }
+                    if !dialog.secondary.isEmpty {
+                        Button { game.cancelConfirmation() } label: { Text("取 消").frame(width: unit / 4, height: unit / 9) }
+                    }
+                }.buttonStyle(AndroidButtonStyle(image: "bt1")).padding(.bottom, 8)
+            }
+        }.font(.android(size: unit / 26)).foregroundStyle(Color(white: 221/255))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(red: 54/255, green: 34/255, blue: 22/255))
+    }
+
+    private func rewardBackground(_ grade: Int) -> some View {
+        let palette = ["333333", "dddddd", "20e000", "0066ff", "ec00ec", "ffb400", "ff3300"]
+        return LinearGradient(colors: [color(palette.indices.contains(grade) ? palette[grade] : palette[0]).opacity(0.6), color(grade == 0 ? "999999" : "bbbbbb").opacity(0.6)], startPoint: .leading, endPoint: .trailing)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
     }
 }

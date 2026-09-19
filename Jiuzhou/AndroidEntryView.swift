@@ -117,6 +117,7 @@ struct AndroidEntryView: View {
             Text(value.isEmpty ? (password ? "请输入你的密码" : "请输入你的账号") : password ? String(repeating: "•", count: value.count) : value)
                 .foregroundStyle(value.isEmpty ? Color.gray : Color.black)
                 .frame(maxWidth: .infinity, alignment: .leading).modifier(LoginFieldStyle())
+                .contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier(password ? "login.password" : "login.account")
     }
 

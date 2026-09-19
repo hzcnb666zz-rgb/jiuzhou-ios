@@ -16,6 +16,16 @@ struct GameDialog: Identifiable {
     var layout = MudLayout()
     var secondaryLayout = MudLayout()
     var kind = "interaction"
+    var rewards: [GameReward] = []
+    var experience = ""
+    var money = ""
+}
+
+struct GameReward: Identifiable {
+    let id = UUID()
+    let command: String
+    let image: String
+    let grade: Int
 }
 
 struct GameStat: Identifiable {
@@ -76,6 +86,21 @@ final class GameModel: ObservableObject {
         if pages { transport.send("q") }
     }
 
+    func inspectReward(_ item: GameReward) { transport.send("litem " + item.command) }
+
+    func confirmDialog(_ value: String) {
+        guard let current = dialog else { return }
+        if current.numeric { submitInput(value) }
+        else if let command = current.actions.first?.command { act(command) }
+        else { dialog = nil }
+    }
+
+    func cancelConfirmation() {
+        let command = dialog?.secondary.first?.command ?? ""
+        dialog = nil
+        if !command.isEmpty { transport.send(command) }
+    }
+
     func toggleCustomButtons() {
         buttons.removeAll { action in
             guard let slot = Int(action.slot.dropFirst()) else { return false }
@@ -109,6 +134,9 @@ final class GameModel: ObservableObject {
             }
             if ProcessInfo.processInfo.arguments.contains("--ui-check-input") {
                 dialog = GameDialog(text: "你想对老村长说些什么？", inputCommand: "say $txt#")
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-confirmation") {
+                receiveConfirmation("#ffffff你获得了村长赠送的礼物。$br#$exp#经验 100$br#$god#银两 10$br#$obj#gift,missing,2$dh#ok11.accept$dh#no11.cancel")
             }
         }
         #endif
@@ -309,7 +337,18 @@ final class GameModel: ObservableObject {
             if part.hasPrefix("ok11.") { confirm.append(String(part.dropFirst(5))) }
             else if part.hasPrefix("no11.") { next.secondary.append(MudAction(label: "取消", command: String(part.dropFirst(5)))) }
             else if part.hasPrefix("numb.") { next.numeric = true }
-            else { next.text += part + "\n" }
+            else {
+                for line in part.components(separatedBy: "$br#") {
+                    if line.hasPrefix("$exp#") { next.experience = String(line.dropFirst(5)) }
+                    else if line.hasPrefix("$god#") { next.money = String(line.dropFirst(5)) }
+                    else if line.hasPrefix("$obj#") {
+                        let fields = line.dropFirst(5).split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+                        if fields.count >= 3 { next.rewards.append(GameReward(command: fields[0], image: fields[1], grade: Int(fields[2]) ?? 0)) }
+                    } else if line.hasPrefix("#"), line.count >= 7, UInt32(line.dropFirst().prefix(6), radix: 16) != nil {
+                        next.text += "\u{001B}[f" + String(line.prefix(7)) + "m" + String(line.dropFirst(7)) + "\u{001B}[0m\n"
+                    } else { next.text += line + "\n" }
+                }
+            }
         }
         let command = confirm.joined(separator: "$sock#")
         if next.numeric { next.inputCommand = command }

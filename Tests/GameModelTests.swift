@@ -14,6 +14,23 @@ private final class RecordingTransport: MudTransporting {
 }
 
 final class GameModelTests: XCTestCase {
+    func testRewardParsingAndInspectDoesNotCloseConfirmation() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        wire.receive("010", "礼物$br#$exp#经验100$br#$god#银两10$br#$obj#sword,missing,2$dh#ok11.accept$dh#no11.")
+        XCTAssertEqual(game.dialog?.kind, "confirmation")
+        XCTAssertEqual(game.dialog?.experience, "经验100")
+        XCTAssertEqual(game.dialog?.money, "银两10")
+        XCTAssertEqual(game.dialog?.rewards.first?.grade, 2)
+        if let item = game.dialog?.rewards.first { game.inspectReward(item) }
+        XCTAssertEqual(wire.commands, ["litem sword"])
+        XCTAssertNotNil(game.dialog)
+        game.cancelConfirmation()
+        XCTAssertNil(game.dialog)
+        XCTAssertEqual(wire.commands, ["litem sword"])
+    }
+
     func testOrdinaryCommandDoesNotSplitConfirmationDelimiter() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
