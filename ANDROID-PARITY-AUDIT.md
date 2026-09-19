@@ -1,5 +1,69 @@
 # Android / iOS parity audit
 
+## Build 12 source corrections (2026-09-20)
+
+Current candidate commit: `9933f29` (last application change `387f8d9`).
+Verification run: `35462325149`. This section will record its actual result
+before delivery.
+
+| Area | Source and runtime evidence | Implemented change |
+|---|---|---|
+| Repeated actions/objects | takeobacts/takeobj append entries even when commands or names match | Unique occurrence identities; preserve repeated actions and objects. |
+| Title/extra exits | take_tt W/30; takeexit W/35, W/7 by W/11 and 3dp/1dp margins | Source divisors, nested borders, right-aligned title actions, original exit style. |
+| Attribute rows | ESC012 uses equal weights among actual cells, height W/divisor | Partial last row fills width; no invented 16pt minimum; unique identities. |
+| Direction updates | north/northup/northdown address one compass slot | Canonical directional replacement removes stale exits. |
+| Rich text | takespan retains colsp/hcolsp and bcolsp/hbcolsp separately until reset | Freeze inherited tags at message receipt; retain independent normal/bright spans and Android application precedence. |
+| Registration | loginx.xml/logind; Android tablet runtime bounds recorded | Four tap-to-edit fields; 40dp labels, W/11 field height, 20dp gaps, source tab styles and one W/10 submit button; separate registration credentials; original request and success-to-login behavior. |
+| Hidden email | Both registration and account XML parents are GONE | No extra visible email row; registration sends the original hidden default. Supersedes the earlier F03/L14 interpretation. |
+| Server/account pages | Local server-list bypass; ucenterx.xml and APK execution | Original images, width divisors, 5dp server row gaps, hidden recharge/email rows, account read/update requests, separate edit drafts so cancel preserves the previous values. |
+| Voice | myUSpan and recording/upload/playback source | AMR-NB encoder/decoder, permission-triggered recording, upload multipart, local playback links; no placeholder socket command. |
+| Combat | ESC024, text3d.xml | Three original text layers at 0/1/2dp offsets, rise/scale/fade timings, separate from notices. |
+| HTTP | Original registration/account/voice services use HTTP | Correct ATS settings so URLSession can reach the source endpoints. |
+
+The OpenCORE AMR-NB library is statically linked for device/simulator; its
+Apache license is bundled and provenance is recorded in `Vendor/README.md`.
+Debug app startup tests a nonzero AMR round trip and malformed/truncated input.
+No production registration, account update or voice upload was performed.
+
+All 34 imported source images were rehashed against the Android resource tree:
+34 matches, no mismatches. The reference APK contains no `assets/item/` images,
+so reward fallback art matches this reference instead of invented item artwork.
+
+New Android evidence includes edge-case replay, registration, local server list,
+account view/editor and tablet landscape captures under `build/android-*`.
+These supplement the earlier common/inventory/item/player/NPC captures.
+Android phone registration was also captured at 1179x2556/density480:
+input height 107px (integer W/11), inter-field gap 180px (60dp),
+and submit height 117px (integer W/10).
+The original APK's voice button did not open controls during replay; iOS follows
+the intended recording implementation. That observation is not a successful
+Android voice-flow validation and is not hidden as a parity pass.
+
+Read-only checks of the running Windows game service succeeded at both
+127.0.0.1:6666 and the current WLAN address 10.220.35.229:6666: each returned
+the ver1.0 banner and accepted the `local` version handshake. No credentials
+were sent and no account/character was created. The application default keeps
+this currently verified WLAN address rather than the APK's stale tether address.
+This is PC-side reachability evidence, not signed-phone authentication evidence.
+
+Validation history for this candidate:
+
+- `35458929626` / `9ab6dac`: 26 core tests; 10 UI tests per device passed. Later source/runtime inspection found more registration/account differences.
+- `35459824587` / `67f1d2a`: new TCP test failed compilation due actor isolation; no delivery.
+- `35460351161` / `7fc564e`: 27 core tests passed; local TCP fixture setup failed with EINVAL; no delivery.
+- `35460525155` / `61bbed3`: 28 core tests including actual loopback TCP passed; 10/11 UI tests per device passed. Registration accessibility bounds exposed outward strokes; changed to inside strokes. Named screenshot export used an unsupported Xcode 16 command; replaced with Xcode 15 reference traversal/export.
+- `35460992827` / `ea28f34`: cancelled after the previous run exposed the border issue, to avoid spending runner time on an already superseded candidate.
+- `35461216216` / `0f5a494`: 29 core tests and all 11 iPhone UI tests passed. iPad 10/11: registration dimensions passed but tapping blank field space did not present the editor. Added a full-field contentShape. Xcode 15 named attachment export succeeded on both devices; combat active/finished frames were captured.
+- `35461817131` / `387f8d9`: superseded/cancelled after inspection of the newly available landscape attachment found a cropped capture. The final test waits for landscape bounds and a hittable menu, taps a theme control, and uses a full-device screenshot rather than the app-cropped image. Do not treat the previous cropped image as verified landscape parity.
+- `35461940410` / `28d35b3`: application/core build passed, but new screenshot test used an invalid XCUIDevice API. Corrected to XCUIScreen.main.screenshot(); UI test compilation now runs before lengthy screenshot capture via build-for-testing.
+
+Remaining acceptance limits are explicit: no signed physical iPhone/iPad test,
+no fresh authentication to the user's live server, no live registration/account
+mutation or voice delivery, and no exhaustive pixel/line-breaking verification
+for every server-generated string, device size, keyboard or system dialog.
+Source corrections and finite replay tests are not a claim that all these cases
+are identical. Existing build 11 and the user's preferred IPA remain preserved.
+
 ## 2026-09-20 interaction geometry correction
 
 The previous delivery did not sufficiently cover the user's common-command,

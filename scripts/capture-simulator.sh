@@ -36,7 +36,8 @@ while read -r family device; do
   xcrun simctl io "$device" screenshot "build/screenshots/$family-combat-active.png"
   sleep 2
   xcrun simctl io "$device" screenshot "build/screenshots/$family-combat-finished.png"
-  xcrun simctl shutdown "$device"
+  # xcodebuild may already shut down the simulator; cleanup is best-effort.
+  xcrun simctl shutdown "$device" || true
 done < build/screenshot-devices.txt
 test_status=0
 while read -r family device; do
