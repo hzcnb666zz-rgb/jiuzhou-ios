@@ -334,7 +334,7 @@ final class GameModel: ObservableObject {
         case "011", "013": dialog = GameDialog(text: styleStream.render(text), kind: frame.code == "011" ? "map" : "pages")
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
-            statsLayout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35])
+            statsLayout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35]).resolved(for: count)
             stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }
