@@ -3,6 +3,52 @@ import XCTest
 final class InteractionTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    func testCommonInventoryAndItemGeometry() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-check-world", "--ui-check-common"]
+        app.launch()
+        let width = app.windows.firstMatch.frame.width
+        let backpack = app.buttons["world.slot.1"]
+        XCTAssertTrue(backpack.waitForExistence(timeout: 5))
+        let nextRow = app.buttons["world.slot.6"]
+        let custom = app.buttons["world.custom"]
+        XCTAssertEqual(backpack.frame.minY, custom.frame.minY, accuracy: 1)
+        XCTAssertEqual(backpack.frame.height, (width * 3 / 11 - 2) / 2 - 2, accuracy: 1)
+        XCTAssertEqual(nextRow.frame.minY - backpack.frame.maxY, 2, accuracy: 1)
+        backpack.tap()
+        let cloth = app.buttons["布衣"]
+        XCTAssertTrue(cloth.waitForExistence(timeout: 5))
+        let category = app.buttons["物品"].firstMatch
+        XCTAssertEqual(category.frame.width, width / 8 - 2, accuracy: 1)
+        XCTAssertEqual(category.frame.minY, cloth.frame.minY, accuracy: 1)
+        XCTAssertLessThan(app.buttons["干粮"].frame.maxX, width - 5)
+        XCTAssertEqual(cloth.frame.height, width / 11 - 2, accuracy: 1)
+        let inventory = XCTAttachment(screenshot: app.screenshot())
+        inventory.name = "common-to-inventory"
+        inventory.lifetime = .keepAlways
+        add(inventory)
+        cloth.tap()
+        XCTAssertTrue(app.buttons["丢弃"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["干粮"].exists)
+        XCTAssertLessThan(app.buttons["给予"].frame.maxX, width - 5)
+        XCTAssertEqual(app.buttons["装备"].firstMatch.frame.height, width / 9 - 2, accuracy: 1)
+        app.buttons["interaction.close"].tap()
+        XCTAssertTrue(backpack.exists)
+    }
+
+    func testPlayerPartialActionRowAndNPC() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-check-world", "--ui-check-player"]
+        app.launch()
+        let talk = app.buttons["交谈"]
+        XCTAssertTrue(talk.waitForExistence(timeout: 5))
+        XCTAssertEqual(talk.frame.width, app.windows.firstMatch.frame.width / 3 - 2, accuracy: 1)
+        XCTAssertEqual(app.buttons["组队"].frame.width, talk.frame.width, accuracy: 1)
+        XCTAssertEqual(app.buttons["组队"].frame.minX, talk.frame.minX, accuracy: 1)
+        app.buttons["interaction.close"].tap()
+        XCTAssertFalse(talk.exists)
+    }
+
     func testPagedTextStaysOpenUntilClose() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-check-world", "--ui-check-pages"]

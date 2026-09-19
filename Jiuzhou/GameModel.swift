@@ -154,6 +154,10 @@ final class GameModel: ObservableObject {
             if ProcessInfo.processInfo.arguments.contains("--ui-check-pages") {
                 dialog = GameDialog(text: "未明谷记事$br#清溪沿着山脚流过。$br#村长记得这里的往事。", kind: "pages")
             }
+            for scene in ["common", "inventory", "item", "player", "npc"] where ProcessInfo.processInfo.arguments.contains("--ui-check-" + scene) {
+                replayParityScene("common")
+                replayParityScene(scene)
+            }
         }
         #endif
     }
@@ -196,6 +200,13 @@ final class GameModel: ObservableObject {
 
     func act(_ command: String) {
         guard connected, !command.isEmpty else { return }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--ui-check-common"),
+           let scene = ["mycmds ofen": "common", "i": "inventory", "look cloth": "item", "look player": "player", "look elder": "npc"][command] {
+            replayParityScene(scene)
+            return
+        }
+        #endif
         if command.hasPrefix("\u{001B}020") {
             showPopup(String(command.dropFirst(4)))
         } else if command.contains("$txt#") {
@@ -377,4 +388,14 @@ final class GameModel: ObservableObject {
     private func showPopup(_ text: String) {
         popup = GameDialog(actions: MudText.popupActions(text), layout: MudLayout(text, defaults: [1, 2, 8, 25]), kind: "popup")
     }
+
+    #if DEBUG
+    private func replayParityScene(_ name: String) {
+        guard let url = Bundle.main.url(forResource: "parity-scenes", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let scenes = try? JSONDecoder().decode([String: [[String: String]]].self, from: data),
+              let frames = scenes[name] else { preconditionFailure("Missing parity scene: " + name) }
+        for frame in frames { receive(MudFrame(code: frame["code"], text: frame["text"] ?? "")) }
+    }
+    #endif
 }

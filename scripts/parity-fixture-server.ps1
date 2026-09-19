@@ -2,6 +2,10 @@ param([int]$Port = 16666)
 $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
 $listener.Start()
 $esc = [char]27
+$scenes = Get-Content (Join-Path $PSScriptRoot '../Jiuzhou/parity-scenes.json') -Raw -Encoding utf8 | ConvertFrom-Json
+function Send-Scene([string]$name) {
+    foreach ($frame in $scenes.$name) { Send-Line ($esc + $frame.code + $frame.text) }
+}
 function Send-Line([string]$line) {
     $writer.WriteLine($line)
     $writer.Flush()
@@ -15,6 +19,7 @@ function Send-World {
     Send-Line "${esc}012`$2,2,22,35#气血:80/100:#aa3300:hp║内力:50/100:#0000aa:hp"
     Send-Line "${esc}[2J你来到未明谷。"
     Send-Line '老村长向你点了点头。'
+    Send-Line "${esc}006b12:常用:mycmds ofen`$zj#b13:修炼:skills`$zj#b14:战斗:look player`$zj#b15:任务:look cloth`$zj#b16:指南:look elder`$zj#b17:频道:i"
 }
 try {
     Write-Output "Fixture listening on loopback:$Port"
@@ -33,6 +38,10 @@ try {
             Send-World
             while ($null -ne ($command = $reader.ReadLine())) {
                 if ($command -in @('look', 'l', 'north', 'south')) { Send-World }
+                elseif ($command -eq 'mycmds ofen') { Send-Scene 'common' }
+                elseif ($command -eq 'i') { Send-Scene 'inventory' }
+                elseif ($command -eq 'look cloth') { Send-Scene 'item' }
+                elseif ($command -eq 'look player') { Send-Scene 'player' }
                 elseif ($command -eq 'look elder') {
                     Send-Line "${esc}007${esc}[1;32m老村长${esc}[0m`$br#你想打听什么？"
                     Send-Line "${esc}008`$2,3,9,30#交谈|未明谷的故事:ask elder`$zj#交易|查看随身物品:list elder"

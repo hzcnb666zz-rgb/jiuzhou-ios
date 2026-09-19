@@ -23,13 +23,15 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.vanilla7419.emerald5335
         PRODUCT_NAME: Jiuzhou
         MARKETING_VERSION: '0.1.0'
-        CURRENT_PROJECT_VERSION: 9
+        CURRENT_PROJECT_VERSION: 10
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: Generated/Info.plist
       properties:
         CFBundleDisplayName: 九州书剑录
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSLocalNetworkUsageDescription: 连接同一网络中电脑上的九州书剑录游戏服务器。
         NSAppTransportSecurity:
           NSAllowsArbitraryLoadsInWebContent: true

@@ -1,0 +1,22 @@
+{
+  "common": [
+    {"code":"006","text":"b1:背包:i$zj#b2:属性:score$zj#b3:状态:hp$zj#b4:装备:arm$zj#b5:宝典:baodian$zj#b6:成就:mytitle$zj#b7:帮会:banghui$zj#b8:好友:myhy$zj#b9:商城:shangchang$zj#b10:排行:tops$zj#b11:下一页:mycmds ofen1"}
+  ],
+  "inventory": [
+    {"code":"007","text":"你身上带著12/100件，总负重 8%      [R键整理]$br#身怀 0 灵石，100 通宝，0 元宝"},
+    {"code":"008","text":"$1,8,11,36#物品:i$zj#徽章:i badge$zj#装备:i armor$zj#法宝:i magic$zj#宝石:i gem$zj#丹药:i medicine$zj#任务:i quest$zj#书籍:i book$zj#鱼类:i fish$zj#资源:i resource$zj#仓库:i depot"},
+    {"code":"009","text":"$3,4,11,42#布衣:look cloth$zj#长剑:look sword$zj#干粮:look food$zj#水袋:look water$zj#金创药:look medicine$zj#铁戒指:look ring$zj#草鞋:look shoes$zj#木棍:look stick$zj#银两:look silver$zj#指南:look guide$zj#布帽:look hat$zj#火折子:look fire"}
+  ],
+  "item": [
+    {"code":"007","text":"布衣$br#这是一件普通的布衣。$br#防御：5$br#耐久：100/100"},
+    {"code":"008","text":"$3,3,9,30#装备:wear cloth$zj#丢弃:drop cloth$zj#给予:give cloth"}
+  ],
+  "player": [
+    {"code":"007","text":"江湖侠客$br#他看起来约二十多岁，身穿一件布衣。$br#他看起来气血充盈。"},
+    {"code":"008","text":"$2,3,9,30#交谈:ask player$zj#查看装备:equipment player$zj#切磋:fight player$zj#加为好友:friend player$zj#组队:team player"}
+  ],
+  "npc": [
+    {"code":"007","text":"老村长$br#你想打听什么？"},
+    {"code":"008","text":"$2,3,9,30#交谈|未明谷的故事:ask elder$zj#交易|查看随身物品:list elder"}
+  ]
+}

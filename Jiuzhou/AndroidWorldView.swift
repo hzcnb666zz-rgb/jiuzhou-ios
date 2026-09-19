@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+private struct InteractionTextHeight: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
 private struct BundleImage: View {
     let name: String
     let ext: String
@@ -60,6 +65,7 @@ struct AndroidWorldView: View {
     @State private var quitVisible = false
     @AppStorage("centerCommand") private var centerCommand = ""
     @State private var centerEditVisible = false
+    @State private var interactionTextHeight: CGFloat = 0
 
     private let compass = ["northwest", "north", "northeast", "west", "", "east", "southwest", "south", "southeast"]
     private var ink: Color { mode == "day" ? Color(red: 0.31, green: 0.15, blue: 0.08) : mode == "mud" ? Color(white: 0.67) : .white }
@@ -233,11 +239,17 @@ struct AndroidWorldView: View {
     }
 
     private func exits(unit: CGFloat) -> some View {
-        HStack(spacing: 2) {
+        HStack(alignment: .top, spacing: 0) {
             if game.customButtonsVisible {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 5), spacing: 2) {
-                    ForEach(1...10, id: \.self) { slot in quickButton(slot, height: unit * 3 / 22 - 2, unit: unit) }
-                }
+                VStack(spacing: 0) {
+                    ForEach(0..<2, id: \.self) { row in
+                        HStack(spacing: 0) {
+                            ForEach((row * 5 + 1)...(row * 5 + 5), id: \.self) { slot in
+                                quickButton(slot, height: (unit * 3 / 11 - 2) / 2 - 2, unit: unit).padding(1)
+                            }
+                        }
+                    }
+                }.padding(.vertical, 1).accessibilityIdentifier("world.common")
             } else {
                 GeometryReader { g in
                     ForEach(Array(compass.enumerated()), id: \.offset) { index, slot in
@@ -265,16 +277,15 @@ struct AndroidWorldView: View {
                     }
                 }
             }
-            VStack(spacing: 2) {
+            VStack(spacing: 0) {
                 Button { game.toggleCustomButtons() } label: {
                     Text(game.customButtonsVisible ? "关闭" : "自定")
                         .font(.android(size: unit / 31))
-                        .frame(maxWidth: .infinity).frame(height: unit * 3 / 22 - 2)
-                }.buttonStyle(AndroidButtonStyle()).accessibilityIdentifier("world.custom")
-                quickButton(11, height: unit * 3 / 22 - 2, unit: unit)
-            }.frame(width: unit / 7 + 2, height: unit * 3 / 11, alignment: .top)
-                .frame(maxHeight: .infinity, alignment: .top)
-        }.frame(height: unit * 4 / 13).padding(.horizontal, 2)
+                        .frame(maxWidth: .infinity).frame(height: (unit * 3 / 11 - 2) / 2 - 2)
+                }.buttonStyle(AndroidButtonStyle()).accessibilityIdentifier("world.custom").padding(1)
+                quickButton(11, height: (unit * 3 / 11 - 2) / 2 - 2, unit: unit).padding(1)
+            }.padding(.vertical, 1).frame(width: unit / 7 + 2, height: unit * 3 / 11, alignment: .top)
+        }.frame(height: game.customButtonsVisible ? unit * 3 / 11 : unit * 4 / 13, alignment: .top).padding(.leading, 2)
     }
 
     private func imageName(_ slot: String) -> String {
@@ -293,7 +304,7 @@ struct AndroidWorldView: View {
     private func quickButton(_ slot: Int, height: CGFloat, unit: CGFloat) -> some View {
         let item = quickAction(slot)
         return MudRichText(raw: item.display, send: game.act)
-            .font(.android(size: unit / 31)).multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.6)
+            .font(.android(size: unit / 31)).multilineTextAlignment(.center)
             .frame(maxWidth: .infinity).frame(height: height)
             .foregroundStyle(slot >= 12 ? Color(white: 170/255) : ink)
             .background(Color.white.opacity(slot >= 12 ? 0.13 : 0))
@@ -306,6 +317,7 @@ struct AndroidWorldView: View {
                 editingSlot = slot; editLabel = item.label; editCommand = item.command; editVisible = true
             }
             .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("world.slot.\(slot)")
     }
 
     private func bottomBar(unit: CGFloat) -> some View {
@@ -352,14 +364,20 @@ struct AndroidWorldView: View {
     }
 
     private func interaction(unit: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+        GeometryReader { geometry in
+        VStack(alignment: .leading, spacing: 0) {
             if let dialog = game.dialog {
-                ScrollView(dialog.kind == "map" ? [.vertical, .horizontal] : [.vertical]) {
-                    MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / (dialog.kind == "map" || dialog.kind == "pages" ? 32 : 30)))
+                ScrollView {
+                    MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
-                }.fixedSize(horizontal: false, vertical: dialog.kind != "map" && dialog.kind != "pages")
+                        .fixedSize(horizontal: false, vertical: true)
+                        .background(GeometryReader { textGeometry in
+                            Color.clear.preference(key: InteractionTextHeight.self, value: textGeometry.size.height)
+                        })
+                }.frame(height: min(interactionTextHeight, max(0, geometry.size.height - 11)))
+                    .accessibilityIdentifier("interaction.description")
                 if dialog.inputCommand != nil {
-                    HStack(spacing: 3) {
+                    HStack(spacing: 0) {
                         TextField("", text: $dialogInput).textInputAutocapitalization(.never).autocorrectionDisabled()
                             .focused($inputFocused)
                             .keyboardType(dialog.numeric ? .numberPad : .default).onSubmit { game.submitInput(dialogInput) }
@@ -367,14 +385,20 @@ struct AndroidWorldView: View {
                         Button("确定") { game.submitInput(dialogInput) }.frame(width: 65, height: 40).buttonStyle(AndroidButtonStyle())
                     }.padding(.horizontal, 5)
                 }
-                ScrollView {
-                    HStack(alignment: .top, spacing: 3) {
-                        actionGrid(dialog.actions, layout: dialog.layout, unit: unit)
-                        if !dialog.secondary.isEmpty { actionGrid(dialog.secondary, layout: dialog.secondaryLayout, unit: unit) }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                }
+                let availableWidth = max(0, geometry.size.width - 14)
+                let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialog.layout.columns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
+                let listHeight = max(0, geometry.size.height - 15 - interactionTextHeight - (dialog.inputCommand == nil ? 0 : 40))
+                HStack(alignment: .top, spacing: 2) {
+                    actionList(dialog.actions, layout: dialog.layout, unit: unit, width: firstWidth, maxHeight: listHeight, identifier: "interaction.primary")
+                        .padding(.trailing, 4)
+                    if !dialog.secondary.isEmpty {
+                        actionList(dialog.secondary, layout: dialog.secondaryLayout, unit: unit, width: max(0, availableWidth - firstWidth - 8), maxHeight: listHeight, identifier: "interaction.secondary")
+                            .padding(.leading, 2)
+                    }
+                }.padding(2)
+                Spacer(minLength: 0)
             }
-        }.padding(3).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }.padding(.bottom, 3).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background {
                 if mode == "mud" {
                     RoundedRectangle(cornerRadius: 4).fill(Color(white: 34/255))
@@ -386,24 +410,37 @@ struct AndroidWorldView: View {
             .overlay(alignment: .topTrailing) {
                 Button { game.closeDialog() } label: {
                     BundleImage(name: "exitxx", ext: "png").frame(width: unit / 12, height: unit / 14)
-                }.buttonStyle(.plain).accessibilityLabel("关闭").padding(3)
+                }.buttonStyle(.plain).accessibilityLabel("关闭").accessibilityIdentifier("interaction.close")
             }
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color(red: 238/255, green: 232/255, blue: 205/255).opacity(0.6)))
+            .padding(.horizontal, 5).padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 4).fill(Color(white: 34/255)).overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(red: 238/255, green: 232/255, blue: 205/255).opacity(0.6))))
+            .onPreferenceChange(InteractionTextHeight.self) { interactionTextHeight = $0 }
+        }.accessibilityIdentifier("interaction.panel")
     }
 
-    private func actionGrid(_ items: [MudAction], layout: MudLayout, unit: CGFloat) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.fixed(unit / CGFloat(layout.widthDivisor)), spacing: 0), count: layout.columns), alignment: .leading, spacing: 2) {
-            ForEach(items) { item in
+    private func actionList(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat, maxHeight: CGFloat, identifier: String) -> some View {
+        let rows = (items.count + layout.columns - 1) / layout.columns
+        return ScrollView {
+            actionGrid(items, layout: layout, unit: unit, width: width)
+        }.frame(width: width, height: min(maxHeight, CGFloat(rows) * (unit / CGFloat(layout.heightDivisor) + 2)))
+            .accessibilityIdentifier(identifier)
+    }
+
+    private func actionGrid(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.fixed(width / CGFloat(layout.columns)), spacing: 0), count: layout.columns), alignment: .leading, spacing: 2) {
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 Button { game.act(item.command) } label: {
                     let parts = item.display.components(separatedBy: "|")
                     VStack(spacing: 0) {
                         MudRichText(raw: parts[0], send: game.act)
                     }.font(.android(size: unit / CGFloat(layout.fontDivisor)))
-                        .padding(.horizontal, 2).frame(maxWidth: .infinity)
-                        .frame(height: unit / CGFloat(layout.heightDivisor))
-                }.buttonStyle(AndroidButtonStyle())
+                        .padding(.horizontal, 3).frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
+                        .padding(.leading, 2)
+                }.buttonStyle(AndroidButtonStyle()).padding(1)
+                    .frame(height: unit / CGFloat(layout.heightDivisor))
             }
-        }.frame(width: unit * CGFloat(layout.columns) / CGFloat(layout.widthDivisor), alignment: .leading)
+        }.padding(.bottom, 2).frame(width: width, alignment: .leading)
     }
 
     private func mainMenu(unit: CGFloat) -> some View {
