@@ -44,7 +44,8 @@ iOS captures are in `build/review-<Actions run ID>/`.
 - `35449882533` / e31c569: 17 logic tests and 3 UI tests pass; 14 phone/tablet captures. Subsequent Android reward runtime found further differences, so this is not a parity sign-off.
 - `35450612913` / 2604ea8: build success; confirmation phone capture inspected against Android runtime. Native input padding and system keyboard still differ.
 - `35451093032` / e3e5836: 19 logic tests and 5 interaction tests pass; 20 phone/tablet captures. Map/pages source and tablet runtime checked. Missing center default background and page text alignment found afterward; not a parity sign-off.
-- Build 9: restores XML center background, exact hes/map-close colors and centered page text. Verification result pending.
+- Iteration 9 / `35451643876` / b052c58: restores XML center background, exact hes/map-close colors and centered page text. 19 logic and 5 interaction tests pass; 20 iPhone/iPad captures downloaded. Phone world and iPad pages inspected; center outline and page centering confirmed. IPA ZIP integrity passes, SHA256 `342FAD362ED9F5D995327AC781F825758E38787A92F77650FEB95EFFB4B5D074`.
+- Package metadata caveat: both the user's `Jiuzhou-unsigned(4).ipa` and this iteration report CFBundleShortVersionString 1.0 / CFBundleVersion 1, despite project.yml build settings. Distinguish this delivery by filename/hash; generated plist version mapping needs correction in a future build. The user's package has no bundled UIAppFonts; this iteration registers the Android CJK font. Neither version numbers nor filenames establish visual equivalence.
 
 ### Still open; do not claim exact parity
 
