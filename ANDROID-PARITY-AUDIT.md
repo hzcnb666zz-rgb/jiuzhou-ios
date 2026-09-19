@@ -1,5 +1,54 @@
 # Android / iOS parity audit
 
+## 2026-09-20 interaction geometry correction
+
+The previous delivery did not sufficiently cover the user's common-command,
+NPC, player, item and inventory views. This pass uses `res/layout/exts.xml`,
+`oblay.xml`, `longitem.xml`, `mudmaind.takeobacts`, and the server's
+`cmds/usr/mycmds.c` / `inventory.c` in addition to the original APK runtime.
+`Jiuzhou/parity-scenes.json` is shared by the loopback Android fixture and iOS
+Debug replay. It contains synthetic public test objects, not a production
+account session. Release does not enable replay.
+
+Android evidence: `build/android-{common,inventory,item,player,npc}-{phone,tablet}*`.
+Phone is 1179x2556 at density 480; tablet is 1668x2420 at density 320.
+Compare app-content coordinates and point/dp units; OS bars and iPad window
+insets are not equivalent to the game's own padding.
+
+| Surface | Android runtime/source result | Correction |
+|---|---|---|
+| Common commands | Two rows of five, height W*3/11, 1dp top/bottom padding and per-button margins | Remove compass W*4/13 height from expanded command mode; align the two rows with the right controls. |
+| Interaction shell | Full right panel, inner content inset 5dp horizontally and 4dp vertically | Retain full panel; reproduce the nested background/border insets rather than shrinking the panel to its text. |
+| Inventory | Category table W/8; remaining width divided between three item columns, each table scrolls independently | Remove side-by-side fixed-width grids in one shared scroller; constrain the second table to remaining space. |
+| Incomplete action rows | At 393dp screen width, two regular 131dp cells become one 262dp cell on a final single-entry row | Equal weights per actual row, not an empty grid cell on the last row. |
+| Action cells | Height W/divisor, 2dp row gap, 1dp outer and 2dp inner left padding, two source borders | Match source control nesting and preserve width through updates. |
+| Object sidebar | Each object is W/7 by W/10, no extra inter-row gap, text region has 3dp top/bottom padding | Remove added 2dp row spacing and reproduce inner background bounds. |
+| Normal input | input_bg.png, 40dp field and button height, 65dp submit width | Import the source image byte-identically; retain the fixed input/submit font sizing. |
+
+The initial assessment that five columns or a full-height interaction panel
+were themselves wrong was superseded by runtime evidence: both are Android
+behavior. The errors were their sizing, insets, weighting and scroll ownership.
+
+Validation records:
+- `35453838390` / f592a5c: compilation passed, new UI tests failed due to inherited accessibility identifiers; incomplete row behavior also needed correction. No IPA delivered.
+- `35454497398` / de336cf: 19 logic tests passed; 6/7 UI tests passed on each device. Inventory test selected the bottom bar's duplicate label instead of the category; now scoped to the primary table. Player partial row and close checks passed.
+- `35454978240` / 0df44bb: 19 logic tests and all 7 phone UI tests passed. Tablet failed an assertion comparing screen-space maxX to window-local width; corrected to window.maxX. Runtime screenshots inspected against all 10 Android reference captures.
+- `35455638566` / 9a8db7b: cancelled after visual inspection found the input submit border only wrapped its text. Moved the 65x40 frame into the button label and added size assertions.
+- `35455784734` / 162c5a7: 19 logic tests passed; common/inventory/item/NPC flow and player geometry passed on both devices. All 7 phone UI tests passed; tablet 6/7, with the new fixed-point submit width assertion missing the system window scale (62.636 screen points versus 65 app points). Input screenshots confirm the full button border is now drawn. Normalize fixed-point assertions to the window/screen width ratio.
+- `35456257894` / 8c4e64b: the input size assertion still failed because UIScreen in the UI test runner is not the app's screen coordinate space. Other geometry tests passed. Replaced that conversion with Debug-only accessibility exposure of the app's measured layout width; expected button size remains strictly 65x40 app points.
+- `35456748885` / bef9953: PASS. 19 logic tests, 7 iPhone UI tests and 7 iPad UI tests; 30 runtime screenshots downloaded. Final common/inventory/item/player/NPC/input screenshots reviewed for both device families. IPA ZIP integrity passes; actual version 0.1.0 (11), bundle ID app.vanilla7419.emerald5335, 18,566,289 bytes. SHA-256: `a054b31ec490432bdf8cd29c4ba743eab288b1c8d4ff3d2b80779baeba1fca9f`.
+
+All 32 bundled image files match original Android resource SHA-256 hashes.
+This hash comparison is at source-resource level. All 32 names and the CJK
+font are present in the IPA; Xcode rewrites PNG encodings, so compiled image
+bytes are not claimed identical. Final simulator captures verify rendering.
+The app remains private. GitHub billing queried during this pass reports
+Actions netAmount 0; unrelated services are outside this statement.
+
+These checks cover the shared rendering paths used by the named screens.
+They do not prove every server-generated page or actual signed-device session
+is pixel-identical; remaining limitations below are not silently closed.
+
 ## Iteration status (supersedes the historical findings below)
 
 Reference project: `../MudZJutf8-src/MudZJutf8/app/src/main`. Runtime reference:
