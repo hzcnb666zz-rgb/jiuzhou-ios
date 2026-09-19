@@ -386,7 +386,9 @@ struct AndroidWorldView: View {
                             .keyboardType(dialog.numeric ? .numberPad : .default).onSubmit { game.submitInput(dialogInput) }
                             .font(.android(size: 15)).padding(.leading, 15).frame(height: 40)
                             .background(BundleImage(name: "input_bg", ext: "png"))
-                        Button("确定") { game.submitInput(dialogInput) }.font(.android(size: 14)).frame(width: 65, height: 40).buttonStyle(AndroidButtonStyle())
+                        Button { game.submitInput(dialogInput) } label: {
+                            Text("确定").font(.android(size: 14)).frame(width: 65, height: 40).contentShape(Rectangle())
+                        }.buttonStyle(AndroidButtonStyle())
                     }.padding(.horizontal, 5)
                 }
                 let availableWidth = max(0, geometry.size.width - 14)

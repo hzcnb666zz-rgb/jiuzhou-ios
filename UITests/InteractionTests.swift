@@ -109,6 +109,8 @@ final class InteractionTests: XCTestCase {
         let field = app.textFields.firstMatch
         XCTAssertTrue(field.exists)
         field.typeText("hello")
+        XCTAssertEqual(app.buttons["确定"].frame.width, 65, accuracy: 1)
+        XCTAssertEqual(app.buttons["确定"].frame.height, 40, accuracy: 1)
         app.buttons["确定"].tap()
         let disappeared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: field)
         XCTAssertEqual(XCTWaiter.wait(for: [disappeared], timeout: 5), .completed)
