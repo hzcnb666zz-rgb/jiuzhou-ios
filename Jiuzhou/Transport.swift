@@ -2,7 +2,17 @@ import Foundation
 import Network
 
 // All connection callbacks are serialized on the main queue, including reconnects.
-final class MudTransport {
+protocol MudTransporting: AnyObject {
+    var onFrame: ((MudFrame) -> Void)? { get set }
+    var onStatus: ((String, Bool) -> Void)? { get set }
+    var preservesNewlines: Bool { get set }
+    func connect(host: String, port: UInt16)
+    func send(_ command: String)
+    func disconnect()
+}
+
+final class MudTransport: MudTransporting {
+    var preservesNewlines = true
     var onFrame: ((MudFrame) -> Void)?
     var onStatus: ((String, Bool) -> Void)?
     private var connection: NWConnection?
@@ -15,7 +25,9 @@ final class MudTransport {
         decoder = MudDecoder()
         let token = generation
         guard let endpointPort = NWEndpoint.Port(rawValue: port) else { return }
-        let socket = NWConnection(host: NWEndpoint.Host(host), port: endpointPort, using: .tcp)
+        let tcp = NWProtocolTCP.Options()
+        tcp.enableKeepalive = true
+        let socket = NWConnection(host: NWEndpoint.Host(host), port: endpointPort, using: NWParameters(tls: nil, tcp: tcp))
         connection = socket
         onStatus?("正在连接", false)
         socket.stateUpdateHandler = { [weak self] state in
@@ -40,8 +52,7 @@ final class MudTransport {
     }
 
     func send(_ command: String) {
-        guard !command.contains("\r"), !command.contains("\n") else { return }
-        send(Data((command + "\n").utf8))
+        send(MudText.wireCommand(command, preservesNewlines: preservesNewlines))
     }
 
     private func send(_ bytes: Data) {

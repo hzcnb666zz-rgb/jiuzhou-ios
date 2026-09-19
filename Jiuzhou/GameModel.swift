@@ -59,7 +59,7 @@ final class GameModel: ObservableObject {
     @Published var customButtonsVisible = false
     @Published var objectHealth: [String: Double] = [:]
     @Published var statsLayout = MudLayout("", defaults: [2, 2, 22, 35])
-    private let transport = MudTransport()
+    private let transport: MudTransporting
     private var sentCredentials = false
 
     func toggleCustomButtons() {
@@ -74,7 +74,8 @@ final class GameModel: ObservableObject {
         customButtonsVisible.toggle()
     }
 
-    init() {
+    init(transport: MudTransporting = MudTransport()) {
+        self.transport = transport
         transport.onFrame = { [weak self] in self?.receive($0) }
         transport.onStatus = { [weak self] text, ready in
             self?.status = text
@@ -89,6 +90,12 @@ final class GameModel: ObservableObject {
             exits = [MudAction(label: "青石桥", command: "south", slot: "south"), MudAction(label: "山路", command: "north", slot: "north")]
             messages = [GameMessage(text: "你来到未明谷。"), GameMessage(text: "老村长向你点了点头。")]
             stats = [GameStat(label: "气血", value: "80/100", color: "#aa3300", command: "hp"), GameStat(label: "内力", value: "50/100", color: "#0000aa", command: "hp")]
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-dialog") {
+                dialog = GameDialog(text: "\u{001B}[1;32m老村长\u{001B}[0m$br#你想打听什么？", actions: MudText.actions("交谈|未明谷的故事:ask elder$zj#交易|查看随身物品:list elder"), layout: MudLayout("$2,3,9,30#"))
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-input") {
+                dialog = GameDialog(text: "你想对老村长说些什么？", inputCommand: "say $txt#")
+            }
         }
         #endif
     }
@@ -258,6 +265,8 @@ final class GameModel: ObservableObject {
         case "020": dialog = GameDialog(actions: MudText.actions(text))
         case "021": topActions = MudText.actions(text)
         case "903": exits.removeAll { $0.slot == text || $0.command == text }
+        case "997": transport.preservesNewlines = false
+        case "998": transport.preservesNewlines = true
         case "913": exits = []
         case "905": objects.removeAll { $0.command == text || $0.command == "look " + text }
         case "999": logout()

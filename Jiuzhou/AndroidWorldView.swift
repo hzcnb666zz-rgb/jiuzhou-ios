@@ -22,7 +22,7 @@ struct AndroidButtonStyle: ButtonStyle {
         configuration.label
             .background {
                 if let image {
-                    BundleImage(name: image + (configuration.isPressed ? "2" : ""), ext: "png")
+                    BundleImage(name: image == "buttonx1" ? (configuration.isPressed ? "buttonx2" : "buttonx1") : image + (configuration.isPressed ? "2" : ""), ext: "png")
                 } else {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(configuration.isPressed ? Color(red: 0.05, green: 0.46, blue: 0.88) :
@@ -41,7 +41,8 @@ struct AndroidButtonStyle: ButtonStyle {
 struct AndroidWorldView: View {
     @ObservedObject var game: GameModel
     @AppStorage("androidMode") private var mode = "night"
-    @AppStorage("androidShortChat") private var shortChat = false
+    @AppStorage("androidChatDivisor") private var chatDivisor = 5
+    @FocusState private var inputFocused: Bool
     @State private var menuVisible = false
     @State private var historyVisible = false
     @State private var historyTab = 0
@@ -70,7 +71,7 @@ struct AndroidWorldView: View {
                 VStack(spacing: 0) {
                     if !game.chatMessages.isEmpty {
                         messages(Array(game.chatMessages.suffix(100)))
-                            .frame(height: shortChat ? unit / 8 : unit / 5)
+                            .frame(height: unit / CGFloat(max(1, chatDivisor)))
                     }
                     rule
                     titleBar(unit: unit)
@@ -104,15 +105,15 @@ struct AndroidWorldView: View {
                             ZStack(alignment: .topLeading) {
                                 VStack(spacing: 0) {
                                     if !game.descriptionHidden && !game.fighting {
-                                        ScrollView {
-                                            MudRichText(raw: game.description, send: game.act)
-                                                .font(.system(size: unit / 25)).frame(maxWidth: .infinity, alignment: .leading).padding(5)
-                                        }.frame(maxHeight: geometry.size.height * 0.26)
+                                        MudRichText(raw: game.description, send: game.act)
+                                            .font(.system(size: (unit - 14) / 25))
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .fixedSize(horizontal: false, vertical: true).padding(5)
                                         rule
                                     }
                                     messages(game.fighting ? game.fightMessages : game.messages)
                                 }
-                                if game.dialog != nil { interaction }
+                                if game.dialog != nil { interaction(unit: unit) }
                                 if !game.notice.isEmpty {
                                     Text(game.notice).font(.system(size: 14)).foregroundStyle(.cyan)
                                         .padding(2).frame(maxWidth: .infinity, alignment: .leading)
@@ -132,12 +133,22 @@ struct AndroidWorldView: View {
                     rule
                     bottomBar(unit: unit)
                 }.padding(1)
-                if menuVisible { mainMenu.padding(.top, 45) }
+                if menuVisible { mainMenu(unit: unit).frame(maxHeight: .infinity) }
                 if historyVisible { historyPanel }
             }
-            .foregroundStyle(ink).font(.system(size: 13))
+            .foregroundStyle(ink).font(.system(size: unit / 28))
+            .environment(\.mudDisplayWidth, unit)
         }
-        .onChange(of: game.dialog?.id) { _ in dialogInput = "" }
+        .onAppear {
+            #if DEBUG
+            menuVisible = ProcessInfo.processInfo.arguments.contains("--ui-check-menu")
+            #endif
+            inputFocused = game.dialog?.inputCommand != nil
+        }
+        .onChange(of: game.dialog?.id) { _ in
+            dialogInput = ""
+            inputFocused = game.dialog?.inputCommand != nil
+        }
         .alert("请输入快捷键指令：", isPresented: $centerEditVisible) {
             TextField("指令", text: $editCommand)
             Button("确定") { centerCommand = editCommand; game.buttons.removeAll { $0.slot == "bs" } }
@@ -176,7 +187,7 @@ struct AndroidWorldView: View {
 
     private func titleBar(unit: CGFloat) -> some View {
         HStack(spacing: 3) {
-            MudRichText(raw: game.room, send: game.act).font(.system(size: unit / 18))
+            MudRichText(raw: game.room, send: game.act).font(.system(size: (unit - 14) / 18))
                 .lineLimit(1).minimumScaleFactor(0.6).padding(.leading, 18)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 3) {
@@ -184,7 +195,7 @@ struct AndroidWorldView: View {
                 }
             }
             Button(game.descriptionHidden ? "显示" : "隐藏") { game.descriptionHidden.toggle() }
-                .font(.system(size: unit / 25)).padding(.horizontal, 8).frame(height: unit / 13)
+                .font(.system(size: (unit - 14) / 25)).padding(.horizontal, 8).frame(height: unit / 13)
                 .background(Color.white.opacity(0.13))
         }.padding(3).frame(minHeight: 40)
             .background { if mode == "night" { BundleImage(name: "bar", ext: "png") } }
@@ -195,7 +206,7 @@ struct AndroidWorldView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 2) {
                     ForEach(items) { item in
-                        MudRichText(raw: item.text, send: game.act).font(.system(size: 14))
+                        MudRichText(raw: item.text, send: game.act)
                             .frame(maxWidth: .infinity, alignment: .leading).id(item.id)
                     }
                 }.padding(5)
@@ -213,7 +224,7 @@ struct AndroidWorldView: View {
         HStack(spacing: 2) {
             if game.customButtonsVisible {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 5), spacing: 2) {
-                    ForEach(1...10, id: \.self) { slot in quickButton(slot, height: unit * 3 / 22 - 2) }
+                    ForEach(1...10, id: \.self) { slot in quickButton(slot, height: unit * 3 / 22 - 2, unit: unit) }
                 }
             } else {
                 GeometryReader { g in
@@ -222,7 +233,7 @@ struct AndroidWorldView: View {
                         let row = index / 3
                         if slot.isEmpty {
                             Button { game.act(game.buttons.first { $0.slot == "bs" }?.command ?? centerCommand) } label: {
-                                MudRichText(raw: game.room, send: game.act).font(.system(size: 12))
+                                MudRichText(raw: game.room, send: game.act).font(.system(size: unit / 33))
                                     .lineLimit(1).minimumScaleFactor(0.5)
                                     .frame(width: unit / 4, height: unit / 15)
                                     .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(red: 0.86, green: 0.93, blue: 0.78).opacity(0.44)))
@@ -230,10 +241,10 @@ struct AndroidWorldView: View {
                                 .simultaneousGesture(LongPressGesture().onEnded { _ in editCommand = centerCommand; centerEditVisible = true })
                                 .position(x: g.size.width / 2, y: g.size.height / 2)
                         } else if let exit = game.exits.first(where: { $0.slot == slot || $0.slot == slot + "up" || $0.slot == slot + "down" }) {
-                            let bw = min(unit / 5, g.size.width / 3)
+                            let bw = unit / 5
                             let bh = unit / 12
                             Button { game.act(exit.command) } label: {
-                                MudRichText(raw: exit.display, send: game.act).font(.system(size: 12))
+                                MudRichText(raw: exit.display, send: game.act).font(.system(size: unit / 33))
                                     .lineLimit(2).minimumScaleFactor(0.65).multilineTextAlignment(.center)
                                     .frame(width: bw, height: bh)
                             }.buttonStyle(AndroidButtonStyle(image: mode == "night" ? imageName(slot) : nil))
@@ -245,8 +256,9 @@ struct AndroidWorldView: View {
             }
             VStack(spacing: 2) {
                 Button(game.customButtonsVisible ? "关闭" : "自定") { game.toggleCustomButtons() }
+                    .font(.system(size: unit / 31))
                     .frame(maxWidth: .infinity, maxHeight: .infinity).buttonStyle(AndroidButtonStyle())
-                quickButton(11, height: unit * 3 / 22 - 2)
+                quickButton(11, height: unit * 3 / 22 - 2, unit: unit)
             }.frame(width: unit / 7 + 2, height: unit * 3 / 11)
         }.frame(height: unit * 4 / 13).padding(.horizontal, 2)
     }
@@ -264,10 +276,10 @@ struct AndroidWorldView: View {
                          command: UserDefaults.standard.string(forKey: "button.\(slot).command") ?? fallback.1, slot: "b\(slot)")
     }
 
-    private func quickButton(_ slot: Int, height: CGFloat) -> some View {
+    private func quickButton(_ slot: Int, height: CGFloat, unit: CGFloat) -> some View {
         let item = quickAction(slot)
         return MudRichText(raw: item.display, send: game.act)
-            .font(.system(size: 12)).multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.6)
+            .font(.system(size: unit / 31)).multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.6)
             .frame(maxWidth: .infinity).frame(height: height)
             .background(Color.white.opacity(0.04))
             .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color(red: 0.71, green: 0.41, blue: 0.24).opacity(0.2)))
@@ -285,7 +297,7 @@ struct AndroidWorldView: View {
                 BundleImage(name: "command", ext: "png").scaledToFit().frame(width: 40, height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("输入指令")
             ForEach(12...17, id: \.self) { slot in
-                quickButton(slot, height: unit / 8).frame(width: max(0, (unit - 2 - 40 - 260) / 7 + 40))
+                quickButton(slot, height: unit / 8, unit: unit).frame(width: max(0, (unit - 2 - 40 - 260) / 7 + 40))
             }
             Button { menuVisible.toggle() } label: {
                 BundleImage(name: "mainbt", ext: "png").scaledToFit().frame(width: max(0, (unit - 2 - 40 - 260) / 7 + 20), height: unit / 8)
@@ -302,7 +314,7 @@ struct AndroidWorldView: View {
                             Color.clear
                             color(stat.color).frame(width: g.size.width * stat.fraction)
                             MudRichText(raw: stat.label + (stat.value.contains("/") ? "" : ":" + stat.value), send: game.act)
-                                .font(.system(size: 11)).lineLimit(1).minimumScaleFactor(0.6)
+                                .font(.system(size: unit / CGFloat(game.statsLayout.fontDivisor))).lineLimit(1).minimumScaleFactor(0.6)
                         }
                     }.frame(height: max(16, unit / CGFloat(game.statsLayout.heightDivisor)))
                 }.buttonStyle(.plain)
@@ -322,16 +334,17 @@ struct AndroidWorldView: View {
         }.buttonStyle(AndroidButtonStyle())
     }
 
-    private var interaction: some View {
+    private func interaction(unit: CGFloat) -> some View {
         VStack(spacing: 3) {
             if let dialog = game.dialog {
                 ScrollView([.vertical, .horizontal]) {
-                    MudRichText(raw: dialog.text, send: game.act).font(.system(size: 13))
+                    MudRichText(raw: dialog.text, send: game.act).font(.system(size: unit / (dialog.kind == "map" || dialog.kind == "pages" ? 32 : 30)))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
                 }.fixedSize(horizontal: false, vertical: dialog.kind != "map" && dialog.kind != "pages")
                 if dialog.inputCommand != nil {
                     HStack(spacing: 3) {
                         TextField("", text: $dialogInput).textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .focused($inputFocused)
                             .keyboardType(dialog.numeric ? .numberPad : .default).onSubmit { game.submitInput(dialogInput) }
                             .padding(5).background(Color.white.opacity(0.1))
                         Button("确定") { game.submitInput(dialogInput) }.frame(width: 60, height: 40).buttonStyle(AndroidButtonStyle())
@@ -339,8 +352,8 @@ struct AndroidWorldView: View {
                 }
                 ScrollView {
                     HStack(alignment: .top, spacing: 3) {
-                        actionGrid(dialog.actions, layout: dialog.layout)
-                        if !dialog.secondary.isEmpty { actionGrid(dialog.secondary, layout: dialog.secondaryLayout) }
+                        actionGrid(dialog.actions, layout: dialog.layout, unit: unit)
+                        if !dialog.secondary.isEmpty { actionGrid(dialog.secondary, layout: dialog.secondaryLayout, unit: unit) }
                     }
                 }
                 HStack {
@@ -356,25 +369,51 @@ struct AndroidWorldView: View {
             .background { BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png") }
     }
 
-    private func actionGrid(_ items: [MudAction], layout: MudLayout) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: layout.columns), spacing: 2) {
-            ForEach(items) { item in action(item, height: max(28, 390 / CGFloat(layout.heightDivisor))) }
+    private func actionGrid(_ items: [MudAction], layout: MudLayout, unit: CGFloat) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.fixed(unit * 0.75 / CGFloat(layout.widthDivisor)), spacing: 0), count: layout.columns), spacing: 2) {
+            ForEach(items) { item in
+                Button { game.act(item.command) } label: {
+                    let parts = item.display.components(separatedBy: "|")
+                    VStack(alignment: .leading, spacing: 0) {
+                        MudRichText(raw: parts[0], send: game.act)
+                        if parts.count > 1 { MudRichText(raw: parts[1], send: game.act).foregroundStyle(Color(white: 0.6)) }
+                    }.font(.system(size: unit / CGFloat(layout.fontDivisor)))
+                        .padding(.horizontal, 2).frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: unit / CGFloat(layout.heightDivisor))
+                }.buttonStyle(AndroidButtonStyle())
+            }
         }
     }
 
-    private var mainMenu: some View {
+    private func mainMenu(unit: CGFloat) -> some View {
         VStack(spacing: 2) {
-            ForEach(0..<3, id: \.self) { index in
-                let modes = [("日间模式", "day"), ("夜间模式", "night"), ("正常模式", "mud")]
-                Button(modes[index].0) { mode = modes[index].1; menuVisible = false; game.act("mycmds"); game.act("look") }
+            HStack(spacing: 3) {
+                ForEach(0..<3, id: \.self) { index in
+                    let modes = [("日间模式", "day"), ("夜间模式", "mud"), ("正常模式", "night")]
+                    menuButton(modes[index].0, unit: unit) {
+                        mode = modes[index].1; game.messages = []; game.chatMessages = []
+                        menuVisible = false; game.act("mycmds"); game.act("look")
+                    }
+                }
             }
-            Button("单行聊天") { shortChat = true; menuVisible = false }
-            Button("多行聊天") { shortChat = false; menuVisible = false }
-            Button("信息记录") { historyVisible = true; menuVisible = false }
-            Button("连接设置") { settingsVisible = true; menuVisible = false }
-            Button("退 出") { quitVisible = true; menuVisible = false }
-            Button("关闭") { menuVisible = false }
-        }.buttonStyle(.bordered).padding(8).frame(width: 180).background(Color.black.opacity(0.95))
+            Color.gray.opacity(0.4).frame(width: 200, height: 1)
+            HStack(spacing: 3) {
+                menuButton("单行聊天", unit: unit) { chatDivisor = 8; menuVisible = false }
+                menuButton("多行聊天", unit: unit) { chatDivisor = 3; menuVisible = false }
+                menuButton("信息记录", unit: unit) { historyVisible = true; menuVisible = false }
+            }
+            Color.gray.opacity(0.4).frame(width: 200, height: 1)
+            menuButton("退 出", unit: unit) { quitVisible = true; menuVisible = false }
+        }.padding(5)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.3).onTapGesture { menuVisible = false })
+    }
+
+    private func menuButton(_ label: String, unit: CGFloat, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label).font(.system(size: unit / 22)).foregroundStyle(Color(red: 244/255, green: 164/255, blue: 96/255))
+                .frame(width: unit / 4, height: unit / 9)
+        }.buttonStyle(AndroidButtonStyle(image: "buttonx1"))
     }
 
     private var historyPanel: some View {

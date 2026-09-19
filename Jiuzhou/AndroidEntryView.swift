@@ -43,7 +43,7 @@ struct AndroidEntryView: View {
                             Text("本地九州书剑录")
                             Spacer()
                         }.padding(8)
-                    }.buttonStyle(LoginButtonStyle()).disabled(game.connecting || game.connected)
+                    }.buttonStyle(LoginButtonStyle()).disabled(game.connecting)
                     Text(game.status).font(.system(size: 13)).padding(10)
                     if game.connecting { ProgressView() }
                     Spacer()
@@ -130,7 +130,7 @@ private struct SplashBackground: View {
     var body: some View {
         if let path = Bundle.main.path(forResource: "splash", ofType: "jpeg"),
            let image = UIImage(contentsOfFile: path) {
-            Image(uiImage: image).resizable().scaledToFill()
+            Image(uiImage: image).resizable()
         } else {
             Color.white
         }

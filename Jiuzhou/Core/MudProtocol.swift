@@ -96,6 +96,10 @@ struct MudLayout: Equatable {
 }
 
 enum MudText {
+    static func wireCommand(_ command: String, preservesNewlines: Bool) -> Data {
+        Data(((preservesNewlines ? command : command.replacingOccurrences(of: "\n", with: ";")) + "\n").utf8)
+    }
+
     static func inputCommand(template: String, value: String, confirmation: Bool) -> String {
         if confirmation { return template.replacingOccurrences(of: "$N", with: value).replacingOccurrences(of: "$txt#", with: value) }
         if template.contains("$txt#") { return template.replacingOccurrences(of: "$txt#", with: value) }
