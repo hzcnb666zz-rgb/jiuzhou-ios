@@ -84,7 +84,7 @@ final class InteractionTests: XCTestCase {
         app.buttons["菜单"].tap()
         XCTAssertTrue(app.buttons["正常模式"].waitForExistence(timeout: 5))
         app.buttons["正常模式"].tap()
-        let capture = XCTAttachment(screenshot: XCUIDevice.shared.screenshot())
+        let capture = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         capture.name = "landscape-world"
         capture.lifetime = .keepAlways
         add(capture)

@@ -13,7 +13,7 @@ swift test
 xcodegen generate
 xcodebuild -project Jiuzhou.xcodeproj -scheme Jiuzhou -configuration Debug \
   -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO build
+  -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO build-for-testing
 xcodebuild -project Jiuzhou.xcodeproj -scheme Jiuzhou -configuration Release \
   -sdk iphoneos -destination 'generic/platform=iOS' \
   -derivedDataPath build/device CODE_SIGNING_ALLOWED=NO build
