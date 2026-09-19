@@ -464,7 +464,8 @@ struct AndroidWorldView: View {
                     }.padding(.horizontal, 5)
                 }
                 let availableWidth = max(0, geometry.size.width - 14)
-                let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialog.layout.columns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
+                let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
+                let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
                 let listHeight = max(0, geometry.size.height - 15 - interactionTextHeight - (dialog.inputCommand == nil ? 0 : 40))
                 HStack(alignment: .top, spacing: 2) {
                     actionList(dialog.actions, layout: dialog.layout, unit: unit, width: firstWidth, maxHeight: listHeight, identifier: "interaction.primary")
@@ -499,30 +500,32 @@ struct AndroidWorldView: View {
     }
 
     private func actionList(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat, maxHeight: CGFloat, identifier: String) -> some View {
-        let rows = (items.count + layout.columns - 1) / layout.columns
+        let resolvedLayout = layout.resolved(for: items.count)
+        let rows = (items.count + resolvedLayout.columns - 1) / resolvedLayout.columns
         return ScrollView {
-            actionGrid(items, layout: layout, unit: unit, width: width)
-        }.frame(width: width, height: min(maxHeight, CGFloat(rows) * (unit / CGFloat(layout.heightDivisor) + 2)))
+            actionGrid(items, layout: resolvedLayout, unit: unit, width: width)
+        }.frame(width: width, height: min(maxHeight, CGFloat(rows) * (unit / CGFloat(resolvedLayout.heightDivisor) + 2)))
             .accessibilityIdentifier(identifier)
     }
 
     private func actionGrid(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat) -> some View {
-        let rows = (items.count + layout.columns - 1) / layout.columns
+        let resolvedLayout = layout.resolved(for: items.count)
+        let rows = (items.count + resolvedLayout.columns - 1) / resolvedLayout.columns
         return VStack(spacing: 2) {
             ForEach(0..<rows, id: \.self) { row in
                 HStack(spacing: 0) {
-                ForEach((row * layout.columns)..<min(items.count, (row + 1) * layout.columns), id: \.self) { index in
+                ForEach((row * resolvedLayout.columns)..<min(items.count, (row + 1) * resolvedLayout.columns), id: \.self) { index in
                 let item = items[index]
                 Button { game.act(item) } label: {
                     let parts = item.display.components(separatedBy: "|")
                     VStack(spacing: 0) {
                         MudRichText(raw: parts[0], send: game.act)
-                    }.font(.android(size: unit / CGFloat(layout.fontDivisor)))
+                    }.font(.android(size: unit / CGFloat(resolvedLayout.fontDivisor)))
                         .padding(.horizontal, 3).frame(maxWidth: .infinity, maxHeight: .infinity)
                         .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
                         .padding(.leading, 2)
                 }.buttonStyle(AndroidButtonStyle()).padding(1)
-                    .frame(height: unit / CGFloat(layout.heightDivisor))
+                    .frame(height: unit / CGFloat(resolvedLayout.heightDivisor))
                     .frame(maxWidth: .infinity)
                 }
                 }
@@ -562,14 +565,15 @@ struct AndroidWorldView: View {
     }
 
     private func popupMenu(_ popup: GameDialog, unit: CGFloat) -> some View {
+        let popupLayout = popup.layout.resolved(for: popup.actions.count)
         ScrollView {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(unit / CGFloat(popup.layout.widthDivisor)), spacing: 0), count: popup.layout.columns), spacing: 0) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(unit / CGFloat(popupLayout.widthDivisor)), spacing: 0), count: popupLayout.columns), spacing: 0) {
                 ForEach(popup.actions) { item in
                     Button { game.act(item.command) } label: {
                         MudRichText(raw: item.display, send: game.act)
-                            .font(.android(size: unit / CGFloat(popup.layout.fontDivisor)))
+                            .font(.android(size: unit / CGFloat(popupLayout.fontDivisor)))
                             .foregroundStyle(mode == "mud" ? Color(white: 170/255) : Color(red: 80/255, green: 32/255, blue: 21/255))
-                            .frame(width: unit / CGFloat(popup.layout.widthDivisor), height: unit / CGFloat(popup.layout.heightDivisor))
+                            .frame(width: unit / CGFloat(popupLayout.widthDivisor), height: unit / CGFloat(popupLayout.heightDivisor))
                     }.buttonStyle(AndroidButtonStyle(image: mode == "mud" ? nil : "buttonx1"))
                 }
             }

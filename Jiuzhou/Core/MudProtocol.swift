@@ -97,6 +97,7 @@ struct MudLayout: Equatable {
     var widthDivisor = 3
     var heightDivisor = 9
     var fontDivisor = 30
+    private(set) var automaticColumns = false
 
     init(_ raw: String = "", defaults: [Int] = [1, 3, 9, 30]) {
         var values = defaults
@@ -104,10 +105,22 @@ struct MudLayout: Equatable {
             let parsed = raw[raw.index(after: raw.startIndex)..<end].split(separator: ",").compactMap { Int($0) }
             if parsed.count == 4 { values = parsed }
         }
-        columns = min(12, max(1, values[0]))
+        automaticColumns = values[0] == 0
+        columns = automaticColumns ? 1 : min(12, max(1, values[0]))
         widthDivisor = max(1, values[1])
         heightDivisor = max(1, values[2])
         fontDivisor = max(1, values[3])
+    }
+
+    func resolvedColumns(for itemCount: Int) -> Int {
+        automaticColumns ? min(12, max(1, itemCount / 2)) : columns
+    }
+
+    func resolved(for itemCount: Int) -> MudLayout {
+        var copy = self
+        copy.columns = resolvedColumns(for: itemCount)
+        copy.automaticColumns = false
+        return copy
     }
 }
 

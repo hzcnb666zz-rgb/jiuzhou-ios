@@ -73,6 +73,13 @@ final class MudProtocolTests: XCTestCase {
             MudAction(label: "树林", command: "go east", slot: "east")])
     }
 
+    func testZeroLayoutUsesAndroidAutomaticColumns() {
+        let layout = MudLayout("$0,3,9,30#")
+        XCTAssertEqual(layout.resolvedColumns(for: 6), 3)
+        XCTAssertEqual(layout.resolvedColumns(for: 5), 2)
+        XCTAssertEqual(layout.resolved(for: 6).columns, 3)
+    }
+
     func testColorsDoNotConsumeFollowingText() {
         XCTAssertEqual(MudText.plain("\u{1B}[31m红色\u{1B}[0m正常\u{1B}[s:16]标题$br#下一行"), "红色正常标题\n下一行")
         XCTAssertEqual(MudText.actions("\u{1B}[s:16]人物:look me").first?.label, "人物")

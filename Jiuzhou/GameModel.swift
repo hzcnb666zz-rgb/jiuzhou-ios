@@ -335,7 +335,6 @@ final class GameModel: ObservableObject {
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
             statsLayout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35])
-            if text.hasPrefix("$0,") { statsLayout.columns = max(1, count / 2) }
             stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }
