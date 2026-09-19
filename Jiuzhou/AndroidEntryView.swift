@@ -11,6 +11,7 @@ struct AndroidEntryView: View {
     @State private var characterName = ""
     @State private var gender = "男性"
     @State private var chooseServer = false
+    @State private var accountCenter = false
     @State private var settings = false
     @State private var editingCredential = false
     @State private var editingPassword = false
@@ -22,8 +23,16 @@ struct AndroidEntryView: View {
         ZStack {
             if game.inWorld { AndroidWorldView(game: game) }
             else if game.needsCharacter { character }
-            else { login }
+            else { login(width: geometry.size.width, height: geometry.size.height) }
+            if accountCenter { AndroidAccountView(game: game) { accountCenter = false } }
             if let url = game.webURL { AndroidWebPanel(url: url) { game.webURL = nil } }
+        }
+        .onAppear {
+            #if DEBUG
+            chooseServer = ProcessInfo.processInfo.arguments.contains("--ui-check-servers")
+            registering = ProcessInfo.processInfo.arguments.contains("--ui-check-register")
+            accountCenter = ProcessInfo.processInfo.arguments.contains("--ui-check-account")
+            #endif
         }
         .environment(\.mudDisplayWidth, geometry.size.width)
         }
@@ -50,28 +59,26 @@ struct AndroidEntryView: View {
         }
     }
 
-    private var login: some View {
+    private func login(width: CGFloat, height: CGFloat) -> some View {
         ZStack(alignment: .top) {
             SplashBackground()
             if chooseServer {
-                VStack(spacing: 10) {
+                VStack(spacing: 0) {
                     Text("分区列表").font(.android(size: 18)).foregroundStyle(.white)
-                        .frame(maxWidth: .infinity).frame(height: 50).background(.black)
-                    Button { game.login() } label: {
-                        HStack {
-                            Image("GameMark").resizable().scaledToFit().frame(width: 48, height: 48)
-                            Text("本地九州书剑录")
-                            Spacer()
-                        }.padding(8)
-                    }.buttonStyle(LoginButtonStyle()).disabled(game.connecting)
+                        .frame(maxWidth: .infinity).frame(height: 50).background(.black).padding(.bottom, 5)
+                    serverHeading("最近登录分区:", size: 13)
+                    serverRow(width: width - 23, height: height, screenWidth: width).padding(.horizontal, 11.5)
+                    serverHeading("更 多 分 区", size: 18)
+                    serverRow(width: (width - 62) / 2, height: height, screenWidth: width)
+                        .padding(.top, 25).padding(.bottom, 65)
+                    HStack {
+                        Button("会员中心") { accountCenter = true }
+                        Button("返回登录") { game.logout(); chooseServer = false }
+                    }.buttonStyle(LoginButtonStyle()).padding(.horizontal, 10)
+                    Button("服务器设置") { settings = true }.font(.android(size: 13)).padding(10)
                     Text(game.status).font(.android(size: 13)).padding(10)
                     if game.connecting { ProgressView() }
-                    Spacer()
-                    HStack {
-                        Button("服务器设置") { settings = true }
-                        Spacer()
-                        Button("返回") { game.logout(); chooseServer = false }
-                    }.padding(10)
+                    Spacer(minLength: 0)
                 }
             } else {
                 ScrollView {
@@ -112,6 +119,33 @@ struct AndroidEntryView: View {
                 }
             }
         }.foregroundStyle(.black).font(.android(size: 18)).tint(.black).preferredColorScheme(.light)
+    }
+
+    private func serverHeading(_ text: String, size: CGFloat) -> some View {
+        Text(text).font(.android(size: size)).foregroundStyle(.yellow)
+            .frame(maxWidth: .infinity).frame(height: 35)
+            .background(entryArt("flag")).padding(.horizontal, 5)
+    }
+
+    private func serverRow(width: CGFloat, height: CGFloat, screenWidth: CGFloat) -> some View {
+        let iconSize = max(1, (height - 180 - screenWidth / 9 - screenWidth / 10) / 10)
+        return Button { game.login() } label: {
+            HStack(spacing: 0) {
+                entryArt("licon").frame(width: iconSize, height: iconSize).padding(3)
+                Text("本地九州书剑录").font(.android(size: screenWidth / 28))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
+                    .padding(.leading, 5).background(Color(white: 238/255).opacity(34/255))
+            }.padding(1).frame(width: max(0, width), height: iconSize + 8)
+        }.buttonStyle(.plain).disabled(game.connecting)
+    }
+
+    private func entryArt(_ name: String) -> some View {
+        Group {
+            if let url = Bundle.main.url(forResource: name, withExtension: "png"), let image = UIImage(contentsOfFile: url.path) {
+                Image(uiImage: image).resizable()
+            }
+        }
     }
 
     private func fieldLabel(_ text: String) -> some View {

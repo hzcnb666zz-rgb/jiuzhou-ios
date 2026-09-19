@@ -4,6 +4,14 @@ import CryptoKit
 enum LegacyService {
     static let base = URL(string: "http://60.205.8.72")!
 
+    static func accountRequest(account: String, password: String, changes: [String: String] = [:]) -> URLRequest {
+        var url = URLComponents(url: base.appendingPathComponent(changes.isEmpty ? "mobi/userinfo.php" : "mobi/updateuser.php"), resolvingAgainstBaseURL: false)!
+        url.queryItems = [URLQueryItem(name: "id", value: account), URLQueryItem(name: "pass", value: password)]
+            + changes.keys.sorted().map { URLQueryItem(name: $0, value: changes[$0]) }
+        url.percentEncodedQuery = url.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        return URLRequest(url: url.url!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+    }
+
     static func registration(account: String, password: String, phone: String, email: String) -> URLRequest {
         let digest = Insecure.MD5.hash(data: Data((account + password + phone + "AP4s3dF5").utf8))
         var url = URLComponents(url: base.appendingPathComponent("mobi/reg.php"), resolvingAgainstBaseURL: false)!

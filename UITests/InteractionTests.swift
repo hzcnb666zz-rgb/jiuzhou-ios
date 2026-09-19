@@ -32,6 +32,21 @@ final class InteractionTests: XCTestCase {
         XCTAssertTrue(app.textFields["register.email"].exists)
     }
 
+    func testAccountCenterEditsAndReturnsWithoutNetworkMutation() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-check-account"]
+        app.launch()
+        XCTAssertTrue(app.buttons["account.newpwd"].waitForExistence(timeout: 5))
+        app.buttons["account.newpwd"].tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        app.alerts.buttons["取消"].tap()
+        app.buttons["account.server"].tap()
+        XCTAssertTrue(app.buttons["取 消"].waitForExistence(timeout: 5))
+        app.buttons["取 消"].tap()
+        app.buttons["关 闭"].tap()
+        XCTAssertTrue(app.buttons["login.account"].exists)
+    }
+
     func testThemeSwitchesAndRotationKeepWorldControls() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-check-world"]

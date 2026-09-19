@@ -18,6 +18,11 @@ while read -r family device; do
   xcrun simctl launch --terminate-running-process "$device" app.vanilla7419.emerald5335
   sleep 3
   xcrun simctl io "$device" screenshot "build/screenshots/$family-login.png"
+  for scene in register servers account; do
+    xcrun simctl launch --terminate-running-process "$device" app.vanilla7419.emerald5335 "--ui-check-$scene"
+    sleep 3
+    xcrun simctl io "$device" screenshot "build/screenshots/$family-$scene.png"
+  done
   xcrun simctl launch --terminate-running-process "$device" app.vanilla7419.emerald5335 --ui-check-world
   sleep 3
   xcrun simctl io "$device" screenshot "build/screenshots/$family-world.png"
@@ -31,6 +36,7 @@ done < build/screenshot-devices.txt
 test_status=0
 while read -r family device; do
   xcodebuild -project Jiuzhou.xcodeproj -scheme Jiuzhou -destination "platform=iOS Simulator,id=$device" -derivedDataPath build/simulator -resultBundlePath "build/InteractionTests-$family.xcresult" test CODE_SIGNING_ALLOWED=NO || test_status=$?
+  xcrun xcresulttool export attachments --path "build/InteractionTests-$family.xcresult" --output-path "build/screenshots/attachments-$family" || true
   xcrun simctl shutdown "$device" || true
 done < build/screenshot-devices.txt
 exit "$test_status"

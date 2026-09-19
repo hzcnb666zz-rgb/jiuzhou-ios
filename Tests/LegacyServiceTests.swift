@@ -25,6 +25,16 @@ final class LegacyServiceTests: XCTestCase {
         XCTAssertNil(LegacyService.voiceUpload(audio, filename: "a\r\n.amr"))
     }
 
+    func testAccountUpdateEncodesServerRecordAsOneParameter() throws {
+        let request = LegacyService.accountRequest(account: "test", password: "fixture", changes: ["myserver": "九州&127.0.0.1&6666&6667"])
+        let url = try XCTUnwrap(request.url)
+        let query = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        XCTAssertEqual(url.path, "/mobi/updateuser.php")
+        XCTAssertEqual(query.count, 3)
+        XCTAssertEqual(query.last?.value, "九州&127.0.0.1&6666&6667")
+        XCTAssertEqual(LegacyService.accountRequest(account: "test", password: "fixture").url?.path, "/mobi/userinfo.php")
+    }
+
     func testStyleStreamRetainsAndResetsFontAndLinks() {
         var stream = MudStyleStream()
         _ = stream.render("\u{001B}[s:20]\u{001B}[u:cmds:look]查看")

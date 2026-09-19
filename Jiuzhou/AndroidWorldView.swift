@@ -252,16 +252,20 @@ struct AndroidWorldView: View {
         HStack(spacing: 3) {
             MudRichText(raw: game.room, send: game.act).font(.android(size: (unit - 14) / 18))
                 .lineLimit(1).minimumScaleFactor(0.6).padding(3).padding(.leading, 18).padding(.bottom, 2)
+            GeometryReader { bounds in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 3) {
+                HStack(spacing: 0) {
                     ForEach(game.topActions) { item in
                         Button { game.act(item.command) } label: {
                             MudRichText(raw: item.display, send: game.act).font(.android(size: unit / 30))
-                                .padding(.horizontal, 1).frame(minHeight: unit / 13)
-                        }.buttonStyle(AndroidButtonStyle())
+                                .padding(.horizontal, 3).frame(height: max(0, unit / 13 - 6))
+                                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
+                                .padding(.horizontal, 4)
+                        }.buttonStyle(AndroidButtonStyle()).padding(.vertical, 3)
                     }
-                }
+                }.frame(minWidth: bounds.size.width, alignment: .trailing)
             }
+            }.frame(height: unit / 13)
             Button(game.descriptionToggleLabel) { game.toggleDescription() }
                 .font(.android(size: (unit - 14) / 25)).padding(.horizontal, 8).frame(height: unit / 13)
                 .background(Color.white.opacity(0.13))
