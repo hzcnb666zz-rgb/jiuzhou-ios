@@ -39,6 +39,7 @@ final class SocketIntegrationTests: XCTestCase {
         }
         func read(_ socket: NWConnection) {
             socket.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, ended, error in
+                Task { @MainActor in
                 if let data {
                     buffer.append(data)
                     while let end = buffer.firstIndex(of: 10) {
@@ -52,20 +53,27 @@ final class SocketIntegrationTests: XCTestCase {
                             let split = reply.count - 8
                             socket.send(content: reply.prefix(split), completion: .contentProcessed { error in
                                 XCTAssertNil(error)
-                                send(Data(reply.dropFirst(split)), on: socket)
+                                socket.send(content: Data(reply.dropFirst(split)), completion: .contentProcessed { error in
+                                    XCTAssertNil(error)
+                                })
                             })
                         }
                     }
                 }
                 if !ended && error == nil { read(socket) }
+                }
             }
         }
         listener.newConnectionHandler = { socket in
+            Task { @MainActor in
             peer = socket
             socket.stateUpdateHandler = { state in
+                Task { @MainActor in
                 if case .ready = state { send(Data("ver1.0,fixture\n".utf8), on: socket); read(socket) }
+                }
             }
             socket.start(queue: .main)
+            }
         }
         defer {
             roomObserver.cancel(); connectionObserver.cancel()

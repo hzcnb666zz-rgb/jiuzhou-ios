@@ -6,7 +6,9 @@ struct AndroidEntryView: View {
     @State private var registering = false
     @State private var confirmedPassword = ""
     @State private var phone = ""
-    @State private var email = ""
+    @State private var registrationAccount = ""
+    @State private var registrationPassword = ""
+    @State private var registrationFieldIndex: Int?
     @State private var registeringRequest = false
     @State private var characterName = ""
     @State private var gender = "男性"
@@ -39,12 +41,19 @@ struct AndroidEntryView: View {
         .onChange(of: scenePhase) { phase in
             if phase == .active && game.inWorld && !game.connected { game.notice = "连接已断开，请重新连接" }
         }
-        .alert(editingPassword ? "请输入密码：" : "请输入账号：", isPresented: $editingCredential) {
+        .alert(credentialTitle, isPresented: $editingCredential) {
             if editingPassword { SecureField("", text: $credentialDraft) }
             else { TextField("", text: $credentialDraft).textInputAutocapitalization(.never).autocorrectionDisabled() }
             Button("取消", role: .cancel) {}
             Button("确定") {
-                if editingPassword { game.password = credentialDraft }
+                if let index = registrationFieldIndex {
+                    switch index {
+                    case 0: registrationAccount = credentialDraft
+                    case 1: registrationPassword = credentialDraft
+                    case 2: confirmedPassword = credentialDraft
+                    default: phone = credentialDraft
+                    }
+                } else if editingPassword { game.password = credentialDraft }
                 else { game.account = credentialDraft }
                 credentialDraft = ""
             }
@@ -80,6 +89,8 @@ struct AndroidEntryView: View {
                     if game.connecting { ProgressView() }
                     Spacer(minLength: 0)
                 }
+            } else if registering {
+                registration(width: width)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -88,25 +99,13 @@ struct AndroidEntryView: View {
                                 .buttonStyle(.plain).frame(maxWidth: .infinity, minHeight: 45)
                             Button("注 册") { registering = true }
                         }.buttonStyle(LoginButtonStyle()).padding(.bottom, 15)
-                        fieldLabel(registering ? "创建你的账号" : "你的账号：")
+                        fieldLabel("你的账号：")
                         credentialField(password: false)
-                        fieldLabel(registering ? "创建你的密码" : "你的密码：")
+                        fieldLabel("你的密码：")
                         credentialField(password: true)
-                        if registering {
-                            fieldLabel("确认你的密码")
-                            SecureField("请再输一次密码", text: $confirmedPassword).modifier(LoginFieldStyle())
-                            fieldLabel("你的手机号码")
-                            TextField("", text: $phone).keyboardType(.phonePad).modifier(LoginFieldStyle())
-                                .accessibilityIdentifier("register.phone")
-                            fieldLabel("你的邮箱")
-                            TextField("", text: $email).keyboardType(.emailAddress).textInputAutocapitalization(.never)
-                                .autocorrectionDisabled().modifier(LoginFieldStyle()).accessibilityIdentifier("register.email")
-                        }
                         HStack(spacing: 8) {
-                            Button(registering ? "注 册" : "登 录") {
-                                if registering {
-                                    register()
-                                } else if game.account.isEmpty || game.password.isEmpty {
+                            Button("登 录") {
+                                if game.account.isEmpty || game.password.isEmpty {
                                     game.status = "请输入账号和密码"
                                 } else {
                                     game.status = "请选择分区"; chooseServer = true
@@ -152,14 +151,62 @@ struct AndroidEntryView: View {
         Text(text).padding(.leading, 20).frame(height: 80, alignment: .center)
     }
 
+    private var credentialTitle: String {
+        if let index = registrationFieldIndex {
+            return ["请输4-12位的ID(字母开头可包含数字)：", "请输入15位以内的密码：", "请再次输入密码：", "请输入11位数字的手机号："][index]
+        }
+        return editingPassword ? "请输入密码：" : "请输入账号："
+    }
+
+    private func registration(width: CGFloat) -> some View {
+        ScrollView {
+            ZStack(alignment: .top) {
+                HStack(spacing: 0) {
+                    Button("登 录") { registering = false }.buttonStyle(LoginButtonStyle())
+                    Text("注 册").frame(maxWidth: .infinity).frame(height: 45)
+                }
+                VStack(alignment: .leading, spacing: 0) {
+                    registrationField("你的账号", hint: "字母开头，4-12位字母或数字", value: registrationAccount, index: 0)
+                    registrationField("你的密码", hint: "15位以内字母或数字", value: registrationPassword, index: 1)
+                    registrationField("确认你的密码", hint: "请再输一次密码", value: confirmedPassword, index: 2)
+                    registrationField("你的手机号", hint: "请输入您的手机号码", value: phone, index: 3)
+                    Button("注 册", action: register).buttonStyle(LoginButtonStyle())
+                        .accessibilityIdentifier("register.submit")
+                        .padding(.leading, 13).padding(.trailing, 16).padding(.top, 43)
+                        .disabled(registeringRequest)
+                    Text(game.status == "未连接" ? "" : game.status).font(.android(size: 13)).padding(10)
+                }.padding(.top, 70)
+            }.padding(1)
+        }
+    }
+
+    private func registrationField(_ label: String, hint: String, value: String, index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(label).font(.android(size: 20)).padding(.horizontal, 1).frame(height: 40)
+            Button {
+                registrationFieldIndex = index
+                editingPassword = false
+                credentialDraft = value
+                editingCredential = true
+            } label: {
+                Text(value.isEmpty ? hint : value).font(.android(size: 18))
+                    .foregroundStyle(value.isEmpty ? Color.gray : Color.black)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20).modifier(LoginFieldStyle())
+            }.buttonStyle(.plain).padding(.horizontal, 10)
+                .accessibilityIdentifier("register.\(["account", "password", "confirmation", "phone"][index])")
+        }.padding(.bottom, 20)
+    }
+
     private func register() {
-        guard ![game.account, game.password, confirmedPassword, phone, email].contains(where: { $0.isEmpty }) else {
+        guard ![registrationAccount, registrationPassword, confirmedPassword, phone].contains(where: { $0.isEmpty }) else {
             game.status = "请确保各项都不为空！"; return
         }
-        guard confirmedPassword == game.password else { game.status = "两次输入密码不一致！"; return }
+        guard confirmedPassword == registrationPassword else { game.status = "两次输入密码不一致！"; return }
         registeringRequest = true
         game.status = "正在注册"
-        let request = LegacyService.registration(account: game.account, password: game.password, phone: phone, email: email)
+        // loginx.xml hides the email field and supplies this default.
+        let request = LegacyService.registration(account: registrationAccount, password: registrationPassword, phone: phone, email: "a1@qq.com")
         Task { @MainActor in
             defer { registeringRequest = false }
             do {
@@ -177,6 +224,7 @@ struct AndroidEntryView: View {
     private func credentialField(password: Bool) -> some View {
         let value = password ? game.password : game.account
         return Button {
+            registrationFieldIndex = nil
             editingPassword = password; credentialDraft = value; editingCredential = true
         } label: {
             Text(value.isEmpty ? (password ? "请输入你的密码" : "请输入你的账号") : password ? String(repeating: "•", count: value.count) : value)

@@ -23,13 +23,23 @@ final class InteractionTests: XCTestCase {
         XCTAssertFalse(app.buttons["旧北路"].exists)
     }
 
-    func testRegistrationIncludesPhoneAndEmailWithoutSubmitting() {
+    func testRegistrationMatchesFourAndroidFieldsWithoutSubmitting() {
         let app = XCUIApplication()
         app.launch()
         app.buttons["注 册"].tap()
-        app.swipeUp()
-        XCTAssertTrue(app.textFields["register.phone"].exists)
-        XCTAssertTrue(app.textFields["register.email"].exists)
+        XCTAssertTrue(app.buttons["register.account"].exists)
+        XCTAssertTrue(app.buttons["register.password"].exists)
+        XCTAssertTrue(app.buttons["register.confirmation"].exists)
+        XCTAssertTrue(app.buttons["register.phone"].exists)
+        XCTAssertFalse(app.textFields["register.email"].exists)
+        XCTAssertFalse(app.buttons["退 出"].exists)
+        let account = app.buttons["register.account"].frame
+        let password = app.buttons["register.password"].frame
+        XCTAssertEqual(account.height, app.windows.firstMatch.frame.width / 11, accuracy: 1)
+        XCTAssertEqual(password.minY - account.maxY, 60, accuracy: 1)
+        app.buttons["register.account"].tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        app.alerts.buttons["取消"].tap()
     }
 
     func testAccountCenterEditsAndReturnsWithoutNetworkMutation() {
