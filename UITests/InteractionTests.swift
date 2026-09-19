@@ -76,8 +76,15 @@ final class InteractionTests: XCTestCase {
         }
         XCUIDevice.shared.orientation = .landscapeLeft
         defer { XCUIDevice.shared.orientation = .portrait }
-        XCTAssertTrue(app.buttons["菜单"].waitForExistence(timeout: 5))
-        let capture = XCTAttachment(screenshot: app.screenshot())
+        let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let frame = app.windows.firstMatch.frame
+            return frame.width > frame.height && app.buttons["菜单"].isHittable
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 8), .completed)
+        app.buttons["菜单"].tap()
+        XCTAssertTrue(app.buttons["正常模式"].waitForExistence(timeout: 5))
+        app.buttons["正常模式"].tap()
+        let capture = XCTAttachment(screenshot: XCUIDevice.shared.screenshot())
         capture.name = "landscape-world"
         capture.lifetime = .keepAlways
         add(capture)
