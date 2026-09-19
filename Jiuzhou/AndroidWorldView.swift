@@ -89,10 +89,10 @@ struct AndroidWorldView: View {
                     HStack(spacing: 0) {
                         VStack(spacing: 0) {
                             ScrollView {
-                                LazyVStack(spacing: 2) {
+                                LazyVStack(spacing: 0) {
                                     ForEach(game.objects) { object in
                                         Button { game.act(object.command) } label: {
-                                            VStack(spacing: 1) {
+                                            VStack(spacing: 0) {
                                                 if let fraction = game.objectHealth[object.command] {
                                                     GeometryReader { g in
                                                         Color.red.frame(width: g.size.width * fraction)
@@ -102,10 +102,13 @@ struct AndroidWorldView: View {
                                                     .foregroundStyle(mode == "night" ? Color(red: 221/255, green: 187/255, blue: 153/255) : ink)
                                                     .font(.android(size: unit / 35)).multilineTextAlignment(.center)
                                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            }.padding(2).frame(height: unit / 10)
-                                        }.buttonStyle(AndroidButtonStyle(filled: true))
+                                                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
+                                            }.padding(.vertical, 3)
+                                                .background(mode == "night" ? Color(white: 238/255).opacity(34/255) : .clear)
+                                                .padding(1).frame(width: unit / 7, height: unit / 10)
+                                        }.buttonStyle(.plain)
                                     }
-                                }.padding(1)
+                                }.padding(.top, 2).frame(maxWidth: .infinity, alignment: .leading)
                             }
                             ForEach(extraExits) { exit in
                                 action(exit, height: unit / 11)
@@ -381,8 +384,9 @@ struct AndroidWorldView: View {
                         TextField("", text: $dialogInput).textInputAutocapitalization(.never).autocorrectionDisabled()
                             .focused($inputFocused)
                             .keyboardType(dialog.numeric ? .numberPad : .default).onSubmit { game.submitInput(dialogInput) }
-                            .font(.android(size: 15)).padding(.horizontal, 15).frame(height: 40).background(Color.white.opacity(0.1))
-                        Button("确定") { game.submitInput(dialogInput) }.frame(width: 65, height: 40).buttonStyle(AndroidButtonStyle())
+                            .font(.android(size: 15)).padding(.leading, 15).frame(height: 40)
+                            .background(BundleImage(name: "input_bg", ext: "png"))
+                        Button("确定") { game.submitInput(dialogInput) }.font(.android(size: 14)).frame(width: 65, height: 40).buttonStyle(AndroidButtonStyle())
                     }.padding(.horizontal, 5)
                 }
                 let availableWidth = max(0, geometry.size.width - 14)

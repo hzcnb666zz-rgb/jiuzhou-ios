@@ -1,5 +1,6 @@
 {
   "common": [
+    {"code":"006","text":"b12:常用:mycmds ofen$zj#b13:修炼:skills$zj#b14:战斗:look player$zj#b15:任务:look cloth$zj#b16:指南:look elder$zj#b17:频道:i"},
     {"code":"006","text":"b1:背包:i$zj#b2:属性:score$zj#b3:状态:hp$zj#b4:装备:arm$zj#b5:宝典:baodian$zj#b6:成就:mytitle$zj#b7:帮会:banghui$zj#b8:好友:myhy$zj#b9:商城:shangchang$zj#b10:排行:tops$zj#b11:下一页:mycmds ofen1"}
   ],
   "inventory": [

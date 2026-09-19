@@ -18,11 +18,17 @@ final class InteractionTests: XCTestCase {
         backpack.tap()
         let cloth = app.buttons["布衣"]
         XCTAssertTrue(cloth.waitForExistence(timeout: 5))
-        let category = app.buttons["物品"].firstMatch
+        let category = app.scrollViews["interaction.primary"].buttons["物品"]
         XCTAssertEqual(category.frame.width, width / 8 - 2, accuracy: 1)
         XCTAssertEqual(category.frame.minY, cloth.frame.minY, accuracy: 1)
         XCTAssertLessThan(app.buttons["干粮"].frame.maxX, width - 5)
         XCTAssertEqual(cloth.frame.height, width / 11 - 2, accuracy: 1)
+        if !app.buttons["仓库"].isHittable {
+            let clothY = cloth.frame.minY
+            app.scrollViews["interaction.primary"].swipeUp()
+            XCTAssertTrue(app.buttons["仓库"].isHittable)
+            XCTAssertEqual(cloth.frame.minY, clothY, accuracy: 1)
+        }
         let inventory = XCTAttachment(screenshot: app.screenshot())
         inventory.name = "common-to-inventory"
         inventory.lifetime = .keepAlways
@@ -31,10 +37,15 @@ final class InteractionTests: XCTestCase {
         XCTAssertTrue(app.buttons["丢弃"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["干粮"].exists)
         XCTAssertLessThan(app.buttons["给予"].frame.maxX, width - 5)
-        XCTAssertEqual(app.buttons["装备"].firstMatch.frame.height, width / 9 - 2, accuracy: 1)
+        XCTAssertEqual(app.scrollViews["interaction.primary"].buttons["装备"].frame.height, width / 9 - 2, accuracy: 1)
         XCTAssertTrue(app.buttons["interaction.close"].exists, app.debugDescription)
         app.buttons["interaction.close"].tap()
         XCTAssertTrue(backpack.exists)
+        app.buttons["老村长"].tap()
+        XCTAssertTrue(app.buttons["交谈"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["交易"].frame.width, app.buttons["交谈"].frame.width, accuracy: 1)
+        app.buttons["interaction.close"].tap()
+        XCTAssertFalse(app.buttons["交谈"].exists)
     }
 
     func testPlayerPartialActionRowAndNPC() {
