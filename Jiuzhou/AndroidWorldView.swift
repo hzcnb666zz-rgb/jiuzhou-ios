@@ -389,6 +389,9 @@ struct AndroidWorldView: View {
                         Button { game.submitInput(dialogInput) } label: {
                             Text("确定").font(.android(size: 14)).frame(width: 65, height: 40).contentShape(Rectangle())
                         }.buttonStyle(AndroidButtonStyle())
+                        #if DEBUG
+                        .accessibilityValue(String(Double(unit)))
+                        #endif
                     }.padding(.horizontal, 5)
                 }
                 let availableWidth = max(0, geometry.size.width - 14)

@@ -1,5 +1,4 @@
 import XCTest
-import UIKit
 
 final class InteractionTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
@@ -110,8 +109,11 @@ final class InteractionTests: XCTestCase {
         let field = app.textFields.firstMatch
         XCTAssertTrue(field.exists)
         field.typeText("hello")
-        // iPad window presentation scales app points into screen coordinates.
-        let windowScale = app.windows.firstMatch.frame.width / UIScreen.main.bounds.width
+        // Use the app's measured layout width; the test runner has its own screen metrics.
+        let layoutWidth = Double(app.buttons["确定"].value as? String ?? "") ?? 0
+        XCTAssertGreaterThan(layoutWidth, 0)
+        guard layoutWidth > 0 else { return }
+        let windowScale = app.windows.firstMatch.frame.width / CGFloat(layoutWidth)
         XCTAssertEqual(app.buttons["确定"].frame.width, 65 * windowScale, accuracy: 1)
         XCTAssertEqual(app.buttons["确定"].frame.height, 40 * windowScale, accuracy: 1)
         app.buttons["确定"].tap()
