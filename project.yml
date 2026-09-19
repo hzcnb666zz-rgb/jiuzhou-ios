@@ -42,7 +42,6 @@ targets:
         NSMicrophoneUsageDescription: 录制并发送游戏语音消息。
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
-          NSAllowsArbitraryLoadsInWebContent: true
         UILaunchScreen: {}
         UIAppFonts:
           - NotoSansCJK-Regular.ttc

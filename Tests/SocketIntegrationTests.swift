@@ -4,7 +4,7 @@ import Combine
 @testable import JiuzhouProtocol
 
 final class SocketIntegrationTests: XCTestCase {
-    func testRealTCPHandshakeFragmentationAndServerDisconnect() throws {
+    @MainActor func testRealTCPHandshakeFragmentationAndServerDisconnect() async throws {
         let keys = ["account", "host", "port"]
         let saved = keys.map { UserDefaults.standard.object(forKey: $0) }
         defer { for (key, value) in zip(keys, saved) { UserDefaults.standard.set(value, forKey: key) } }
@@ -12,9 +12,12 @@ final class SocketIntegrationTests: XCTestCase {
         parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
         let listener = try NWListener(using: parameters)
         let listening = expectation(description: "listening")
-        listener.stateUpdateHandler = { state in if case .ready = state { listening.fulfill() } }
+        listener.stateUpdateHandler = { state in
+            if case .ready = state { listening.fulfill() }
+            if case .failed(let error) = state { XCTFail("Local listener failed: \(error)"); listening.fulfill() }
+        }
         listener.start(queue: .main)
-        wait(for: [listening], timeout: 5)
+        await fulfillment(of: [listening], timeout: 5)
         let port = try XCTUnwrap(listener.port)
         let game = GameModel()
         game.account = "paritytest"; game.password = "fixture-only"
@@ -69,11 +72,11 @@ final class SocketIntegrationTests: XCTestCase {
             game.logout(); peer?.cancel(); listener.cancel()
         }
         game.login()
-        wait(for: [entered], timeout: 8)
+        await fulfillment(of: [entered], timeout: 8)
         XCTAssertTrue(game.inWorld)
         XCTAssertEqual(received.prefix(2), ["local", "paritytest║fixture-only║123456789abcd║local@localhost"])
         peer?.cancel()
-        wait(for: [disconnected], timeout: 5)
+        await fulfillment(of: [disconnected], timeout: 5)
         XCTAssertFalse(game.connected)
     }
 }
