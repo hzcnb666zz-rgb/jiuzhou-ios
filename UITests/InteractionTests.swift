@@ -81,8 +81,7 @@ final class InteractionTests: XCTestCase {
         XCTAssertTrue(app.buttons["菜单"].waitForExistence(timeout: 8))
         let landscapeMenu = app.buttons["菜单"]
         landscapeMenu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        XCTAssertTrue(app.buttons["正常模式"].waitForExistence(timeout: 5))
-        app.buttons["正常模式"].tap()
+        XCTAssertTrue(app.buttons["山路"].waitForExistence(timeout: 5))
         let capture = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         capture.name = "landscape-world"
         capture.lifetime = .keepAlways
