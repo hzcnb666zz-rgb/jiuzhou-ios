@@ -83,7 +83,7 @@ struct AndroidEntryView: View {
                     HStack {
                         Button("会员中心") { accountCenter = true }
                         Button("返回登录") { game.logout(); chooseServer = false }
-                    }.buttonStyle(LoginButtonStyle()).padding(.horizontal, 10)
+                    }.buttonStyle(LoginButtonStyle(heightDivisor: 9)).padding(.horizontal, 10)
                     Button("服务器设置") { settings = true }.font(.android(size: 13)).padding(10)
                     Text(game.status).font(.android(size: 13)).padding(10)
                     if game.connecting { ProgressView() }
@@ -180,7 +180,7 @@ struct AndroidEntryView: View {
                     Text(game.status == "未连接" ? "" : game.status).font(.android(size: 13)).padding(10)
                 }.padding(.top, 70)
             }.padding(1)
-        }
+        }.disabled(registeringRequest)
     }
 
     private func registrationField(_ label: String, hint: String, value: String, index: Int) -> some View {
@@ -218,8 +218,11 @@ struct AndroidEntryView: View {
                       let result = String(data: data, encoding: .utf8), !result.isEmpty else {
                     game.status = "注册失败，服务器连接错误！"; return
                 }
-                game.status = result
-                if result == "注册成功" { registering = false; confirmedPassword = "" }
+                game.status = result == "Error" ? "注册失败，服务器链接错误！" : result
+                if result == "注册成功" {
+                    game.account = registrationAccount; game.password = registrationPassword
+                    registering = false
+                }
             } catch { game.status = "注册失败，请检查网络！" }
         }
     }
@@ -262,9 +265,10 @@ struct AndroidEntryView: View {
 }
 
 private struct LoginButtonStyle: ButtonStyle {
+    var heightDivisor: CGFloat = 10
     @Environment(\.mudDisplayWidth) private var width
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.foregroundStyle(Color.black).frame(maxWidth: .infinity, minHeight: width / 10)
+        configuration.label.foregroundStyle(Color.black).frame(maxWidth: .infinity, minHeight: width / heightDivisor)
             .background(configuration.isPressed ? Color.white.opacity(0.3) : .clear)
             .overlay(RoundedRectangle(cornerRadius: 20).stroke(.gray, lineWidth: 1))
     }

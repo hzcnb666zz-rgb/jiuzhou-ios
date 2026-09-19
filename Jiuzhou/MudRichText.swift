@@ -41,9 +41,11 @@ struct MudRichText: View {
         var result = AttributedString()
         var cursor = 0
         var color: Color?
+        var brightColor: Color?
         var link: URL?
         var size: Double?
         var background: Color?
+        var normalBackground: Color?
         var bold = false
         var fullwidth = false
         func rgb(_ value: UInt32) -> Color {
@@ -54,8 +56,9 @@ struct MudRichText: View {
                 scalar.value == 32 ? UnicodeScalar(0x3000)! : (33...126).contains(scalar.value) ? UnicodeScalar(scalar.value + 65248)! : scalar
             })) : string
             var part = AttributedString(rendered)
-            part.foregroundColor = color
-            part.backgroundColor = background
+            // Android retains both spans and applies hcolsp/hbcolsp last.
+            part.foregroundColor = brightColor ?? color
+            part.backgroundColor = normalBackground ?? background
             part.link = link
             if link != nil { part.underlineStyle = .single }
             if let size { part.font = .android(size: size, weight: bold ? .bold : .regular) }
@@ -85,7 +88,10 @@ struct MudRichText: View {
                 background = rgb(hex)
             } else if code.hasSuffix("m") {
                 let numbers = code.dropLast().split(separator: ";").compactMap { Int($0) }
-                if numbers.isEmpty || numbers.contains(0) { color = nil; link = nil; size = nil; background = nil; bold = false; fullwidth = false }
+                if numbers.isEmpty || numbers.contains(0) {
+                    color = nil; brightColor = nil; link = nil; size = nil
+                    background = nil; normalBackground = nil; bold = false; fullwidth = false
+                }
                 else {
                     let normal: [UInt32] = [0x000000,0xaa3300,0x00bb00,0xeeee00,0x0000aa,0xaa00aa,0x00bbbb,0xaaaaaa]
                     let bright: [UInt32] = [0x000000,0xff3300,0x88ff00,0xffff00,0x0000ff,0xff00ff,0x88ffff,0xffffff]
@@ -96,9 +102,11 @@ struct MudRichText: View {
                     for number in numbers {
                         if (30...37).contains(number) {
                             let index = mode == "day" && [32,33,36,37].contains(number) ? 4 : number - 30
-                            color = rgb((numbers.contains(1) ? bright : normal)[index])
+                            if numbers.contains(1) { brightColor = rgb(bright[index]) }
+                            else { color = rgb(normal[index]) }
                         } else if (40...47).contains(number) {
-                            background = rgb((numbers.contains(1) ? brightBg : bg)[number - 40])
+                            if numbers.contains(1) { background = rgb(brightBg[number - 40]) }
+                            else { normalBackground = rgb(bg[number - 40]) }
                         }
                     }
                 }

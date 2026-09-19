@@ -31,6 +31,11 @@ while read -r family device; do
     sleep 3
     xcrun simctl io "$device" screenshot "build/screenshots/$family-$scene.png"
   done
+  xcrun simctl launch --terminate-running-process "$device" app.vanilla7419.emerald5335 --ui-check-world --ui-check-combat
+  sleep 1.3
+  xcrun simctl io "$device" screenshot "build/screenshots/$family-combat-active.png"
+  sleep 2
+  xcrun simctl io "$device" screenshot "build/screenshots/$family-combat-finished.png"
   xcrun simctl shutdown "$device"
 done < build/screenshot-devices.txt
 test_status=0

@@ -50,7 +50,6 @@ struct AndroidAccountView: View {
                             accountRow("账　号：" + game.account, key: nil, width: width)
                             accountRow("密　码：" + game.password, key: "newpwd", width: width)
                             accountRow("手机号：" + phone, key: "phone", width: width)
-                            accountRow("邮　箱：" + email, key: "email", width: width)
                             Color.clear.frame(height: width / 10)
                         }.padding(.top, 20).padding(.horizontal, 8)
                         ScrollView {

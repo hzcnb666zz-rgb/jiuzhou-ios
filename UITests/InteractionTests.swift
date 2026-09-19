@@ -49,6 +49,7 @@ final class InteractionTests: XCTestCase {
         app.launchArguments = ["--ui-check-account"]
         app.launch()
         XCTAssertTrue(app.buttons["account.newpwd"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["account.email"].exists)
         app.buttons["account.newpwd"].tap()
         XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
         app.alerts.buttons["取消"].tap()

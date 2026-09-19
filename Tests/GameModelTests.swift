@@ -14,6 +14,16 @@ private final class RecordingTransport: MudTransporting {
 }
 
 final class GameModelTests: XCTestCase {
+    func testAndroidIndependentBrightAndNormalSpanInheritance() {
+        var style = MudStyleStream()
+        _ = style.render("\u{001B}[1;31m亮红\u{001B}[32m普通绿\u{001B}[42;1m亮背景\u{001B}[43m普通背景")
+        XCTAssertEqual(style.render("继承"), "\u{001B}[32m\u{001B}[1;31m\u{001B}[42;1m\u{001B}[43m继承")
+        _ = style.render("\u{001B}[f#123456m\u{001B}[b#654321m自定颜色")
+        XCTAssertEqual(style.render("后续"), "\u{001B}[f#123456m\u{001B}[1;31m\u{001B}[b#654321m\u{001B}[43m后续")
+        _ = style.render("\u{001B}[0m")
+        XCTAssertEqual(style.render("恢复"), "恢复")
+    }
+
     func testStyleInheritanceAndCombatAreSeparateFromNotices() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)

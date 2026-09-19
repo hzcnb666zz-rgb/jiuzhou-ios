@@ -57,8 +57,11 @@ private struct CombatEffect: View {
     var body: some View {
         GeometryReader { geometry in
             let pixels = UIScreen.main.scale
-            MudRichText(raw: text, send: { _ in }).font(.android(size: unit / 22))
-                .foregroundStyle(.red).shadow(color: .black, radius: 0, x: 1, y: 1)
+            ZStack(alignment: .topLeading) {
+                MudRichText(raw: text, send: { _ in }).foregroundStyle(Color(white: 0.2)).offset(x: 2, y: 2)
+                MudRichText(raw: text, send: { _ in }).foregroundStyle(.white).offset(x: 1, y: 1)
+                MudRichText(raw: text, send: { _ in }).foregroundStyle(.red)
+            }.font(.android(size: unit / 22))
                 .scaleEffect(scale, anchor: .bottomLeading).opacity(opacity)
                 .offset(x: 10 / pixels, y: max(0, geometry.size.height - 100 / pixels - unit / 22) - rise / pixels)
         }.allowsHitTesting(false).accessibilityIdentifier("world.combatEffect")
