@@ -10,6 +10,7 @@ private struct BundleImage: View {
             Image(uiImage: image).resizable()
         } else {
             Color.clear
+                .onAppear { assertionFailure("Missing Android image: \(name).\(ext)") }
         }
     }
 }
@@ -21,18 +22,21 @@ struct AndroidButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background {
-                if let image {
+                if image == "exitbt" && !configuration.isPressed {
+                    RoundedRectangle(cornerRadius: 5, style: .circular)
+                        .strokeBorder(Color(red: 220/255, green: 237/255, blue: 200/255).opacity(111/255), lineWidth: 1)
+                } else if let image {
                     BundleImage(name: image == "buttonx1" ? (configuration.isPressed ? "buttonx2" : "buttonx1") : image == "bt1" ? (configuration.isPressed ? "bt2" : "bt1") : image + (configuration.isPressed ? "2" : ""), ext: "png")
                 } else {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(configuration.isPressed ? Color(red: 0.05, green: 0.46, blue: 0.88) :
+                        .fill(configuration.isPressed ? Color(red: 13/255, green: 118/255, blue: 225/255) :
                                 Color.white.opacity(filled ? 0.13 : 0))
                 }
             }
             .overlay {
                 if image == nil {
                     RoundedRectangle(cornerRadius: 3)
-                        .stroke(configuration.isPressed ? Color.pink : Color(red: 0.71, green: 0.41, blue: 0.24).opacity(0.2), lineWidth: 1)
+                        .strokeBorder(configuration.isPressed ? Color(red: 244/255, green: 3/255, blue: 201/255) : Color(red: 180/255, green: 105/255, blue: 62/255).opacity(51/255), lineWidth: 1)
                 }
             }
     }
@@ -458,7 +462,7 @@ struct AndroidWorldView: View {
             }.background(.black)
                 .overlay(alignment: .topTrailing) {
                     Button { game.closeDialog() } label: {
-                        Text("Ｘ").font(.android(size: unit / 16)).foregroundStyle(Color.red.opacity(0.67))
+                        Text("Ｘ").font(.android(size: unit / 16)).foregroundStyle(Color(red: 238/255, green: 0, blue: 0).opacity(170/255))
                             .frame(width: unit / 12, height: unit / 12)
                     }.buttonStyle(AndroidButtonStyle()).accessibilityLabel("关闭地图")
                 }
@@ -469,7 +473,8 @@ struct AndroidWorldView: View {
         VStack(spacing: 0) {
             ScrollView {
                 MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
             HStack(spacing: 0) {
                 Spacer()
