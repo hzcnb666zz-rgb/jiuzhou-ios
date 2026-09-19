@@ -2,6 +2,13 @@ import XCTest
 @testable import JiuzhouProtocol
 
 final class MudProtocolTests: XCTestCase {
+    func testInputCommandMatchesAndroidInputAndConfirmation() {
+        XCTAssertEqual(MudText.inputCommand(template: "give", value: "银两", confirmation: false), "give 银两")
+        XCTAssertEqual(MudText.inputCommand(template: "ask $txt# about $txt#", value: "村长", confirmation: false), "ask 村长 about 村长")
+        XCTAssertEqual(MudText.inputCommand(template: "buy $N$sock#look", value: "3", confirmation: true), "buy 3$sock#look")
+        XCTAssertEqual(MudText.inputCommand(template: "accept", value: "3", confirmation: true), "accept")
+    }
+
     func testActualServerSessionByteByByte() throws {
         let file = try XCTUnwrap(Bundle.module.url(forResource: "local-session", withExtension: "bin", subdirectory: "Fixtures"))
         let bytes = try Data(contentsOf: file)

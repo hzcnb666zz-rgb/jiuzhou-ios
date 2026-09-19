@@ -33,7 +33,7 @@ struct GameStat: Identifiable {
 
 final class GameModel: ObservableObject {
     @Published var host = UserDefaults.standard.string(forKey: "host") ?? "10.220.35.229"
-    @Published var port = "6666"
+    @Published var port = UserDefaults.standard.string(forKey: "port") ?? "6666"
     @Published var account = UserDefaults.standard.string(forKey: "account") ?? ""
     @Published var password = ""
     @Published var status = "未连接"
@@ -62,6 +62,18 @@ final class GameModel: ObservableObject {
     private let transport = MudTransport()
     private var sentCredentials = false
 
+    func toggleCustomButtons() {
+        buttons.removeAll { action in
+            guard let slot = Int(action.slot.dropFirst()) else { return false }
+            return (1...11).contains(slot)
+        }
+        for slot in 1...11 {
+            buttons.append(MudAction(label: UserDefaults.standard.string(forKey: "button.\(slot).label") ?? (slot == 11 ? "观察" : "长按"),
+                                     command: UserDefaults.standard.string(forKey: "button.\(slot).command") ?? (slot == 11 ? "look" : ""), slot: "b\(slot)"))
+        }
+        customButtonsVisible.toggle()
+    }
+
     init() {
         transport.onFrame = { [weak self] in self?.receive($0) }
         transport.onStatus = { [weak self] text, ready in
@@ -69,6 +81,16 @@ final class GameModel: ObservableObject {
             self?.connected = ready
             if ready || !text.hasPrefix("等待网络") && text != "正在连接" { self?.connecting = false }
         }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--ui-check-world") {
+            connected = true; inWorld = true; room = "未明谷"
+            description = "这里是未明谷。清溪沿着山脚流过，石阶通向村中。"
+            objects = [MudAction(label: "老村长", command: "look elder"), MudAction(label: "村民", command: "look villager")]
+            exits = [MudAction(label: "青石桥", command: "south", slot: "south"), MudAction(label: "山路", command: "north", slot: "north")]
+            messages = [GameMessage(text: "你来到未明谷。"), GameMessage(text: "老村长向你点了点头。")]
+            stats = [GameStat(label: "气血", value: "80/100", color: "#aa3300", command: "hp"), GameStat(label: "内力", value: "50/100", color: "#0000aa", command: "hp")]
+        }
+        #endif
     }
 
     func login() {
@@ -79,6 +101,7 @@ final class GameModel: ObservableObject {
             return
         }
         UserDefaults.standard.set(host, forKey: "host")
+        UserDefaults.standard.set(port, forKey: "port")
         UserDefaults.standard.set(account, forKey: "account")
         sentCredentials = false
         needsCharacter = false
@@ -122,8 +145,7 @@ final class GameModel: ObservableObject {
     func submitInput(_ value: String) {
         guard let template = dialog?.inputCommand, !value.isEmpty,
               !value.contains(where: { "\r\n".contains($0) }) else { return }
-        let command = template.replacingOccurrences(of: "$txt#", with: value)
-            .replacingOccurrences(of: "$N", with: value)
+        let command = MudText.inputCommand(template: template, value: value, confirmation: dialog?.numeric == true)
         act(command)
     }
 
@@ -131,7 +153,7 @@ final class GameModel: ObservableObject {
         let clean = MudText.plain(text)
         guard !clean.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         messages.append(GameMessage(text: text))
-        if messages.count > 300 { messages.removeFirst(messages.count - 300) }
+        if messages.count > 50 { messages.removeFirst(messages.count - 50) }
         history.append(GameMessage(text: text))
         if history.count > 500 { history.removeFirst(history.count - 500) }
     }
@@ -182,6 +204,10 @@ final class GameModel: ObservableObject {
             for button in MudText.actions(text, slots: true) {
                 buttons.removeAll { $0.slot == button.slot }
                 buttons.append(button)
+                if let slot = Int(button.slot.dropFirst()), (12...17).contains(slot) {
+                    UserDefaults.standard.set(button.display, forKey: "button.\(slot).label")
+                    UserDefaults.standard.set(button.command, forKey: "button.\(slot).command")
+                }
                 if let slot = Int(button.slot.dropFirst()), (1...10).contains(slot) { customButtonsVisible = true }
             }
             buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
@@ -196,6 +222,7 @@ final class GameModel: ObservableObject {
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
             statsLayout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35])
+            if text.hasPrefix("$0,") { statsLayout.columns = max(1, count / 2) }
             stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }
@@ -204,7 +231,9 @@ final class GameModel: ObservableObject {
             }
         case "014": transport.send(text)
         case "015":
-            notice = MudText.plain(text); log(text)
+            notice = MudText.plain(text)
+            history.append(GameMessage(text: text))
+            if history.count > 500 { history.removeFirst(history.count - 500) }
             if !inWorld { status = notice }
         case "016":
             fighting = true

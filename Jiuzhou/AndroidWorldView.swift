@@ -53,6 +53,8 @@ struct AndroidWorldView: View {
     @State private var revision = 0
     @State private var dialogInput = ""
     @State private var quitVisible = false
+    @AppStorage("centerCommand") private var centerCommand = ""
+    @State private var centerEditVisible = false
 
     private let compass = ["northwest", "north", "northeast", "west", "", "east", "southwest", "south", "southeast"]
     private var ink: Color { mode == "day" ? Color(red: 0.31, green: 0.15, blue: 0.08) : mode == "mud" ? Color(white: 0.67) : .white }
@@ -69,9 +71,6 @@ struct AndroidWorldView: View {
                     if !game.chatMessages.isEmpty {
                         messages(Array(game.chatMessages.suffix(100)))
                             .frame(height: shortChat ? unit / 8 : unit / 5)
-                    }
-                    if !game.stats.isEmpty {
-                        stats(unit: unit)
                     }
                     rule
                     titleBar(unit: unit)
@@ -129,6 +128,8 @@ struct AndroidWorldView: View {
                             exits(unit: unit)
                         }
                     }.frame(maxHeight: .infinity)
+                    if !game.stats.isEmpty { stats(unit: unit) }
+                    rule
                     bottomBar(unit: unit)
                 }.padding(1)
                 if menuVisible { mainMenu.padding(.top, 45) }
@@ -137,6 +138,11 @@ struct AndroidWorldView: View {
             .foregroundStyle(ink).font(.system(size: 13))
         }
         .onChange(of: game.dialog?.id) { _ in dialogInput = "" }
+        .alert("请输入快捷键指令：", isPresented: $centerEditVisible) {
+            TextField("指令", text: $editCommand)
+            Button("确定") { centerCommand = editCommand; game.buttons.removeAll { $0.slot == "bs" } }
+            Button("取消", role: .cancel) {}
+        }
         .alert("修改按钮", isPresented: $editVisible) {
             TextField("名称", text: $editLabel)
             TextField("指令", text: $editCommand).textInputAutocapitalization(.never)
@@ -180,7 +186,7 @@ struct AndroidWorldView: View {
             Button(game.descriptionHidden ? "显示" : "隐藏") { game.descriptionHidden.toggle() }
                 .font(.system(size: unit / 25)).padding(.horizontal, 8).frame(height: unit / 13)
                 .background(Color.white.opacity(0.13))
-        }.padding(3).frame(height: 40)
+        }.padding(3).frame(minHeight: 40)
             .background { if mode == "night" { BundleImage(name: "bar", ext: "png") } }
     }
 
@@ -215,12 +221,14 @@ struct AndroidWorldView: View {
                         let column = index % 3
                         let row = index / 3
                         if slot.isEmpty {
-                            Button { game.act(game.buttons.first { $0.slot == "bs" }?.command ?? "look") } label: {
+                            Button { game.act(game.buttons.first { $0.slot == "bs" }?.command ?? centerCommand) } label: {
                                 MudRichText(raw: game.room, send: game.act).font(.system(size: 12))
                                     .lineLimit(1).minimumScaleFactor(0.5)
-                                    .frame(width: 92, height: 35)
+                                    .frame(width: unit / 4, height: unit / 15)
                                     .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(red: 0.86, green: 0.93, blue: 0.78).opacity(0.44)))
-                            }.buttonStyle(.plain).position(x: g.size.width / 2, y: g.size.height / 2)
+                            }.buttonStyle(.plain)
+                                .simultaneousGesture(LongPressGesture().onEnded { _ in editCommand = centerCommand; centerEditVisible = true })
+                                .position(x: g.size.width / 2, y: g.size.height / 2)
                         } else if let exit = game.exits.first(where: { $0.slot == slot || $0.slot == slot + "up" || $0.slot == slot + "down" }) {
                             let bw = min(unit / 5, g.size.width / 3)
                             let bh = unit / 12
@@ -236,10 +244,10 @@ struct AndroidWorldView: View {
                 }
             }
             VStack(spacing: 2) {
-                Button(game.customButtonsVisible ? "关闭" : "自定") { game.customButtonsVisible.toggle() }
+                Button(game.customButtonsVisible ? "关闭" : "自定") { game.toggleCustomButtons() }
                     .frame(maxWidth: .infinity, maxHeight: .infinity).buttonStyle(AndroidButtonStyle())
                 quickButton(11, height: unit * 3 / 22 - 2)
-            }.frame(width: 40, height: unit * 3 / 11)
+            }.frame(width: unit / 7 + 2, height: unit * 3 / 11)
         }.frame(height: unit * 4 / 13).padding(.horizontal, 2)
     }
 
@@ -272,15 +280,15 @@ struct AndroidWorldView: View {
     }
 
     private func bottomBar(unit: CGFloat) -> some View {
-        HStack(spacing: 1) {
+        HStack(spacing: 0) {
             Button { game.dialog = GameDialog(text: "请输入指令：", inputCommand: "$txt#") } label: {
-                BundleImage(name: "command", ext: "png").scaledToFit().frame(width: 38, height: unit / 8)
+                BundleImage(name: "command", ext: "png").scaledToFit().frame(width: 40, height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("输入指令")
             ForEach(12...17, id: \.self) { slot in
-                quickButton(slot, height: unit / 8).frame(width: 40)
+                quickButton(slot, height: unit / 8).frame(width: max(0, (unit - 2 - 40 - 260) / 7 + 40))
             }
             Button { menuVisible.toggle() } label: {
-                BundleImage(name: "mainbt", ext: "png").scaledToFit().frame(width: 30, height: unit / 8)
+                BundleImage(name: "mainbt", ext: "png").scaledToFit().frame(width: max(0, (unit - 2 - 40 - 260) / 7 + 20), height: unit / 8)
             }.buttonStyle(.plain).accessibilityLabel("菜单")
         }.background(Color.white.opacity(0.13))
     }

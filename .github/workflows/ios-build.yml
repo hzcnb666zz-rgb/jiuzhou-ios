@@ -20,3 +20,12 @@ jobs:
           path: build/Jiuzhou-unsigned.ipa
           if-no-files-found: error
           retention-days: 1
+      - name: Launch iPhone and iPad for rendering checks
+        run: bash scripts/capture-simulator.sh
+      - name: Upload runtime screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jiuzhou-runtime-screenshots
+          path: build/screenshots
+          retention-days: 1

@@ -96,6 +96,12 @@ struct MudLayout: Equatable {
 }
 
 enum MudText {
+    static func inputCommand(template: String, value: String, confirmation: Bool) -> String {
+        if confirmation { return template.replacingOccurrences(of: "$N", with: value).replacingOccurrences(of: "$txt#", with: value) }
+        if template.contains("$txt#") { return template.replacingOccurrences(of: "$txt#", with: value) }
+        return template + " " + value
+    }
+
     static func plain(_ raw: String) -> String {
         raw.replacingOccurrences(of: "\u{001B}\\[[us]:[^\\]]*\\]", with: "", options: .regularExpression)
             .replacingOccurrences(of: "\u{001B}\\[[0-9;]*m", with: "", options: .regularExpression)
