@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 final class InteractionTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
@@ -109,8 +110,10 @@ final class InteractionTests: XCTestCase {
         let field = app.textFields.firstMatch
         XCTAssertTrue(field.exists)
         field.typeText("hello")
-        XCTAssertEqual(app.buttons["确定"].frame.width, 65, accuracy: 1)
-        XCTAssertEqual(app.buttons["确定"].frame.height, 40, accuracy: 1)
+        // iPad window presentation scales app points into screen coordinates.
+        let windowScale = app.windows.firstMatch.frame.width / UIScreen.main.bounds.width
+        XCTAssertEqual(app.buttons["确定"].frame.width, 65 * windowScale, accuracy: 1)
+        XCTAssertEqual(app.buttons["确定"].frame.height, 40 * windowScale, accuracy: 1)
         app.buttons["确定"].tap()
         let disappeared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: field)
         XCTAssertEqual(XCTWaiter.wait(for: [disappeared], timeout: 5), .completed)
