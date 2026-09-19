@@ -21,13 +21,15 @@ while read -r family device; do
   xcrun simctl launch --terminate-running-process "$device" app.vanilla7419.emerald5335 --ui-check-world
   sleep 3
   xcrun simctl io "$device" screenshot "build/screenshots/$family-world.png"
-  for scene in menu dialog input history confirmation; do
+  for scene in menu dialog input history confirmation popup; do
     xcrun simctl launch --terminate-running-process "$device" app.vanilla7419.emerald5335 --ui-check-world "--ui-check-$scene"
     sleep 3
     xcrun simctl io "$device" screenshot "build/screenshots/$family-$scene.png"
   done
-  if [ "$family" = iPhone ]; then
-    xcodebuild -project Jiuzhou.xcodeproj -scheme Jiuzhou -destination "platform=iOS Simulator,id=$device" -derivedDataPath build/simulator -resultBundlePath build/InteractionTests.xcresult test CODE_SIGNING_ALLOWED=NO
-  fi
+  if [ "$family" = iPhone ]; then test_device="$device"; fi
   xcrun simctl shutdown "$device"
 done < build/screenshot-devices.txt
+test_status=0
+xcodebuild -project Jiuzhou.xcodeproj -scheme Jiuzhou -destination "platform=iOS Simulator,id=$test_device" -derivedDataPath build/simulator -resultBundlePath build/InteractionTests.xcresult test CODE_SIGNING_ALLOWED=NO || test_status=$?
+xcrun simctl shutdown "$test_device" || true
+exit "$test_status"

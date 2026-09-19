@@ -14,6 +14,42 @@ private final class RecordingTransport: MudTransporting {
 }
 
 final class GameModelTests: XCTestCase {
+    func testHandshakeAndRejectedLoginCanRetry() {
+        let keys = ["account", "host", "port"]
+        let saved = keys.map { UserDefaults.standard.object(forKey: $0) }
+        defer { for (key, value) in zip(keys, saved) { UserDefaults.standard.set(value, forKey: key) } }
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        game.account = "paritytest"; game.password = "fixture-only"; game.host = "127.0.0.1"; game.port = "6666"
+        game.login()
+        wire.receive(nil, "ver1.0,fixture")
+        wire.receive(nil, "版本验证成功")
+        XCTAssertEqual(wire.commands, ["local", "paritytest║fixture-only║123456789abcd║local@localhost"])
+        wire.receive("015", "密码错误")
+        XCTAssertEqual(game.status, "密码错误")
+        XCTAssertFalse(game.inWorld)
+        game.login()
+        wire.receive(nil, "版本验证成功")
+        XCTAssertEqual(wire.commands.count, 3)
+        wire.receive("000", "0007")
+        XCTAssertTrue(game.inWorld)
+    }
+
+    func testPopupKeepsUnderlyingDialogAndRoutesSelectedCommand() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        wire.receive("007", "人物")
+        game.act("\u{001B}020交谈|ask elder$z2#观察|look elder")
+        XCTAssertEqual(game.dialog?.text, "人物")
+        XCTAssertEqual(game.popup?.actions.count, 2)
+        XCTAssertEqual(game.popup?.layout, MudLayout("", defaults: [1, 2, 8, 25]))
+        game.act(game.popup!.actions[0].command)
+        XCTAssertEqual(wire.commands, ["ask elder"])
+        XCTAssertNil(game.popup)
+        XCTAssertNil(game.dialog)
+    }
+
     func testRewardParsingAndInspectDoesNotCloseConfirmation() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
@@ -23,6 +59,9 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.experience, "经验100")
         XCTAssertEqual(game.dialog?.money, "银两10")
         XCTAssertEqual(game.dialog?.rewards.first?.grade, 2)
+        XCTAssertTrue(game.dialog?.numeric == true)
+        game.confirmDialog("")
+        XCTAssertTrue(wire.commands.isEmpty)
         if let item = game.dialog?.rewards.first { game.inspectReward(item) }
         XCTAssertEqual(wire.commands, ["litem sword"])
         XCTAssertNotNil(game.dialog)

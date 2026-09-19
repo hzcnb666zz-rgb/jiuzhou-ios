@@ -60,6 +60,7 @@ final class GameModel: ObservableObject {
     @Published var stats: [GameStat] = []
     @Published var messages: [GameMessage] = []
     @Published var dialog: GameDialog?
+    @Published var popup: GameDialog?
     @Published var notice = ""
     @Published var chatMessages: [GameMessage] = []
     @Published var fightMessages: [GameMessage] = []
@@ -90,14 +91,17 @@ final class GameModel: ObservableObject {
 
     func confirmDialog(_ value: String) {
         guard let current = dialog else { return }
-        if current.numeric { submitInput(value) }
+        if current.numeric {
+            if !value.isEmpty && current.inputCommand == "" { dialog = nil }
+            else { submitInput(value) }
+        }
         else if let command = current.actions.first?.command { act(command) }
         else { dialog = nil }
     }
 
     func cancelConfirmation() {
         let command = dialog?.secondary.first?.command ?? ""
-        dialog = nil
+        dialog = nil; popup = nil
         if !command.isEmpty { transport.send(command) }
     }
 
@@ -138,6 +142,7 @@ final class GameModel: ObservableObject {
             if ProcessInfo.processInfo.arguments.contains("--ui-check-confirmation") {
                 receiveConfirmation("#ffffff你获得了村长赠送的礼物。$br#$exp#经验 100$br#$god#银两 10$br#$obj#gift,missing,2$dh#ok11.accept$dh#no11.cancel")
             }
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-popup") { showPopup("交谈|ask elder$z2#观察|look elder") }
         }
         #endif
     }
@@ -155,7 +160,7 @@ final class GameModel: ObservableObject {
         sentCredentials = false
         needsCharacter = false
         inWorld = false
-        dialog = nil
+        dialog = nil; popup = nil; webURL = nil
         objects = []; exits = []; buttons = []; topActions = []; stats = []; messages = []
         description = ""; notice = ""
         chatMessages = []; fightMessages = []; history = []; objectHealth = [:]
@@ -167,7 +172,7 @@ final class GameModel: ObservableObject {
     func logout() {
         transport.disconnect()
         connected = false; connecting = false; inWorld = false; needsCharacter = false
-        dialog = nil; webURL = nil; status = "未连接"
+        dialog = nil; popup = nil; webURL = nil; status = "未连接"
     }
 
     func createCharacter(name: String, gender: String) {
@@ -181,13 +186,13 @@ final class GameModel: ObservableObject {
     func act(_ command: String) {
         guard connected, !command.isEmpty else { return }
         if command.hasPrefix("\u{001B}020") {
-            dialog = GameDialog(actions: MudText.actions(String(command.dropFirst(4))))
+            showPopup(String(command.dropFirst(4)))
         } else if command.contains("$txt#") {
             // Let the server produce its INPUTTXT prompt, matching the Android client.
             transport.send(command)
         } else {
             let confirmation = dialog?.kind == "confirmation"
-            dialog = nil
+            dialog = nil; popup = nil
             if confirmation { command.components(separatedBy: "$sock#").filter { !$0.isEmpty }.forEach(transport.send) }
             else { transport.send(command) }
         }
@@ -311,7 +316,7 @@ final class GameModel: ObservableObject {
             else if !UserDefaults.standard.bool(forKey: "descriptionHidden") { descriptionHidden = false; descriptionToggleLabel = "隐藏" }
         case "045":
             if let url = URL(string: text), ["http", "https"].contains(url.scheme ?? "") { webURL = url }
-        case "020": dialog = GameDialog(actions: MudText.actions(text))
+        case "020": showPopup(text)
         case "021": topActions = MudText.actions(text)
         case "903": exits.removeAll { $0.slot == text || $0.command == text }
         case "997": transport.preservesNewlines = false
@@ -331,7 +336,8 @@ final class GameModel: ObservableObject {
     }
 
     private func receiveConfirmation(_ text: String) {
-        var next = GameDialog(kind: "confirmation")
+        // duihuax.xml keeps the quantity field visible, including prompts without numb.
+        var next = GameDialog(numeric: true, kind: "confirmation")
         var confirm: [String] = []
         for part in text.components(separatedBy: "$dh#") {
             if part.hasPrefix("ok11.") { confirm.append(String(part.dropFirst(5))) }
@@ -351,8 +357,13 @@ final class GameModel: ObservableObject {
             }
         }
         let command = confirm.joined(separator: "$sock#")
+        if next.secondary.isEmpty { next.secondary = [MudAction(label: "取消", command: "")] }
         if next.numeric { next.inputCommand = command }
         else if !command.isEmpty { next.actions = [MudAction(label: "确定", command: command)] }
         dialog = next
+    }
+
+    private func showPopup(_ text: String) {
+        popup = GameDialog(actions: MudText.popupActions(text), layout: MudLayout(text, defaults: [1, 2, 8, 25]), kind: "popup")
     }
 }

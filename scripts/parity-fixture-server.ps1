@@ -13,7 +13,7 @@ function Send-World {
     Send-Line "${esc}005老村长:look elder`$zj#村民:look villager"
     Send-Line "${esc}003south:青石桥:south`$zj#north:山路:north"
     Send-Line "${esc}012`$2,2,22,35#气血:80/100:#aa3300:hp║内力:50/100:#0000aa:hp"
-    Send-Line '你来到未明谷。'
+    Send-Line "${esc}[2J你来到未明谷。"
     Send-Line '老村长向你点了点头。'
 }
 try {
@@ -38,6 +38,9 @@ try {
                     Send-Line "${esc}008`$2,3,9,30#交谈|未明谷的故事:ask elder`$zj#交易|查看随身物品:list elder"
                 }
                 elseif ($command -eq 'ask elder') { Send-Line "${esc}001你想对老村长说些什么？`$zj#say `$txt#" }
+                elseif ($command -eq 'score') {
+                    Send-Line "${esc}010#ffffff你获得了村长赠送的礼物。`$br#`$exp#经验 100`$br#`$god#银两 10`$br#`$obj#gift,missing,2`$dh#ok11.accept`$dh#no11.cancel"
+                }
             }
         } finally { $client.Dispose() }
     }

@@ -125,6 +125,14 @@ enum MudText {
         raw.replacingOccurrences(of: "^\\$[0-9,]+#", with: "", options: .regularExpression)
     }
 
+    static func popupActions(_ raw: String) -> [MudAction] {
+        withoutLayout(raw).components(separatedBy: "$z2#").compactMap { entry in
+            let fields = entry.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
+            guard fields.count == 2 else { return nil }
+            return MudAction(label: plain(fields[0]), command: fields[1], styledLabel: fields[0])
+        }
+    }
+
     static func actions(_ raw: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
         var seen = Set<String>()
         return withoutLayout(raw).components(separatedBy: "$zj#").compactMap { entry in

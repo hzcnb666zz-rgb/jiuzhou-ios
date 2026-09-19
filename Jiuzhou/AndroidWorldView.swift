@@ -136,6 +136,7 @@ struct AndroidWorldView: View {
                 }.padding(1)
                 if menuVisible { mainMenu(unit: unit).frame(maxHeight: .infinity) }
                 if historyVisible { historyPanel(unit: unit) }
+                if let popup = game.popup { popupMenu(popup, unit: unit) }
                 if game.dialog?.kind == "confirmation" { confirmation(unit: unit) }
             }
             .foregroundStyle(ink).font(.android(size: unit / 28))
@@ -435,6 +436,23 @@ struct AndroidWorldView: View {
         }.buttonStyle(AndroidButtonStyle(image: "buttonx1"))
     }
 
+    private func popupMenu(_ popup: GameDialog, unit: CGFloat) -> some View {
+        ScrollView {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(unit / CGFloat(popup.layout.widthDivisor)), spacing: 0), count: popup.layout.columns), spacing: 0) {
+                ForEach(popup.actions) { item in
+                    Button { game.act(item.command) } label: {
+                        MudRichText(raw: item.display, send: game.act)
+                            .font(.android(size: unit / CGFloat(popup.layout.fontDivisor)))
+                            .foregroundStyle(mode == "mud" ? Color(white: 170/255) : Color(red: 80/255, green: 32/255, blue: 21/255))
+                            .frame(width: unit / CGFloat(popup.layout.widthDivisor), height: unit / CGFloat(popup.layout.heightDivisor))
+                    }.buttonStyle(AndroidButtonStyle(image: mode == "mud" ? nil : "buttonx1"))
+                }
+            }
+        }.fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.clear.contentShape(Rectangle()).onTapGesture { game.popup = nil })
+    }
+
     private func historyPanel(unit: CGFloat) -> some View {
         VStack(spacing: 3) {
             HStack(spacing: 0) {
@@ -458,12 +476,12 @@ struct AndroidWorldView: View {
     }
 
     private func confirmation(unit: CGFloat) -> some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 0) {
             if let dialog = game.dialog {
                 ScrollView {
-                    MudRichText(raw: dialog.text, send: game.act)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }.padding(10)
+                    MudRichText(raw: dialog.text.trimmingCharacters(in: .newlines), send: game.act)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }.fixedSize(horizontal: false, vertical: true).padding(10)
                 HStack(spacing: 5) {
                     ForEach(dialog.rewards) { reward in
                         Button { game.inspectReward(reward) } label: {
@@ -472,25 +490,29 @@ struct AndroidWorldView: View {
                                 .background(rewardBackground(reward.grade))
                         }.buttonStyle(.plain).accessibilityLabel("查看物品")
                     }
-                }
+                }.padding(.bottom, 5)
                 if dialog.numeric {
                     TextField("", text: $dialogInput).focused($inputFocused)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .frame(width: 90, height: unit / 10)
+                        .tint(Color(red: 128/255, green: 203/255, blue: 196/255))
+                        .overlay(alignment: .bottom) { Color(red: 128/255, green: 203/255, blue: 196/255).frame(height: 2) }
                         .onChange(of: dialogInput) { value in if value.count > 3 { dialogInput = String(value.prefix(3)) } }
                 }
-                if !dialog.experience.isEmpty { Text(dialog.experience).foregroundStyle(.green).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 10) }
-                if !dialog.money.isEmpty { Text(dialog.money).foregroundStyle(.yellow).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 10) }
+                if !dialog.experience.isEmpty { Text(dialog.experience).foregroundStyle(Color(red: 0, green: 1, blue: 0)).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 10).padding(.bottom, 5) }
+                if !dialog.money.isEmpty { Text(dialog.money).foregroundStyle(Color(red: 1, green: 215/255, blue: 0)).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 10).padding(.bottom, 5) }
                 HStack(spacing: 30) {
                     Button { game.confirmDialog(dialogInput) } label: { Text("确 定").frame(width: unit / 4, height: unit / 9) }
                     if !dialog.secondary.isEmpty {
                         Button { game.cancelConfirmation() } label: { Text("取 消").frame(width: unit / 4, height: unit / 9) }
                     }
-                }.buttonStyle(AndroidButtonStyle(image: "bt1")).padding(.bottom, 8)
+                }.buttonStyle(AndroidButtonStyle(image: "bt1")).padding(.top, 5).padding(.bottom, 8)
             }
         }.font(.android(size: unit / 26)).foregroundStyle(Color(white: 221/255))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(width: min(unit - 20, unit / 2 + 100))
             .background(Color(red: 54/255, green: 34/255, blue: 22/255))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 48/255))
     }
 
     private func rewardBackground(_ grade: Int) -> some View {

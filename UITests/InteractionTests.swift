@@ -3,6 +3,17 @@ import XCTest
 final class InteractionTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    func testRewardConfirmationRequiresInputAndCancelCloses() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-check-world", "--ui-check-confirmation"]
+        app.launch()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        app.buttons["确 定"].tap()
+        XCTAssertTrue(app.buttons["取 消"].exists)
+        app.buttons["取 消"].tap()
+        XCTAssertTrue(app.buttons["菜单"].waitForExistence(timeout: 5))
+    }
+
     func testMenuAndCustomButtons() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-check-world"]
