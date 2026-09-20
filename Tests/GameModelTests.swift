@@ -143,6 +143,22 @@ final class GameModelTests: XCTestCase {
         XCTAssertNil(game.webURL)
     }
 
+    func testCombatSkillActionsPreserveCompleteServerCommands() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+
+        game.receive(MudFrame(code: "021", text: "激活:enable sword-style$zj#释放:perform sword-style target:body"))
+        XCTAssertEqual(game.topActions.map(\.command), ["enable sword-style", "perform sword-style target:body"])
+        game.act(game.topActions[1])
+
+        game.receive(MudFrame(code: "006", text: "b6:绝技:cast sword-style target:body"))
+        XCTAssertEqual(game.buttons.first(where: { $0.slot == "b6" })?.command, "cast sword-style target:body")
+        game.act(game.buttons.first(where: { $0.slot == "b6" })!)
+
+        XCTAssertEqual(wire.commands, ["perform sword-style target:body", "cast sword-style target:body"])
+    }
+
     func testRedirectAndPagedTextClose() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
