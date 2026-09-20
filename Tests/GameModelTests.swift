@@ -159,6 +159,18 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(wire.commands, ["perform sword-style target:body", "cast sword-style target:body"])
     }
 
+    func testSkillActionsSurviveDescriptionFrameArrivingAfterButtons() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+
+        wire.receive("008", "$1,2,8,25#绝招:perform sword-style target:body")
+        wire.receive("007", "选择要使用的武功")
+
+        XCTAssertEqual(game.dialog?.text, "选择要使用的武功")
+        XCTAssertEqual(game.dialog?.actions.map(\.command), ["perform sword-style target:body"])
+    }
+
     func testRedirectAndPagedTextClose() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)

@@ -324,7 +324,13 @@ final class GameModel: ObservableObject {
                 if let slot = Int(button.slot.dropFirst()), (1...10).contains(slot) { customButtonsVisible = true }
             }
             buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
-        case "007": dialog = GameDialog(text: styleStream.render(text))
+        case "007":
+            // Android keeps the description and action frames in one overlay even
+            // when the server delivers the action frame first.
+            var next = dialog ?? GameDialog()
+            next.text = styleStream.render(text)
+            next.kind = "interaction"
+            dialog = next
         case "008", "009":
             var next = dialog ?? GameDialog()
             if frame.code == "008" { next.actions = styledActions(text); next.layout = MudLayout(text) }
