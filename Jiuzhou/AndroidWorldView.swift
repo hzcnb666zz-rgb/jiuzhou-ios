@@ -430,6 +430,7 @@ struct AndroidWorldView: View {
             }
         }
     }
+    }
 
     private func color(_ hex: String) -> Color {
         let value = UInt32(hex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0
@@ -657,7 +658,7 @@ struct AndroidWorldView: View {
                 ScrollView {
                     MudRichText(raw: dialog.text.trimmingCharacters(in: .newlines), send: game.act)
                         .frame(maxWidth: .infinity, alignment: .center)
-                }.fixedSize(horizontal: false, vertical: true).padding(10)
+                }.frame(maxHeight: unit * 0.38).padding(10)
                 HStack(spacing: 5) {
                     ForEach(dialog.rewards) { reward in
                         Button { game.inspectReward(reward) } label: {
