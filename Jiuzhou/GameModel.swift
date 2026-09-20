@@ -334,7 +334,10 @@ final class GameModel: ObservableObject {
         case "011", "013": dialog = GameDialog(text: styleStream.render(text), kind: frame.code == "011" ? "map" : "pages")
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
-            statsLayout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35]).resolved(for: count)
+            var layout = MudLayout(text, defaults: [5, 3, 25, 35]).resolved(for: count)
+            // The Android status strip is a fixed five-column, two-row band.
+            layout.columns = min(5, max(1, count))
+            statsLayout = layout
             stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }

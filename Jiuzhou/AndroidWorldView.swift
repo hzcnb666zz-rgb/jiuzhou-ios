@@ -116,6 +116,8 @@ struct AndroidWorldView: View {
                             .frame(height: unit / CGFloat(max(1, chatDivisor)))
                     }
                     rule
+                    if !game.stats.isEmpty { stats(unit: unit) }
+                    rule
                     titleBar(unit: unit)
                     rule
                     HStack(spacing: 0) {
@@ -186,7 +188,6 @@ struct AndroidWorldView: View {
                             exits(unit: unit)
                         }
                     }.frame(maxHeight: .infinity)
-                    if !game.stats.isEmpty { stats(unit: unit) }
                     rule
                     bottomBar(unit: unit)
                 }.padding(1)
@@ -421,11 +422,11 @@ struct AndroidWorldView: View {
                             MudRichText(raw: stat.label + (stat.value.contains("/") ? "" : ":" + stat.value), send: game.act)
                                 .font(.android(size: unit / CGFloat(game.statsLayout.fontDivisor))).lineLimit(1).minimumScaleFactor(0.6)
                         }
+                        .overlay(Rectangle().stroke(Color(white: 0.38), lineWidth: 1))
                     }.frame(height: unit / CGFloat(game.statsLayout.heightDivisor))
-                }.buttonStyle(.plain).frame(maxWidth: .infinity).padding(.bottom, 1)
+                }.buttonStyle(.plain).frame(maxWidth: .infinity).padding(.horizontal, 1).padding(.bottom, 1)
                     .accessibilityIdentifier("world.stat.\(index)")
             }
-            }.padding(.trailing, 1)
             }
         }
     }
