@@ -116,8 +116,6 @@ struct AndroidWorldView: View {
                             .frame(height: unit / CGFloat(max(1, chatDivisor)))
                     }
                     rule
-                    if !game.stats.isEmpty { stats(unit: unit) }
-                    rule
                     titleBar(unit: unit)
                     rule
                     HStack(spacing: 0) {
@@ -188,6 +186,7 @@ struct AndroidWorldView: View {
                             exits(unit: unit)
                         }
                     }.frame(maxHeight: .infinity)
+                    if !game.stats.isEmpty { stats(unit: unit) }
                     rule
                     bottomBar(unit: unit)
                 }.padding(1)
