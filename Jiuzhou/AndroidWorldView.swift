@@ -416,13 +416,13 @@ struct AndroidWorldView: View {
                 Button { game.act(stat.command) } label: {
                     GeometryReader { g in
                         ZStack(alignment: .leading) {
-                            Color.clear
+                            Color.black
                             color(stat.color).frame(width: g.size.width * stat.fraction)
                             MudRichText(raw: stat.label + (stat.value.contains("/") ? "" : ":" + stat.value), send: game.act)
                                 .font(.android(size: unit / CGFloat(game.statsLayout.fontDivisor))).lineLimit(1).minimumScaleFactor(0.6)
                         }
                     }.frame(height: unit / CGFloat(game.statsLayout.heightDivisor))
-                }.buttonStyle(.plain).padding(.bottom, 1)
+                }.buttonStyle(.plain).frame(maxWidth: .infinity).padding(.bottom, 1)
                     .accessibilityIdentifier("world.stat.\(index)")
             }
             }.padding(.trailing, 1)
@@ -439,6 +439,10 @@ struct AndroidWorldView: View {
         GeometryReader { geometry in
         VStack(alignment: .leading, spacing: 0) {
             if let dialog = game.dialog {
+                let inputHeight: CGFloat = dialog.inputCommand == nil ? 0 : 40
+                let actionHeight = interactionActionHeight(dialog, unit: unit)
+                let availableHeight = max(0, geometry.size.height - 11 - inputHeight)
+                let descriptionHeight = min(interactionTextHeight, max(0, availableHeight - actionHeight))
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
@@ -446,7 +450,7 @@ struct AndroidWorldView: View {
                         .background(GeometryReader { textGeometry in
                             Color.clear.preference(key: InteractionTextHeight.self, value: textGeometry.size.height)
                         })
-                }.frame(height: min(interactionTextHeight, max(0, geometry.size.height - 11)))
+                }.frame(height: descriptionHeight)
                     .accessibilityIdentifier("interaction.description")
                 if dialog.inputCommand != nil {
                     HStack(spacing: 0) {
@@ -466,7 +470,7 @@ struct AndroidWorldView: View {
                 let availableWidth = max(0, geometry.size.width - 14)
                 let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
                 let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
-                let listHeight = max(0, geometry.size.height - 15 - interactionTextHeight - (dialog.inputCommand == nil ? 0 : 40))
+                let listHeight = max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
                 HStack(alignment: .top, spacing: 2) {
                     actionList(dialog.actions, layout: dialog.layout, unit: unit, width: firstWidth, maxHeight: listHeight, identifier: "interaction.primary")
                         .padding(.trailing, 4)
@@ -497,6 +501,17 @@ struct AndroidWorldView: View {
             .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
             .onPreferenceChange(InteractionTextHeight.self) { interactionTextHeight = $0 }
         }
+    }
+
+    private func interactionActionHeight(_ dialog: GameDialog, unit: CGFloat) -> CGFloat {
+        func height(_ items: [MudAction], layout: MudLayout) -> CGFloat {
+            guard !items.isEmpty else { return 0 }
+            let resolved = layout.resolved(for: items.count)
+            let rows = (items.count + resolved.columns - 1) / resolved.columns
+            return CGFloat(rows) * (unit / CGFloat(resolved.heightDivisor) + 2)
+        }
+        return max(height(dialog.actions, layout: dialog.layout),
+                   height(dialog.secondary, layout: dialog.secondaryLayout)) + 4
     }
 
     private func actionList(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat, maxHeight: CGFloat, identifier: String) -> some View {
