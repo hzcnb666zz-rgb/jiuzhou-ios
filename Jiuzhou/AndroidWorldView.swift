@@ -614,32 +614,36 @@ struct AndroidWorldView: View {
     }
 
     private func pagesPanel(_ dialog: GameDialog, unit: CGFloat) -> some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: unit / 10) }
-                    Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: unit / 10) }
-                    ForEach(dialog.actions) { action in
-                        Button { game.act(action) } label: {
-                            MudRichText(raw: action.display, send: game.act)
-                                .frame(width: unit / 6, height: unit / 10)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // Android's more_txt_sc is constrained above the fixed button row.
+                // Without this bound, long route/mail pages push the actions away.
+                ScrollView {
+                    MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }.frame(maxHeight: max(0, geometry.size.height - unit / 10))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: unit / 10) }
+                        Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: unit / 10) }
+                        ForEach(dialog.actions) { action in
+                            Button { game.act(action) } label: {
+                                MudRichText(raw: action.display, send: game.act)
+                                    .frame(width: unit / 6, height: unit / 10)
+                            }
                         }
-                    }
-                    ForEach(dialog.secondary) { action in
-                        Button { game.act(action) } label: {
-                            MudRichText(raw: action.display, send: game.act)
-                                .frame(width: unit / 6, height: unit / 10)
+                        ForEach(dialog.secondary) { action in
+                            Button { game.act(action) } label: {
+                                MudRichText(raw: action.display, send: game.act)
+                                    .frame(width: unit / 6, height: unit / 10)
+                            }
                         }
-                    }
-                    Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: unit / 10) }
-                }.font(.android(size: unit / 26)).buttonStyle(AndroidButtonStyle())
-            }.frame(height: unit / 10)
-        }.foregroundStyle(Color(white: 221/255)).background(.black)
+                        Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: unit / 10) }
+                    }.font(.android(size: unit / 26)).buttonStyle(AndroidButtonStyle())
+                }.frame(height: unit / 10)
+            }.foregroundStyle(Color(white: 221/255)).background(.black)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func historyPanel(unit: CGFloat) -> some View {
