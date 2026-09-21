@@ -263,11 +263,22 @@ enum MudText {
             }
         }
 
-        var result = raw
-        for range in removals.sorted(by: { $0.location > $1.location }) {
-            result = (result as NSString).replacingCharacters(in: range, with: "")
+        var merged: [NSRange] = []
+        for range in removals.sorted(by: { $0.location < $1.location }) {
+            if let last = merged.last, NSMaxRange(range) <= NSMaxRange(last) {
+                continue
+            }
+            if let last = merged.last, range.location <= NSMaxRange(last) {
+                merged[merged.count - 1] = NSUnionRange(last, range)
+            } else {
+                merged.append(range)
+            }
         }
-        return result
+        let mutable = NSMutableString(string: raw)
+        for range in merged.sorted(by: { $0.location > $1.location }) {
+            mutable.replaceCharacters(in: range, with: "")
+        }
+        return mutable as String
     }
 
     static func actions(_ raw: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
