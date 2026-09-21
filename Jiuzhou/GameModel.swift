@@ -346,7 +346,9 @@ final class GameModel: ObservableObject {
             // when the server delivers the action frame first.
             var next = dialog ?? GameDialog()
             next.text = styleStream.render(text)
-            next.kind = "interaction"
+            let pageActions = styledInlinePageActions(text)
+            next.kind = pageActions.isEmpty ? "interaction" : "pages"
+            next.actions = appendUnique(pageActions, to: next.actions)
             dialog = next
         case "008", "009":
             var next = dialog ?? GameDialog()

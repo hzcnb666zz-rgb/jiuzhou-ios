@@ -225,7 +225,8 @@ final class GameModelTests: XCTestCase {
     func testRouteInlineLinksStayInFixedPageActions() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
-        wire.receive("013", "寻路\u{001B}[u:cmds:walk]\u{001B}[s:28]\u{001B}[37m[搜索]\u{001B}[0m\u{001B}[u:cmds:recall]\u{001B}[s:28]\u{001B}[36m[回城]\u{001B}[0m")
+        wire.receive("007", "寻路\u{001B}[u:cmds:walk]\u{001B}[s:28]\u{001B}[37m[搜索]\u{001B}[0m\u{001B}[u:cmds:recall]\u{001B}[s:28]\u{001B}[36m[回城]\u{001B}[0m")
+        XCTAssertEqual(game.dialog?.kind, "pages")
         XCTAssertEqual(game.dialog?.actions.map(\.command), ["walk", "recall"])
     }
 
