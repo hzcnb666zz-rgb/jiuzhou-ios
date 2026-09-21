@@ -26,8 +26,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.vanilla7419.emerald5335
         PRODUCT_NAME: Jiuzhou
-        MARKETING_VERSION: '0.1.0'
-        CURRENT_PROJECT_VERSION: 12
+        MARKETING_VERSION: '0.1.1'
+        CURRENT_PROJECT_VERSION: 13
         SWIFT_OBJC_BRIDGING_HEADER: Jiuzhou/AMRBridge.h
         HEADER_SEARCH_PATHS: $(SRCROOT)/Vendor/opencore-amrnb.xcframework/ios-arm64/Headers
         CODE_SIGN_STYLE: Automatic

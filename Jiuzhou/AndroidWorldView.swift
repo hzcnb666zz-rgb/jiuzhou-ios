@@ -652,12 +652,15 @@ struct AndroidWorldView: View {
     }
 
     private func confirmation(unit: CGFloat) -> some View {
-        VStack(spacing: 0) {
-            if let dialog = game.dialog {
-                ScrollView {
-                    MudRichText(raw: dialog.text.trimmingCharacters(in: .newlines), send: game.act)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }.frame(maxHeight: unit * 0.38).padding(10)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                if let dialog = game.dialog {
+                    // Keep the action area outside the scroll view so long mail/reward
+                    // text can never push the buttons beyond the visible screen.
+                    ScrollView {
+                        MudRichText(raw: dialog.text.trimmingCharacters(in: .newlines), send: game.act)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }.frame(maxHeight: max(80, geometry.size.height - 190)).padding(10)
                 HStack(spacing: 5) {
                     ForEach(dialog.rewards) { reward in
                         Button { game.inspectReward(reward) } label: {
@@ -683,12 +686,13 @@ struct AndroidWorldView: View {
                         Button { game.cancelConfirmation() } label: { Text("取 消").frame(width: unit / 4, height: unit / 9) }
                     }
                 }.buttonStyle(AndroidButtonStyle(image: "bt1")).padding(.top, 5).padding(.bottom, 8)
-            }
-        }.font(.android(size: unit / 26)).foregroundStyle(Color(white: 221/255))
-            .frame(width: min(unit - 20, unit / 2 + 100))
-            .background(Color(red: 54/255, green: 34/255, blue: 22/255))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(white: 48/255))
+                }
+            }.font(.android(size: unit / 26)).foregroundStyle(Color(white: 221/255))
+                .frame(width: min(unit - 20, unit / 2 + 100), height: min(geometry.size.height - 20, geometry.size.height * 0.9))
+                .background(Color(red: 54/255, green: 34/255, blue: 22/255))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(white: 48/255))
+        }
     }
 
     private func rewardBackground(_ grade: Int) -> some View {
