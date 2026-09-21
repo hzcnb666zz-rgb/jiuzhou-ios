@@ -249,6 +249,16 @@ enum MudText {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             let key = label.trimmingCharacters(in: CharacterSet(charactersIn: "[]()"))
             if allowedLabels.contains(key) {
+                while cursor < ns.length {
+                    let remaining = NSRange(location: cursor, length: ns.length - cursor)
+                    if let control = controls.firstMatch(in: raw, range: remaining), control.range.location == cursor {
+                        cursor = NSMaxRange(control.range)
+                        continue
+                    }
+                    let character = ns.substring(with: NSRange(location: cursor, length: 1))
+                    if character == " " || character == "\t" { cursor += 1; continue }
+                    break
+                }
                 removals.append(NSRange(location: match.range.location, length: cursor - match.range.location))
             }
         }
