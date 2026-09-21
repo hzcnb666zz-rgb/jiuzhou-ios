@@ -179,6 +179,23 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.statsLayout.columns, 5)
     }
 
+    func testReferenceStatsUseThreeColumnsForSixServerValues() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        let values = [
+            "姓名：柠檬王子:100/100:#336666",
+            "气血.850:850/850/850:#99FF0000",
+            "精神.200:200/200/200:#99990000",
+            "先天之炁.0:0/0/4000:#BB3F51B5",
+            "内力.0:0/0/0:#990066FF",
+            "元神.100:100/100/200:#990066CC"
+        ].joined(separator: "║")
+        wire.receive("012", "$2,2,40,35#" + values)
+        XCTAssertEqual(game.stats.count, 6)
+        XCTAssertEqual(game.statsLayout.columns, 3)
+        XCTAssertEqual(game.stats[1].label, "气血.850")
+    }
+
     func testSkillActionsSurviveDescriptionFrameArrivingAfterButtons() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
@@ -235,6 +252,7 @@ final class GameModelTests: XCTestCase {
         wire.receive("007", "寻路\u{001B}[u:cmds:walk]\u{001B}[s:28]\u{001B}[37m[搜索]\u{001B}[0m\u{001B}[u:cmds:recall]\u{001B}[s:28]\u{001B}[36m[回城]\u{001B}[0m")
         XCTAssertEqual(game.dialog?.kind, "pages")
         XCTAssertEqual(game.dialog?.actions.map(\.command), ["walk", "recall"])
+        XCTAssertEqual(MudText.plain(game.dialog?.text ?? ""), "寻路")
     }
 
     func testServerShowRespectsLocalPreferenceAndClearScreen() {

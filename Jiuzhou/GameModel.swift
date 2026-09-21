@@ -345,7 +345,7 @@ final class GameModel: ObservableObject {
             // Android keeps the description and action frames in one overlay even
             // when the server delivers the action frame first.
             var next = dialog ?? GameDialog()
-            next.text = styleStream.render(text)
+            next.text = styleStream.render(MudText.removingInlinePageActions(text))
             let pageActions = styledInlinePageActions(text)
             next.kind = pageActions.isEmpty ? "interaction" : "pages"
             next.actions = appendUnique(pageActions, to: next.actions)
@@ -366,15 +366,17 @@ final class GameModel: ObservableObject {
             // The mail station sends the page text and its action frames separately.
             // Keep any 008/009 actions already received instead of replacing them.
             var next = dialog ?? GameDialog()
-            next.text = styleStream.render(text)
+            next.text = styleStream.render(MudText.removingInlinePageActions(text))
             next.kind = "pages"
             next.actions = appendUnique(styledInlinePageActions(text), to: next.actions)
             dialog = next
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
             var layout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35]).resolved(for: count)
-            // Ten status values use the Android five-column, two-row strip.
+            // The reference MUD status panel is three columns by two rows for
+            // name plus the five server-provided resource values.
             if count >= 10 { layout.columns = 5 }
+            if count == 6 { layout.columns = 3 }
             statsLayout = layout
             stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)

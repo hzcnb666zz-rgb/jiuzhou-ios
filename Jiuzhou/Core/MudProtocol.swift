@@ -212,6 +212,54 @@ enum MudText {
         return result
     }
 
+    static func removingInlinePageActions(_ raw: String) -> String {
+        let linkPattern = "\u{001B}\\[u:([^\\]]*)\\]"
+        let controlPattern = "\u{001B}\\[(?:[us]:[^\\]]*\\]|[fb]#[0-9A-Fa-f]{6}m|[0-9;]*m)"
+        guard let links = try? NSRegularExpression(pattern: linkPattern),
+              let controls = try? NSRegularExpression(pattern: controlPattern) else { return raw }
+
+        let ns = raw as NSString
+        let fullRange = NSRange(location: 0, length: ns.length)
+        let allowedLabels = Set(["上一页", "下一页", "搜索", "回城", "门派", "家园", "一键删除", "一键领取", "添加草稿", "返回"])
+        var removals: [NSRange] = []
+
+        for match in links.matches(in: raw, range: fullRange) {
+            let target = ns.substring(with: match.range(at: 1))
+            guard target.hasPrefix("cmds:") || target.hasPrefix("pops:") else { continue }
+            var cursor = NSMaxRange(match.range)
+            while cursor < ns.length {
+                let rest = ns.substring(from: cursor)
+                if rest.hasPrefix("$br#") || rest.hasPrefix("\n") || rest.hasPrefix("\r") { break }
+                let remaining = NSRange(location: cursor, length: ns.length - cursor)
+                if let control = controls.firstMatch(in: raw, range: remaining), control.range.location == cursor {
+                    cursor = NSMaxRange(control.range)
+                    continue
+                }
+                let character = ns.substring(with: NSRange(location: cursor, length: 1))
+                if character == " " || character == "\t" { cursor += 1; continue }
+                break
+            }
+            let labelStart = cursor
+            while cursor < ns.length {
+                let character = ns.substring(with: NSRange(location: cursor, length: 1))
+                if character == "\u{001B}" || character == "\n" || character == "\r" || ns.substring(from: cursor).hasPrefix("$br#") { break }
+                cursor += 1
+            }
+            let label = plain(ns.substring(with: NSRange(location: labelStart, length: cursor - labelStart)))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let key = label.trimmingCharacters(in: CharacterSet(charactersIn: "[]()"))
+            if allowedLabels.contains(key) {
+                removals.append(NSRange(location: match.range.location, length: cursor - match.range.location))
+            }
+        }
+
+        var result = raw
+        for range in removals.sorted(by: { $0.location > $1.location }) {
+            result = (result as NSString).replacingCharacters(in: range, with: "")
+        }
+        return result
+    }
+
     static func actions(_ raw: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
         return withoutLayout(raw).components(separatedBy: "$zj#").compactMap { entry in
             // A colon inside an ANSI link/size tag is not an action separator.
