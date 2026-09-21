@@ -625,8 +625,12 @@ struct AndroidWorldView: View {
                 }.frame(maxHeight: max(0, geometry.size.height - unit / 10))
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 0) {
-                        Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: unit / 10) }
-                        Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: unit / 10) }
+                        if !dialog.actions.contains(where: { $0.label.contains("上一页") }) {
+                            Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: unit / 10) }
+                        }
+                        if !dialog.actions.contains(where: { $0.label.contains("下一页") }) {
+                            Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: unit / 10) }
+                        }
                         ForEach(dialog.actions) { action in
                             Button { game.act(action) } label: {
                                 MudRichText(raw: action.display, send: game.act)

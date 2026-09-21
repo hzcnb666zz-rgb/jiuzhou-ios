@@ -135,6 +135,16 @@ enum MudText {
         return template + " " + value
     }
 
+    static func normalizedCommand(_ command: String) -> String {
+        let parts = command.split { $0 == " " || $0 == "\t" }
+        // The old saved Huashan button is "exert force.powerup twice".
+        // "twice" belongs to perform, while exert has no such argument.
+        if parts.count == 3, parts[0] == "exert", parts[2] == "twice" {
+            return String(parts[0]) + " " + String(parts[1])
+        }
+        return command
+    }
+
     static func plain(_ raw: String) -> String {
         raw.replacingOccurrences(of: "\u{001B}\\[[us]:[^\\]]*\\]", with: "", options: .regularExpression)
             .replacingOccurrences(of: "\u{001B}\\[[0-9;]*m", with: "", options: .regularExpression)
@@ -154,6 +164,52 @@ enum MudText {
             guard fields.count == 2 else { return nil }
             return MudAction(label: plain(fields[0]), command: fields[1], styledLabel: fields[0])
         }
+    }
+
+    static func inlinePageActions(_ raw: String) -> [MudAction] {
+        let linkPattern = "\u{001B}\\[u:([^\\]]*)\\]"
+        let controlPattern = "\u{001B}\\[(?:[us]:[^\\]]*\\]|[fb]#[0-9A-Fa-f]{6}m|[0-9;]*m)"
+        guard let links = try? NSRegularExpression(pattern: linkPattern),
+              let controls = try? NSRegularExpression(pattern: controlPattern) else { return [] }
+        let ns = raw as NSString
+        let fullRange = NSRange(location: 0, length: ns.length)
+        let allowedLabels = Set(["上一页", "下一页", "搜索", "回城", "门派", "家园", "一键删除", "一键领取", "添加草稿", "返回"])
+        var result: [MudAction] = []
+
+        for match in links.matches(in: raw, range: fullRange) {
+            let target = ns.substring(with: match.range(at: 1))
+            var cursor = NSMaxRange(match.range)
+            while cursor < ns.length {
+                let rest = ns.substring(from: cursor)
+                if rest.hasPrefix("$br#") || rest.hasPrefix("\n") || rest.hasPrefix("\r") { break }
+                let remaining = NSRange(location: cursor, length: ns.length - cursor)
+                if let control = controls.firstMatch(in: raw, range: remaining), control.range.location == cursor {
+                    cursor = NSMaxRange(control.range)
+                    continue
+                }
+                let character = ns.substring(with: NSRange(location: cursor, length: 1))
+                if character == " " || character == "\t" { cursor += 1; continue }
+                break
+            }
+            let labelStart = cursor
+            while cursor < ns.length {
+                let character = ns.substring(with: NSRange(location: cursor, length: 1))
+                if character == "\u{001B}" || character == "\n" || character == "\r" || ns.substring(from: cursor).hasPrefix("$br#") { break }
+                cursor += 1
+            }
+            let label = plain(ns.substring(with: NSRange(location: labelStart, length: cursor - labelStart)))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let key = label.trimmingCharacters(in: CharacterSet(charactersIn: "[]()"))
+            guard allowedLabels.contains(key) else { continue }
+
+            let command: String
+            if target.hasPrefix("cmds:") { command = String(target.dropFirst(5)) }
+            else if target.hasPrefix("pops:") { command = "\u{001B}020" + String(target.dropFirst(5)) }
+            else { continue }
+            guard !command.isEmpty, !result.contains(where: { $0.command == command }) else { continue }
+            result.append(MudAction(label: label, command: command))
+        }
+        return result
     }
 
     static func actions(_ raw: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {

@@ -87,6 +87,22 @@ final class GameModel: ObservableObject {
         }
     }
 
+    private func styledInlinePageActions(_ text: String) -> [MudAction] {
+        MudText.inlinePageActions(text).map { action in
+            var result = action
+            result.styledLabel = styleStream.render(action.display)
+            return result
+        }
+    }
+
+    private func appendUnique(_ additions: [MudAction], to current: [MudAction]) -> [MudAction] {
+        var result = current
+        for action in additions where !result.contains(where: { $0.command == action.command }) {
+            result.append(action)
+        }
+        return result
+    }
+
     func toggleDescription() {
         descriptionHidden.toggle()
         descriptionToggleLabel = descriptionHidden ? "显示" : "隐藏"
@@ -230,6 +246,7 @@ final class GameModel: ObservableObject {
             voiceRecorderVisible = true
             return
         }
+        let command = MudText.normalizedCommand(command)
         guard connected, !command.isEmpty else { return }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-check-common"),
@@ -333,8 +350,13 @@ final class GameModel: ObservableObject {
             dialog = next
         case "008", "009":
             var next = dialog ?? GameDialog()
-            if frame.code == "008" { next.actions = styledActions(text); next.layout = MudLayout(text) }
-            else { next.secondary = styledActions(text); next.secondaryLayout = MudLayout(text) }
+            if frame.code == "008" {
+                next.actions = appendUnique(styledActions(text), to: next.actions)
+                next.layout = MudLayout(text)
+            } else {
+                next.secondary = appendUnique(styledActions(text), to: next.secondary)
+                next.secondaryLayout = MudLayout(text)
+            }
             dialog = next
         case "010": receiveConfirmation(text)
         case "011": dialog = GameDialog(text: styleStream.render(text), kind: "map")
@@ -344,6 +366,7 @@ final class GameModel: ObservableObject {
             var next = dialog ?? GameDialog()
             next.text = styleStream.render(text)
             next.kind = "pages"
+            next.actions = appendUnique(styledInlinePageActions(text), to: next.actions)
             dialog = next
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count

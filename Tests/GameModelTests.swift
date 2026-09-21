@@ -159,6 +159,26 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(wire.commands, ["perform sword-style target:body", "cast sword-style target:body"])
     }
 
+    func testExertTwiceButtonIsCorrectedBeforeSending() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        wire.receive("021", "战气:exert force.powerup twice")
+        game.act(game.topActions[0])
+        XCTAssertEqual(wire.commands, ["exert force.powerup"])
+    }
+
+    func testStatsUseServerNameValuesCommandsAndFiveColumns() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        let values = (1...10).map { "\($0 == 1 ? "牛逼" : "属性\($0)"):\($0)/10:#aa3300:score\($0)" }.joined(separator: "║")
+        wire.receive("012", "$2,2,22,35#" + values)
+        XCTAssertEqual(game.stats.count, 10)
+        XCTAssertEqual(game.stats.first?.label, "牛逼")
+        XCTAssertEqual(game.stats.first?.command, "score1")
+        XCTAssertEqual(game.statsLayout.columns, 5)
+    }
+
     func testSkillActionsSurviveDescriptionFrameArrivingAfterButtons() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
@@ -200,6 +220,13 @@ final class GameModelTests: XCTestCase {
 
         XCTAssertEqual(game.dialog?.kind, "pages")
         XCTAssertEqual(game.dialog?.actions.map(\.command), ["prev", "next", "mail delete", "mail receive"])
+    }
+
+    func testRouteInlineLinksStayInFixedPageActions() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive("013", "寻路\u{001B}[u:cmds:walk]\u{001B}[s:28]\u{001B}[37m[搜索]\u{001B}[0m\u{001B}[u:cmds:recall]\u{001B}[s:28]\u{001B}[36m[回城]\u{001B}[0m")
+        XCTAssertEqual(game.dialog?.actions.map(\.command), ["walk", "recall"])
     }
 
     func testServerShowRespectsLocalPreferenceAndClearScreen() {
