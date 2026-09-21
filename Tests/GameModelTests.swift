@@ -190,6 +190,18 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(wire.commands, ["n", "b", "q"])
     }
 
+    func testMailPageKeepsServerActions() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+
+        wire.receive("008", "上一页:prev$zj#下一页:next$zj#一键删除:mail delete$zj#一键领取:mail receive")
+        wire.receive("013", "电子驿站邮件列表")
+
+        XCTAssertEqual(game.dialog?.kind, "pages")
+        XCTAssertEqual(game.dialog?.actions.map(\.command), ["prev", "next", "mail delete", "mail receive"])
+    }
+
     func testServerShowRespectsLocalPreferenceAndClearScreen() {
         let saved = UserDefaults.standard.object(forKey: "descriptionHidden")
         defer { UserDefaults.standard.set(saved, forKey: "descriptionHidden") }

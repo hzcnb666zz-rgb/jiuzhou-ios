@@ -337,7 +337,14 @@ final class GameModel: ObservableObject {
             else { next.secondary = styledActions(text); next.secondaryLayout = MudLayout(text) }
             dialog = next
         case "010": receiveConfirmation(text)
-        case "011", "013": dialog = GameDialog(text: styleStream.render(text), kind: frame.code == "011" ? "map" : "pages")
+        case "011": dialog = GameDialog(text: styleStream.render(text), kind: "map")
+        case "013":
+            // The mail station sends the page text and its action frames separately.
+            // Keep any 008/009 actions already received instead of replacing them.
+            var next = dialog ?? GameDialog()
+            next.text = styleStream.render(text)
+            next.kind = "pages"
+            dialog = next
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
             var layout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35]).resolved(for: count)
