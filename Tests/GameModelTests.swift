@@ -191,6 +191,13 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.actions.map(\.command), ["perform sword-style target:body"])
     }
 
+    func testSkillActionsKeepDuplicateCommandsWithDifferentLabels() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive("008", "招式甲:perform sword-style$zj#招式乙:perform sword-style")
+        XCTAssertEqual(game.dialog?.actions.map(\.label), ["招式甲", "招式乙"])
+    }
+
     func testRedirectAndPagedTextClose() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)

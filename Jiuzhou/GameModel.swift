@@ -353,10 +353,10 @@ final class GameModel: ObservableObject {
         case "008", "009":
             var next = dialog ?? GameDialog()
             if frame.code == "008" {
-                next.actions = appendUnique(styledActions(text), to: next.actions)
+                next.actions += styledActions(text)
                 next.layout = MudLayout(text)
             } else {
-                next.secondary = appendUnique(styledActions(text), to: next.secondary)
+                next.secondary += styledActions(text)
                 next.secondaryLayout = MudLayout(text)
             }
             dialog = next
