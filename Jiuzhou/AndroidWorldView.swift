@@ -193,12 +193,7 @@ struct AndroidWorldView: View {
                 if menuVisible { mainMenu(unit: unit).frame(maxHeight: .infinity) }
                 if historyVisible { historyPanel(unit: unit) }
                 if let popup = game.popup { popupMenu(popup, unit: unit) }
-                if let dialog = game.dialog, dialog.kind == "pages" {
-                    pagesPanel(dialog, unit: unit)
-                        .frame(width: min(width - 20, width / 2 + 100),
-                               height: min(geometry.size.height - 20, geometry.size.height * 0.9))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                }
+                if let dialog = game.dialog, dialog.kind == "pages" { pagesPanel(dialog, unit: unit) }
                 if game.dialog?.kind == "confirmation" { confirmation(unit: unit) }
             }
             .foregroundStyle(ink).font(.android(size: unit / 28))
@@ -421,25 +416,22 @@ struct AndroidWorldView: View {
                 Button { game.act(stat.command) } label: {
                     GeometryReader { g in
                         ZStack(alignment: .leading) {
-                            Color.black
+                            Color.clear
                             color(stat.color).frame(width: g.size.width * stat.fraction)
                             MudRichText(raw: stat.label + (stat.value.contains("/") ? "" : ":" + stat.value), send: game.act)
                                 .font(.android(size: unit / CGFloat(game.statsLayout.fontDivisor))).lineLimit(1).minimumScaleFactor(0.6)
                         }
-                        .overlay(Rectangle().stroke(Color(white: 0.38), lineWidth: 1))
                     }.frame(height: unit / CGFloat(game.statsLayout.heightDivisor))
-                }.buttonStyle(.plain).frame(maxWidth: .infinity).padding(.horizontal, 1).padding(.bottom, 1)
+                }.buttonStyle(.plain).padding(.bottom, 1)
                     .accessibilityIdentifier("world.stat.\(index)")
             }
+            }.padding(.trailing, 1)
             }
         }
     }
-    }
 
     private func color(_ hex: String) -> Color {
-        let digits = hex.replacingOccurrences(of: "#", with: "")
-        let rgbDigits = digits.count > 6 ? String(digits.suffix(6)) : digits
-        let value = UInt32(rgbDigits, radix: 16) ?? 0
+        let value = UInt32(hex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0
         return Color(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255)
     }
 
@@ -627,29 +619,12 @@ struct AndroidWorldView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    if !dialog.actions.contains(where: { $0.label.contains("上一页") }) {
-                        Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: unit / 10) }
-                    }
-                    if !dialog.actions.contains(where: { $0.label.contains("下一页") }) {
-                        Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: unit / 10) }
-                    }
-                    ForEach(dialog.actions) { action in
-                        Button { game.act(action) } label: {
-                            MudRichText(raw: action.display, send: game.act)
-                                .frame(width: unit / 6, height: unit / 10)
-                        }
-                    }
-                    ForEach(dialog.secondary) { action in
-                        Button { game.act(action) } label: {
-                            MudRichText(raw: action.display, send: game.act)
-                                .frame(width: unit / 6, height: unit / 10)
-                        }
-                    }
-                    Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: unit / 10) }
-                }.font(.android(size: unit / 26)).buttonStyle(AndroidButtonStyle())
-            }.frame(height: unit / 10)
+            HStack(spacing: 0) {
+                Spacer()
+                Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: unit / 10) }
+                Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: unit / 10) }
+                Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: unit / 10) }
+            }.font(.android(size: unit / 26)).buttonStyle(AndroidButtonStyle())
         }.foregroundStyle(Color(white: 221/255)).background(.black)
     }
 
@@ -676,15 +651,12 @@ struct AndroidWorldView: View {
     }
 
     private func confirmation(unit: CGFloat) -> some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                if let dialog = game.dialog {
-                    // Keep the action area outside the scroll view so long mail/reward
-                    // text can never push the buttons beyond the visible screen.
-                    ScrollView {
-                        MudRichText(raw: dialog.text.trimmingCharacters(in: .newlines), send: game.act)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }.frame(maxHeight: max(80, geometry.size.height - 190)).padding(10)
+        VStack(spacing: 0) {
+            if let dialog = game.dialog {
+                ScrollView {
+                    MudRichText(raw: dialog.text.trimmingCharacters(in: .newlines), send: game.act)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }.fixedSize(horizontal: false, vertical: true).padding(10)
                 HStack(spacing: 5) {
                     ForEach(dialog.rewards) { reward in
                         Button { game.inspectReward(reward) } label: {
@@ -710,13 +682,12 @@ struct AndroidWorldView: View {
                         Button { game.cancelConfirmation() } label: { Text("取 消").frame(width: unit / 4, height: unit / 9) }
                     }
                 }.buttonStyle(AndroidButtonStyle(image: "bt1")).padding(.top, 5).padding(.bottom, 8)
-                }
-            }.font(.android(size: unit / 26)).foregroundStyle(Color(white: 221/255))
-                .frame(width: min(unit - 20, unit / 2 + 100), height: min(geometry.size.height - 20, geometry.size.height * 0.9))
-                .background(Color(red: 54/255, green: 34/255, blue: 22/255))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(white: 48/255))
-        }
+            }
+        }.font(.android(size: unit / 26)).foregroundStyle(Color(white: 221/255))
+            .frame(width: min(unit - 20, unit / 2 + 100))
+            .background(Color(red: 54/255, green: 34/255, blue: 22/255))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 48/255))
     }
 
     private func rewardBackground(_ grade: Int) -> some View {

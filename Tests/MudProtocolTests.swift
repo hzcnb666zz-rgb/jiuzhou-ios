@@ -85,19 +85,6 @@ final class MudProtocolTests: XCTestCase {
         XCTAssertEqual(MudText.actions("\u{1B}[s:16]人物:look me").first?.label, "人物")
     }
 
-    func testKnownInlinePageLinksBecomeFixedActions() {
-        let text = "\u{001B}[u:cmds:walk]\u{001B}[s:28]\u{001B}[1;37m[搜索]\u{001B}[0m\t\u{001B}[u:cmds:recall]\u{001B}[s:28]\u{001B}[36m[回城]\u{001B}[0m"
-        XCTAssertEqual(MudText.inlinePageActions(text).map(\.label), ["[搜索]", "[回城]"])
-        XCTAssertEqual(MudText.inlinePageActions(text).map(\.command), ["walk", "recall"])
-        XCTAssertEqual(MudText.plain(MudText.removingInlinePageActions("寻路" + text)), "寻路")
-    }
-
-    func testCommandNormalizationOnlyRemovesExertTwice() {
-        XCTAssertEqual(MudText.normalizedCommand("exert force.powerup twice"), "exert force.powerup")
-        XCTAssertEqual(MudText.normalizedCommand("perform sword.foo twice"), "perform sword.foo twice")
-        XCTAssertEqual(MudText.normalizedCommand("perform sword.foo target:body"), "perform sword.foo target:body")
-    }
-
     func testMalformedAndEmptyRecords() throws {
         var decoder = MudDecoder()
         XCTAssertEqual(try decoder.feed(Data("\r\n\u{1B}008\n".utf8)), [MudFrame(code: "008", text: "")])

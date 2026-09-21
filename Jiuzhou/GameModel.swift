@@ -87,22 +87,6 @@ final class GameModel: ObservableObject {
         }
     }
 
-    private func styledInlinePageActions(_ text: String) -> [MudAction] {
-        MudText.inlinePageActions(text).map { action in
-            var result = action
-            result.styledLabel = styleStream.render(action.display)
-            return result
-        }
-    }
-
-    private func appendUnique(_ additions: [MudAction], to current: [MudAction]) -> [MudAction] {
-        var result = current
-        for action in additions where !result.contains(where: { $0.command == action.command }) {
-            result.append(action)
-        }
-        return result
-    }
-
     func toggleDescription() {
         descriptionHidden.toggle()
         descriptionToggleLabel = descriptionHidden ? "显示" : "隐藏"
@@ -246,7 +230,6 @@ final class GameModel: ObservableObject {
             voiceRecorderVisible = true
             return
         }
-        let command = MudText.normalizedCommand(command)
         guard connected, !command.isEmpty else { return }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-check-common"),
@@ -341,43 +324,17 @@ final class GameModel: ObservableObject {
                 if let slot = Int(button.slot.dropFirst()), (1...10).contains(slot) { customButtonsVisible = true }
             }
             buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
-        case "007":
-            // Android keeps the description and action frames in one overlay even
-            // when the server delivers the action frame first.
-            var next = dialog ?? GameDialog()
-            next.text = styleStream.render(MudText.removingInlinePageActions(text))
-            let pageActions = styledInlinePageActions(text)
-            next.kind = pageActions.isEmpty ? "interaction" : "pages"
-            next.actions = appendUnique(pageActions, to: next.actions)
-            dialog = next
+        case "007": dialog = GameDialog(text: styleStream.render(text))
         case "008", "009":
             var next = dialog ?? GameDialog()
-            if frame.code == "008" {
-                next.actions += styledActions(text)
-                next.layout = MudLayout(text)
-            } else {
-                next.secondary += styledActions(text)
-                next.secondaryLayout = MudLayout(text)
-            }
+            if frame.code == "008" { next.actions = styledActions(text); next.layout = MudLayout(text) }
+            else { next.secondary = styledActions(text); next.secondaryLayout = MudLayout(text) }
             dialog = next
         case "010": receiveConfirmation(text)
-        case "011": dialog = GameDialog(text: styleStream.render(text), kind: "map")
-        case "013":
-            // The mail station sends the page text and its action frames separately.
-            // Keep any 008/009 actions already received instead of replacing them.
-            var next = dialog ?? GameDialog()
-            next.text = styleStream.render(MudText.removingInlinePageActions(text))
-            next.kind = "pages"
-            next.actions = appendUnique(styledInlinePageActions(text), to: next.actions)
-            dialog = next
+        case "011", "013": dialog = GameDialog(text: styleStream.render(text), kind: frame.code == "011" ? "map" : "pages")
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
-            var layout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35]).resolved(for: count)
-            // The reference MUD status panel is three columns by two rows for
-            // name plus the five server-provided resource values.
-            if count >= 10 { layout.columns = 5 }
-            if count == 6 { layout.columns = 3 }
-            statsLayout = layout
+            statsLayout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35]).resolved(for: count)
             stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }

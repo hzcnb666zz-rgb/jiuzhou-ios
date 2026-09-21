@@ -102,7 +102,7 @@ struct GameView: View {
             .frame(height: 34)
 
             if !game.stats.isEmpty {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: max(1, game.statsLayout.columns)), spacing: 2) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)], spacing: 2) {
                     ForEach(game.stats) { stat in
                         statBar(stat)
                     }
