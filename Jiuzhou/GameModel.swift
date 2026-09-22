@@ -350,7 +350,8 @@ final class GameModel: ObservableObject {
             stats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }
-                return GameStat(label: parts[0], value: parts[1], color: parts[2],
+                let label = parts[0].hasPrefix("姓名：") ? String(parts[0].dropFirst(3)) : parts[0]
+                return GameStat(label: label, value: parts[1], color: parts[2],
                                 command: parts.count > 3 ? parts[3] : "")
             }
         case "014": transport.send(text)
