@@ -260,8 +260,9 @@ enum MudText {
         // A tab is only a visual separator between adjacent inline links. Once
         // those links are promoted to fixed actions, do not leave the separator
         // behind in the page description.
-        result = result.replacingOccurrences(of: "\\t(?=\u{001B}\\[u:)", with: "", options: .regularExpression,
-                                              range: nil)
+        if !removals.isEmpty {
+            result = result.replacingOccurrences(of: "\t", with: "")
+        }
         return result
     }
 
