@@ -462,14 +462,13 @@ struct AndroidWorldView: View {
                 let inputHeight: CGFloat = dialog.inputCommand == nil ? 0 : 40
                 // Reserve the action grid before sizing the description, matching Android's
                 // fixed lower action area instead of letting content push it out of bounds.
-                let actionHeight = interactionActionHeight(dialog, unit: unit)
-                let availableHeight = max(0, geometry.size.height - 11 - inputHeight)
-                let descriptionHeight: CGFloat
-                if usesItemLayout {
-                    descriptionHeight = max(0, availableHeight - actionHeight)
-                } else {
-                    descriptionHeight = min(interactionTextHeight, max(0, availableHeight - actionHeight))
-                }
+                let actionHeight: CGFloat = interactionActionHeight(dialog, unit: unit)
+                let availableHeight: CGFloat = max(0, geometry.size.height - 11 - inputHeight)
+                let descriptionHeight: CGFloat = interactionDescriptionHeight(
+                    availableHeight: availableHeight,
+                    actionHeight: actionHeight,
+                    usesItemLayout: usesItemLayout
+                )
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
@@ -528,6 +527,11 @@ struct AndroidWorldView: View {
             .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
             .onPreferenceChange(InteractionTextHeight.self) { interactionTextHeight = $0 }
         }
+    }
+
+    private func interactionDescriptionHeight(availableHeight: CGFloat, actionHeight: CGFloat, usesItemLayout: Bool) -> CGFloat {
+        let remaining = max(0, availableHeight - actionHeight)
+        return usesItemLayout ? remaining : min(interactionTextHeight, remaining)
     }
 
     private func interactionActionHeight(_ dialog: GameDialog, unit: CGFloat) -> CGFloat {
