@@ -209,6 +209,9 @@ struct AndroidWorldView: View {
         }
         .onChange(of: game.dialog?.id) { _ in
             dialogInput = ""
+            // Measure each interaction page independently. Reusing the previous
+            // page's height can push short menus far below their description.
+            interactionTextHeight = 0
             inputFocused = game.dialog?.inputCommand != nil
         }
         .onChange(of: game.voiceFilename) { filename in
@@ -457,13 +460,16 @@ struct AndroidWorldView: View {
         VStack(alignment: .leading, spacing: 0) {
             if let dialog = game.dialog {
                 let inputHeight: CGFloat = dialog.inputCommand == nil ? 0 : 40
-                let actionHeight = (usesNPCLayout || usesItemLayout) ? interactionActionHeight(dialog, unit: unit) : 0
+                // Reserve the action grid before sizing the description, matching Android's
+                // fixed lower action area instead of letting content push it out of bounds.
+                let actionHeight = interactionActionHeight(dialog, unit: unit)
                 let availableHeight = max(0, geometry.size.height - 11 - inputHeight)
-                let descriptionHeight = usesNPCLayout
-                    ? min(interactionTextHeight, max(0, availableHeight - actionHeight))
-                    : usesItemLayout
-                        ? max(0, availableHeight - actionHeight)
-                        : min(interactionTextHeight, max(0, geometry.size.height - 11))
+                let descriptionHeight: CGFloat
+                if usesItemLayout {
+                    descriptionHeight = max(0, availableHeight - actionHeight)
+                } else {
+                    descriptionHeight = min(interactionTextHeight, max(0, availableHeight - actionHeight))
+                }
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
@@ -471,7 +477,7 @@ struct AndroidWorldView: View {
                         .background(GeometryReader { textGeometry in
                             Color.clear.preference(key: InteractionTextHeight.self, value: textGeometry.size.height)
                         })
-                }.frame(height: descriptionHeight)
+                }.id(dialog.id).frame(height: descriptionHeight)
                     .accessibilityIdentifier("interaction.description")
                 if dialog.inputCommand != nil {
                     HStack(spacing: 0) {
@@ -491,9 +497,7 @@ struct AndroidWorldView: View {
                 let availableWidth = max(0, geometry.size.width - 14)
                 let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
                 let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
-                let listHeight = usesNPCLayout || usesItemLayout
-                    ? max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
-                    : max(0, geometry.size.height - 15 - interactionTextHeight - inputHeight)
+                let listHeight = max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
                 HStack(alignment: .top, spacing: 2) {
                     actionList(dialog.actions, layout: dialog.layout, unit: unit, width: firstWidth, maxHeight: listHeight, identifier: "interaction.primary")
                         .padding(.trailing, 4)
