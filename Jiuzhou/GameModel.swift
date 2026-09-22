@@ -78,6 +78,7 @@ final class GameModel: ObservableObject {
     private let transport: MudTransporting
     private var sentCredentials = false
     private var styleStream = MudStyleStream()
+    private var pendingNPCObjectLook = false
 
     private func styledActions(_ text: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
         MudText.actions(text, exits: exits, slots: slots).map { action in
@@ -214,6 +215,7 @@ final class GameModel: ObservableObject {
         description = ""; notice = ""
         chatMessages = []; fightMessages = []; history = []; objectHealth = [:]
         fighting = false; customButtonsVisible = false
+        pendingNPCObjectLook = false
         connecting = true
         transport.connect(host: host.trimmingCharacters(in: .whitespaces), port: number)
     }
@@ -223,6 +225,7 @@ final class GameModel: ObservableObject {
         connected = false; connecting = false; inWorld = false; needsCharacter = false
         dialog = nil; popup = nil; webURL = nil; status = "未连接"
         combatEffects = []; voiceRecorderVisible = false; voiceFilename = nil
+        pendingNPCObjectLook = false
     }
 
     func createCharacter(name: String, gender: String) {
@@ -241,6 +244,7 @@ final class GameModel: ObservableObject {
     }
 
     func act(_ command: String) {
+        pendingNPCObjectLook = objects.contains { $0.command == command }
         if command.hasPrefix("voice:"), LegacyService.voiceURL(String(command.dropFirst(6))) != nil {
             voiceFilename = String(command.dropFirst(6))
             voiceRecorderVisible = true
@@ -327,6 +331,7 @@ final class GameModel: ObservableObject {
             combatEffects = []
             voiceRecorderVisible = false
             fighting = false; customButtonsVisible = false; objectHealth = [:]
+            pendingNPCObjectLook = false
         case "003": exits = merge(styledActions(text, exits: true), into: exits)
         case "004": description = styleStream.render(text)
         case "005": objects += styledActions(text)
@@ -344,12 +349,14 @@ final class GameModel: ObservableObject {
         case "007":
             // Android keeps the description and action frames in one overlay even
             // when the server delivers the action frame first.
+            let npc = looksLikeNPCDescription(text)
             var next = dialog ?? GameDialog()
             next.text = styleStream.render(MudText.removingInlinePageActions(text))
             let pageActions = styledInlinePageActions(text)
-            next.kind = pageActions.isEmpty ? "interaction" : "pages"
+            next.kind = npc ? "npc" : (pageActions.isEmpty ? "interaction" : "pages")
             next.actions = appendUnique(pageActions, to: next.actions)
             dialog = next
+            if npc { pendingNPCObjectLook = false }
         case "008", "009":
             var next = dialog ?? GameDialog()
             if frame.code == "008" {
@@ -358,6 +365,10 @@ final class GameModel: ObservableObject {
             } else {
                 next.secondary += styledActions(text)
                 next.secondaryLayout = MudLayout(text)
+            }
+            if next.kind == "interaction", pendingNPCObjectLook, looksLikeNPCActionFrame(text) {
+                next.kind = "npc"
+                pendingNPCObjectLook = false
             }
             dialog = next
         case "010": receiveConfirmation(text)
@@ -474,6 +485,19 @@ final class GameModel: ObservableObject {
             return result
         }
         popup = GameDialog(actions: actions, layout: MudLayout(text, defaults: [1, 2, 8, 25]), kind: "popup")
+    }
+
+    private func looksLikeNPCDescription(_ text: String) -> Bool {
+        let plain = MudText.plain(text)
+        return plain.contains("装备着") || plain.contains("导师") ||
+            (plain.contains("武功") && plain.contains("气血")) ||
+            (plain.contains("先天") && plain.contains("气血"))
+    }
+
+    private func looksLikeNPCActionFrame(_ text: String) -> Bool {
+        let plain = MudText.plain(text)
+        return ["ask ", "follow ", "guard ", "touxi ", "attack ", "exert force."]
+            .contains { plain.contains($0) }
     }
 
     #if DEBUG

@@ -73,6 +73,22 @@ final class GameModelTests: XCTestCase {
         XCTAssertTrue(game.objects.isEmpty)
     }
 
+    func testNPCLayoutIsOnlySelectedForNPCResponses() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+
+        wire.receive("007", "【布衣平民】导师「人见人爱」老村长$br#他的武功达到了深不可测。$br#他看起来气血充盈。")
+        XCTAssertEqual(game.dialog?.kind, "npc")
+
+        wire.receive("002", "未明谷")
+        wire.receive("007", "电子驿站$br#这里是邮件列表。")
+        XCTAssertEqual(game.dialog?.kind, "interaction")
+
+        wire.receive("013", "寻路结果")
+        XCTAssertEqual(game.dialog?.kind, "pages")
+    }
+
     func testHandshakeAndRejectedLoginCanRetry() {
         let keys = ["account", "host", "port"]
         let saved = keys.map { UserDefaults.standard.object(forKey: $0) }

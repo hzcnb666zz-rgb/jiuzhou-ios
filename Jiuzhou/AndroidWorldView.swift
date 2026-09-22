@@ -166,7 +166,9 @@ struct AndroidWorldView: View {
                                 }
                                 if let dialog = game.dialog {
                                     if dialog.kind == "map" { mapPanel(dialog, unit: unit) }
-                                    else if dialog.kind == "interaction" { interaction(unit: unit) }
+                                    else if dialog.kind == "interaction" || dialog.kind == "npc" {
+                                        interaction(unit: unit, usesNPCLayout: dialog.kind == "npc")
+                                    }
                                 }
                                 if !game.notice.isEmpty {
                                     MudRichText(raw: game.notice, send: game.act).font(.android(size: 14)).foregroundStyle(.cyan)
@@ -443,14 +445,16 @@ struct AndroidWorldView: View {
         return Color(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255)
     }
 
-    private func interaction(unit: CGFloat) -> some View {
+    private func interaction(unit: CGFloat, usesNPCLayout: Bool = false) -> some View {
         GeometryReader { geometry in
         VStack(alignment: .leading, spacing: 0) {
             if let dialog = game.dialog {
                 let inputHeight: CGFloat = dialog.inputCommand == nil ? 0 : 40
-                let actionHeight = interactionActionHeight(dialog, unit: unit)
+                let actionHeight = usesNPCLayout ? interactionActionHeight(dialog, unit: unit) : 0
                 let availableHeight = max(0, geometry.size.height - 11 - inputHeight)
-                let descriptionHeight = min(interactionTextHeight, max(0, availableHeight - actionHeight))
+                let descriptionHeight = usesNPCLayout
+                    ? min(interactionTextHeight, max(0, availableHeight - actionHeight))
+                    : min(interactionTextHeight, max(0, geometry.size.height - 11))
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
@@ -478,7 +482,9 @@ struct AndroidWorldView: View {
                 let availableWidth = max(0, geometry.size.width - 14)
                 let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
                 let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
-                let listHeight = max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
+                let listHeight = usesNPCLayout
+                    ? max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
+                    : max(0, geometry.size.height - 15 - interactionTextHeight - inputHeight)
                 HStack(alignment: .top, spacing: 2) {
                     actionList(dialog.actions, layout: dialog.layout, unit: unit, width: firstWidth, maxHeight: listHeight, identifier: "interaction.primary")
                         .padding(.trailing, 4)
