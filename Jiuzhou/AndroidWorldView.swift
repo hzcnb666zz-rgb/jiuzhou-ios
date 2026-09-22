@@ -462,13 +462,17 @@ struct AndroidWorldView: View {
                 let inputHeight: CGFloat = dialog.inputCommand == nil ? 0 : 40
                 // Reserve the action grid before sizing the description, matching Android's
                 // fixed lower action area instead of letting content push it out of bounds.
-                let actionHeight: CGFloat = interactionActionHeight(dialog, unit: unit)
+                let reservesActionArea = usesNPCLayout || usesItemLayout
+                let actionHeight: CGFloat = reservesActionArea ? interactionActionHeight(dialog, unit: unit) : 0
                 let availableHeight: CGFloat = max(0, geometry.size.height - 11 - inputHeight)
-                let descriptionHeight: CGFloat = interactionDescriptionHeight(
-                    availableHeight: availableHeight,
-                    actionHeight: actionHeight,
-                    usesItemLayout: usesItemLayout
-                )
+                let descriptionHeight: CGFloat
+                if usesItemLayout {
+                    descriptionHeight = max(0, availableHeight - actionHeight)
+                } else if usesNPCLayout {
+                    descriptionHeight = min(interactionTextHeight, max(0, availableHeight - actionHeight))
+                } else {
+                    descriptionHeight = min(interactionTextHeight, max(0, geometry.size.height - 11))
+                }
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
@@ -496,7 +500,9 @@ struct AndroidWorldView: View {
                 let availableWidth = max(0, geometry.size.width - 14)
                 let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
                 let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
-                let listHeight = max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
+                let listHeight = reservesActionArea
+                    ? max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
+                    : max(0, geometry.size.height - 15 - interactionTextHeight - inputHeight)
                 HStack(alignment: .top, spacing: 2) {
                     actionList(dialog.actions, layout: dialog.layout, unit: unit, width: firstWidth, maxHeight: listHeight, identifier: "interaction.primary")
                         .padding(.trailing, 4)
@@ -527,11 +533,6 @@ struct AndroidWorldView: View {
             .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
             .onPreferenceChange(InteractionTextHeight.self) { interactionTextHeight = $0 }
         }
-    }
-
-    private func interactionDescriptionHeight(availableHeight: CGFloat, actionHeight: CGFloat, usesItemLayout: Bool) -> CGFloat {
-        let remaining = max(0, availableHeight - actionHeight)
-        return usesItemLayout ? remaining : min(interactionTextHeight, remaining)
     }
 
     private func interactionActionHeight(_ dialog: GameDialog, unit: CGFloat) -> CGFloat {

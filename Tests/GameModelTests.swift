@@ -225,6 +225,19 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.actions.map(\.command), ["wear sword", "drop sword"])
     }
 
+    func testOrdinaryLookPageDoesNotUseItemLayout() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+
+        wire.receive("005", "天性:look 天性")
+        game.act("look 天性")
+        wire.receive("007", "投胎前选择你的天性。")
+        wire.receive("008", "$2,2,9,30#阴险狡诈:choose 1$zj#光明磊落:choose 2")
+
+        XCTAssertEqual(game.dialog?.kind, "interaction")
+    }
+
     func testConfirmationExpandsNumberAndSendsOrderedCommands() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)

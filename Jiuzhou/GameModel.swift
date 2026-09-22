@@ -351,15 +351,18 @@ final class GameModel: ObservableObject {
             buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
         case "007":
             let npc = looksLikeNPCDescription(text)
-            let kind = npc ? "npc" : (pendingItemLook ? "item" : "interaction")
-            dialog = GameDialog(text: styleStream.render(text), kind: kind)
-            if npc || pendingItemLook { pendingNPCObjectLook = false; pendingItemLook = false }
+            dialog = GameDialog(text: styleStream.render(text), kind: npc ? "npc" : "interaction")
+            if npc { pendingNPCObjectLook = false; pendingItemLook = false }
         case "008", "009":
             var next = dialog ?? GameDialog()
             if frame.code == "008" { next.actions = styledActions(text); next.layout = MudLayout(text) }
             else { next.secondary = styledActions(text); next.secondaryLayout = MudLayout(text) }
             if next.kind == "interaction", pendingNPCObjectLook, looksLikeNPCActionFrame(text) {
                 next.kind = "npc"
+                pendingNPCObjectLook = false
+                pendingItemLook = false
+            } else if next.kind == "interaction", pendingItemLook, looksLikeItemActionFrame(text) {
+                next.kind = "item"
                 pendingNPCObjectLook = false
                 pendingItemLook = false
             }
@@ -483,6 +486,13 @@ final class GameModel: ObservableObject {
         let plain = MudText.plain(text)
         return ["ask ", "follow ", "guard ", "touxi ", "attack ", "exert force."]
             .contains { plain.contains($0) }
+    }
+
+    private func looksLikeItemActionFrame(_ text: String) -> Bool {
+        let commands = styledActions(text).map { $0.command.lowercased() }
+        let itemVerbs = ["wear ", "remove ", "unwear ", "drop ", "give ", "use ", "eat ", "drink ",
+                         "sell ", "repair ", "destroy ", "identify "]
+        return commands.contains { command in itemVerbs.contains { command.hasPrefix($0) } }
     }
 
     #if DEBUG
