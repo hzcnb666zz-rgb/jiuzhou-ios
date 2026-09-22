@@ -211,6 +211,20 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.kind, "pages")
     }
 
+    func testInventoryItemUsesItemLayoutWithoutChangingNPCOrPages() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+
+        wire.receive("005", "修罗剑:look sword")
+        game.act("look sword")
+        wire.receive("007", "修罗剑$br#物品描述：一柄长剑。")
+        wire.receive("008", "$3,3,9,30#装备:wear sword$zj#丢弃:drop sword")
+
+        XCTAssertEqual(game.dialog?.kind, "item")
+        XCTAssertEqual(game.dialog?.actions.map(\.command), ["wear sword", "drop sword"])
+    }
+
     func testConfirmationExpandsNumberAndSendsOrderedCommands() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)

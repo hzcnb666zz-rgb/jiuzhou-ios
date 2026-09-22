@@ -80,6 +80,7 @@ final class GameModel: ObservableObject {
     private var sentCredentials = false
     private var styleStream = MudStyleStream()
     private var pendingNPCObjectLook = false
+    private var pendingItemLook = false
     private let fixedHost = "43.139.191.9"
     private let fixedPort: UInt16 = 6666
 
@@ -211,6 +212,7 @@ final class GameModel: ObservableObject {
         chatMessages = []; fightMessages = []; history = []; objectHealth = [:]
         fighting = false; customButtonsVisible = false
         pendingNPCObjectLook = false
+        pendingItemLook = false
         connecting = true
         #if !DEBUG
         host = fixedHost
@@ -225,6 +227,7 @@ final class GameModel: ObservableObject {
         dialog = nil; popup = nil; webURL = nil; status = "未连接"
         combatEffects = []; voiceRecorderVisible = false; voiceFilename = nil
         pendingNPCObjectLook = false
+        pendingItemLook = false
     }
 
     func createCharacter(name: String, gender: String) {
@@ -244,6 +247,7 @@ final class GameModel: ObservableObject {
 
     func act(_ command: String) {
         pendingNPCObjectLook = objects.contains { $0.command == command }
+        pendingItemLook = pendingNPCObjectLook && command.hasPrefix("look ")
         if command.hasPrefix("voice:"), LegacyService.voiceURL(String(command.dropFirst(6))) != nil {
             voiceFilename = String(command.dropFirst(6))
             voiceRecorderVisible = true
@@ -330,6 +334,7 @@ final class GameModel: ObservableObject {
             voiceRecorderVisible = false
             fighting = false; customButtonsVisible = false; objectHealth = [:]
             pendingNPCObjectLook = false
+            pendingItemLook = false
         case "003": exits = merge(styledActions(text, exits: true), into: exits)
         case "004": description = styleStream.render(text)
         case "005": objects += styledActions(text)
@@ -346,8 +351,9 @@ final class GameModel: ObservableObject {
             buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
         case "007":
             let npc = looksLikeNPCDescription(text)
-            dialog = GameDialog(text: styleStream.render(text), kind: npc ? "npc" : "interaction")
-            if npc { pendingNPCObjectLook = false }
+            let kind = npc ? "npc" : (pendingItemLook ? "item" : "interaction")
+            dialog = GameDialog(text: styleStream.render(text), kind: kind)
+            if npc || pendingItemLook { pendingNPCObjectLook = false; pendingItemLook = false }
         case "008", "009":
             var next = dialog ?? GameDialog()
             if frame.code == "008" { next.actions = styledActions(text); next.layout = MudLayout(text) }
@@ -355,6 +361,7 @@ final class GameModel: ObservableObject {
             if next.kind == "interaction", pendingNPCObjectLook, looksLikeNPCActionFrame(text) {
                 next.kind = "npc"
                 pendingNPCObjectLook = false
+                pendingItemLook = false
             }
             dialog = next
         case "010": receiveConfirmation(text)
