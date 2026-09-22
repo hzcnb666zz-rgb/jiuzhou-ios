@@ -409,32 +409,54 @@ struct AndroidWorldView: View {
     }
 
     private func stats(unit: CGFloat) -> some View {
-        let columns = game.statsLayout.columns
+        let columns = 5
+        let cellHeight = min(38, unit / CGFloat(max(1, game.statsLayout.heightDivisor)))
         return VStack(spacing: 0) {
-            ForEach(0..<((game.stats.count + columns - 1) / columns), id: \.self) { row in
-            HStack(spacing: 0) {
-            ForEach((row * columns)..<min(game.stats.count, (row + 1) * columns), id: \.self) { index in
-                let stat = game.stats[index]
-                Button { game.act(stat.command) } label: {
-                    GeometryReader { g in
-                        ZStack(alignment: .leading) {
-                            Color.clear
-                            color(stat.color).frame(width: g.size.width * stat.fraction)
-                            MudRichText(raw: stat.label + (stat.value.contains("/") ? "" : ":" + stat.value), send: game.act)
-                                .font(.android(size: unit / CGFloat(game.statsLayout.fontDivisor))).lineLimit(1).minimumScaleFactor(0.6)
+            ForEach(0..<2, id: \.self) { row in
+                HStack(spacing: 0) {
+                    ForEach(0..<columns, id: \.self) { column in
+                        let index = row * columns + column
+                        if index < game.stats.count {
+                            let stat = game.stats[index]
+                            Button { game.act(stat.command) } label: {
+                                GeometryReader { g in
+                                    ZStack(alignment: .leading) {
+                                        Color.black.opacity(0.88)
+                                        color(stat.color).frame(width: g.size.width * stat.fraction)
+                                        MudRichText(raw: stat.label + (stat.value.contains("/") ? "" : ":" + stat.value), send: game.act)
+                                            .font(.android(size: max(10, cellHeight * 0.58)))
+                                            .lineLimit(1).minimumScaleFactor(0.6).padding(.horizontal, 3)
+                                    }
+                                }
+                            }.buttonStyle(.plain)
+                                .frame(maxWidth: .infinity).frame(height: cellHeight)
+                                .overlay(Rectangle().strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.65), lineWidth: 1))
+                                .accessibilityIdentifier("world.stat.\(index)")
+                        } else {
+                            Color.black.opacity(0.88)
+                                .frame(maxWidth: .infinity).frame(height: cellHeight)
+                                .overlay(Rectangle().strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.65), lineWidth: 1))
                         }
-                    }.frame(height: unit / CGFloat(game.statsLayout.heightDivisor))
-                }.buttonStyle(.plain).padding(.bottom, 1)
-                    .accessibilityIdentifier("world.stat.\(index)")
-            }
-            }.padding(.trailing, 1)
+                    }
+                }
             }
         }
     }
 
     private func color(_ hex: String) -> Color {
-        let value = UInt32(hex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0
-        return Color(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255)
+        let value = hex.replacingOccurrences(of: "#", with: "")
+        guard let number = UInt32(value, radix: 16) else { return .clear }
+        if value.count == 8 {
+            return Color(
+                red: Double((number >> 16) & 255) / 255,
+                green: Double((number >> 8) & 255) / 255,
+                blue: Double(number & 255) / 255,
+                opacity: Double((number >> 24) & 255) / 255
+            )
+        }
+        return Color(red: Double((number >> 16) & 255) / 255,
+                     green: Double((number >> 8) & 255) / 255,
+                     blue: Double(number & 255) / 255)
     }
 
     private func interaction(unit: CGFloat, usesNPCLayout: Bool = false) -> some View {
