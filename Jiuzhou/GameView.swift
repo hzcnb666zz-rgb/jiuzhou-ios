@@ -28,7 +28,6 @@ struct GameView: View {
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 Form {
-                    LabeledContent("服务器", value: game.host + ":" + game.port)
                     LabeledContent("账号", value: game.account)
                     Button("重新连接") { showSettings = false; game.login() }
                     Button("退出登录", role: .destructive) { showSettings = false; game.logout() }
@@ -52,9 +51,6 @@ struct GameView: View {
                     .accessibilityHidden(true)
                 Text("九州书剑录").font(.title2.bold())
                 VStack(alignment: .leading, spacing: 12) {
-                    TextField("服务器地址", text: $game.host).keyboardType(.URL)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    TextField("端口", text: $game.port).keyboardType(.numberPad)
                     TextField("账号", text: $game.account).textContentType(.username)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                     SecureField("密码", text: $game.password).textContentType(.password)

@@ -14,7 +14,6 @@ struct AndroidEntryView: View {
     @State private var gender = "男性"
     @State private var chooseServer = false
     @State private var accountCenter = false
-    @State private var settings = false
     @State private var editingCredential = false
     @State private var editingPassword = false
     @State private var credentialDraft = ""
@@ -31,7 +30,7 @@ struct AndroidEntryView: View {
         }
         .onAppear {
             #if DEBUG
-            chooseServer = ProcessInfo.processInfo.arguments.contains("--ui-check-servers")
+            chooseServer = false
             registering = ProcessInfo.processInfo.arguments.contains("--ui-check-register")
             accountCenter = ProcessInfo.processInfo.arguments.contains("--ui-check-account")
             #endif
@@ -58,14 +57,6 @@ struct AndroidEntryView: View {
                 credentialDraft = ""
             }
         }
-        .sheet(isPresented: $settings) {
-            NavigationStack {
-                Form {
-                    TextField("服务器地址", text: $game.host).textInputAutocapitalization(.never).autocorrectionDisabled()
-                    TextField("端口", text: $game.port).keyboardType(.numberPad)
-                }.navigationTitle("服务器设置").toolbar { Button("完成") { settings = false } }
-            }
-        }
     }
 
     private func login(width: CGFloat, height: CGFloat) -> some View {
@@ -84,7 +75,6 @@ struct AndroidEntryView: View {
                         Button("会员中心") { accountCenter = true }
                         Button("返回登录") { game.logout(); chooseServer = false }
                     }.buttonStyle(LoginButtonStyle(heightDivisor: 9)).padding(.horizontal, 10)
-                    Button("服务器设置") { settings = true }.font(.android(size: 13)).padding(10)
                     Text(game.status).font(.android(size: 13)).padding(10)
                     if game.connecting { ProgressView() }
                     Spacer(minLength: 0)
@@ -108,7 +98,7 @@ struct AndroidEntryView: View {
                                 if game.account.isEmpty || game.password.isEmpty {
                                     game.status = "请输入账号和密码"
                                 } else {
-                                    game.status = "请选择分区"; chooseServer = true
+                                    game.login()
                                 }
                             }
                             Button("退 出") { game.logout(); game.password = "" }

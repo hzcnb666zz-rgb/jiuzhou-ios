@@ -87,7 +87,6 @@ struct AndroidWorldView: View {
     @State private var menuVisible = false
     @State private var historyVisible = false
     @State private var historyTab = 0
-    @State private var settingsVisible = false
     @State private var editingSlot: Int?
     @State private var editLabel = ""
     @State private var editCommand = ""
@@ -238,16 +237,6 @@ struct AndroidWorldView: View {
         .alert("确认要退出么？", isPresented: $quitVisible) {
             Button("退出", role: .destructive) { game.act("quit"); game.logout() }
             Button("留下来", role: .cancel) {}
-        }
-        .sheet(isPresented: $settingsVisible) {
-            NavigationStack {
-                Form {
-                    TextField("服务器地址", text: $game.host).textInputAutocapitalization(.never).autocorrectionDisabled()
-                    TextField("端口", text: $game.port).keyboardType(.numberPad)
-                    Text(game.status)
-                    Button("重新连接") { settingsVisible = false; game.login() }
-                }.navigationTitle("连接设置").toolbar { Button("完成") { settingsVisible = false } }
-            }
         }
     }
 

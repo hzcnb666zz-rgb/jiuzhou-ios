@@ -42,8 +42,9 @@ struct GameStat: Identifiable {
 }
 
 final class GameModel: ObservableObject {
-    @Published var host = UserDefaults.standard.string(forKey: "host") ?? "10.220.35.229"
-    @Published var port = UserDefaults.standard.string(forKey: "port") ?? "6666"
+    // Kept mutable for protocol tests; login() always uses these fixed endpoint constants.
+    @Published var host = "43.139.191.9"
+    @Published var port = "6666"
     @Published var account = UserDefaults.standard.string(forKey: "account") ?? ""
     @Published var password = ""
     @Published var status = "未连接"
@@ -79,6 +80,8 @@ final class GameModel: ObservableObject {
     private var sentCredentials = false
     private var styleStream = MudStyleStream()
     private var pendingNPCObjectLook = false
+    private let fixedHost = "43.139.191.9"
+    private let fixedPort: UInt16 = 6666
 
     private func styledActions(_ text: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
         MudText.actions(text, exits: exits, slots: slots).map { action in
@@ -182,13 +185,21 @@ final class GameModel: ObservableObject {
 
     func login() {
         guard account.range(of: "^[A-Za-z][A-Za-z0-9]{3,19}$", options: .regularExpression) != nil,
-              !password.isEmpty, !password.contains(where: { "║\r\n".contains($0) }),
-              let number = UInt16(port), number > 0, !host.trimmingCharacters(in: .whitespaces).isEmpty else {
-            status = "账号需为4至20位字母数字，以字母开头；请填写密码和有效地址端口"
+              !password.isEmpty, !password.contains(where: { "║\r\n".contains($0) }) else {
+            status = "账号需为4至20位字母数字，以字母开头；请填写密码"
             return
         }
-        UserDefaults.standard.set(host, forKey: "host")
-        UserDefaults.standard.set(port, forKey: "port")
+        #if DEBUG
+        guard let connectionPort = UInt16(port), connectionPort > 0,
+              !host.trimmingCharacters(in: .whitespaces).isEmpty else {
+            status = "测试连接地址无效"
+            return
+        }
+        let connectionHost = host.trimmingCharacters(in: .whitespaces)
+        #else
+        let connectionHost = fixedHost
+        let connectionPort = fixedPort
+        #endif
         UserDefaults.standard.set(account, forKey: "account")
         sentCredentials = false
         styleStream = MudStyleStream(); combatEffects = []
@@ -201,7 +212,11 @@ final class GameModel: ObservableObject {
         fighting = false; customButtonsVisible = false
         pendingNPCObjectLook = false
         connecting = true
-        transport.connect(host: host.trimmingCharacters(in: .whitespaces), port: number)
+        #if !DEBUG
+        host = fixedHost
+        port = String(fixedPort)
+        #endif
+        transport.connect(host: connectionHost, port: connectionPort)
     }
 
     func logout() {
@@ -400,8 +415,12 @@ final class GameModel: ObservableObject {
                   let number = UInt16(text[text.index(after: separator)...]), number > 0 else { return }
             let target = String(text[..<separator])
             guard !target.isEmpty else { return }
+            // Ignore server-directed endpoint changes; this build is pinned to the public server.
+            #if DEBUG
             host = target; port = String(number); connecting = true; sentCredentials = false
             transport.connect(host: target, port: number)
+            #endif
+            break
         case "913": exits = []
         case "905": objects.removeAll { $0.command == text || $0.command == "look " + text }
         case "999": logout()
