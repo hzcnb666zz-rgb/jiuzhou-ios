@@ -283,7 +283,11 @@ struct AndroidWorldView: View {
     }
 
     private var extraExits: [MudAction] {
-        game.exits.filter { exit in !compass.filter { !$0.isEmpty }.contains { exit.slot == $0 || exit.slot == $0 + "up" || exit.slot == $0 + "down" } }
+        let hiddenCommands: Set<String> = ["showroom", "renwu"]
+        return game.exits.filter { exit in
+            !hiddenCommands.contains(exit.command) &&
+            !compass.filter { !$0.isEmpty }.contains { exit.slot == $0 || exit.slot == $0 + "up" || exit.slot == $0 + "down" }
+        }
     }
 
     private func exits(unit: CGFloat) -> some View {
