@@ -463,16 +463,15 @@ struct AndroidWorldView: View {
                 // Reserve the action grid before sizing the description, matching Android's
                 // fixed lower action area instead of letting content push it out of bounds.
                 let reservesActionArea = usesNPCLayout || usesItemLayout
-                let actionHeight: CGFloat = reservesActionArea ? interactionActionHeight(dialog, unit: unit) : 0
+                let actionHeight = reservesActionArea ? interactionActionHeight(dialog, unit: unit) : 0
                 let availableHeight: CGFloat = max(0, geometry.size.height - 11 - inputHeight)
-                let descriptionHeight: CGFloat
-                if usesItemLayout {
-                    descriptionHeight = max(0, availableHeight - actionHeight)
-                } else if usesNPCLayout {
-                    descriptionHeight = min(interactionTextHeight, max(0, availableHeight - actionHeight))
-                } else {
-                    descriptionHeight = min(interactionTextHeight, max(0, geometry.size.height - 11))
-                }
+                let descriptionHeight = interactionDescriptionHeight(
+                    availableHeight: availableHeight,
+                    containerHeight: geometry.size.height,
+                    actionHeight: actionHeight,
+                    usesNPCLayout: usesNPCLayout,
+                    usesItemLayout: usesItemLayout
+                )
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
@@ -500,9 +499,12 @@ struct AndroidWorldView: View {
                 let availableWidth = max(0, geometry.size.width - 14)
                 let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
                 let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
-                let listHeight = reservesActionArea
-                    ? max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
-                    : max(0, geometry.size.height - 15 - interactionTextHeight - inputHeight)
+                let listHeight = interactionListHeight(
+                    containerHeight: geometry.size.height,
+                    descriptionHeight: descriptionHeight,
+                    inputHeight: inputHeight,
+                    reservesActionArea: reservesActionArea
+                )
                 HStack(alignment: .top, spacing: 2) {
                     actionList(dialog.actions, layout: dialog.layout, unit: unit, width: firstWidth, maxHeight: listHeight, identifier: "interaction.primary")
                         .padding(.trailing, 4)
@@ -533,6 +535,28 @@ struct AndroidWorldView: View {
             .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
             .onPreferenceChange(InteractionTextHeight.self) { interactionTextHeight = $0 }
         }
+    }
+
+    private func interactionDescriptionHeight(
+        availableHeight: CGFloat,
+        containerHeight: CGFloat,
+        actionHeight: CGFloat,
+        usesNPCLayout: Bool,
+        usesItemLayout: Bool
+    ) -> CGFloat {
+        if usesItemLayout { return max(0, availableHeight - actionHeight) }
+        if usesNPCLayout { return min(interactionTextHeight, max(0, availableHeight - actionHeight)) }
+        return min(interactionTextHeight, max(0, containerHeight - 11))
+    }
+
+    private func interactionListHeight(
+        containerHeight: CGFloat,
+        descriptionHeight: CGFloat,
+        inputHeight: CGFloat,
+        reservesActionArea: Bool
+    ) -> CGFloat {
+        let measuredHeight = reservesActionArea ? descriptionHeight : interactionTextHeight
+        return max(0, containerHeight - 15 - measuredHeight - inputHeight)
     }
 
     private func interactionActionHeight(_ dialog: GameDialog, unit: CGFloat) -> CGFloat {
