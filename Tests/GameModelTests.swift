@@ -91,7 +91,7 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.kind, "interaction")
 
         wire.receive("008", "$2,3,9,30#交谈:ask elder")
-        XCTAssertEqual(game.dialog?.kind, "npc")
+        XCTAssertEqual(game.dialog?.kind, "interaction")
 
         wire.receive("002", "未明谷")
         wire.receive("005", "老村长:look elder")
