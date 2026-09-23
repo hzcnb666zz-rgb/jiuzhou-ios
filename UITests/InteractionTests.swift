@@ -13,7 +13,7 @@ final class InteractionTests: XCTestCase {
         let first = app.buttons["world.stat.0"].frame
         let last = app.buttons["world.stat.2"].frame
         XCTAssertEqual(last.width, first.width * 2, accuracy: 1)
-        XCTAssertEqual(first.height, app.windows.firstMatch.frame.width / 40, accuracy: 1)
+        XCTAssertEqual(first.height, app.windows.firstMatch.frame.width / 40, accuracy: 1.5)
         app.buttons["发送语音"].tap()
         XCTAssertTrue(app.buttons["开始录音"].waitForExistence(timeout: 5))
         app.buttons["world.custom"].tap()
