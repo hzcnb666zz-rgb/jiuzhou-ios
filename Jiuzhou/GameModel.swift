@@ -362,10 +362,10 @@ final class GameModel: ObservableObject {
         case "008", "009":
             var next = dialog ?? GameDialog()
             if frame.code == "008" {
-                next.actions += styledActions(text)
+                next.actions = styledActions(text)
                 next.layout = MudLayout(text)
             } else {
-                next.secondary += styledActions(text)
+                next.secondary = styledActions(text)
                 next.secondaryLayout = MudLayout(text)
             }
             if next.kind == "interaction", pendingNPCObjectLook, looksLikeNPCActionFrame(text) {

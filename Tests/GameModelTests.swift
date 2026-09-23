@@ -113,6 +113,28 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.kind, "interaction")
     }
 
+    func testNPCActionFramesReplaceOnlyTheirMatchingAndroidActionTable() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        wire.receive("005", "小龙女:look longnv")
+        game.act("look longnv")
+        wire.receive("007", "小龙女是古墓派导师，武功高强。她气血充盈。")
+        XCTAssertEqual(game.dialog?.kind, "npc")
+        wire.receive("008", "$4,3,9,30#剑:get sword$zj#拜师:join gumu")
+        wire.receive("009", "$1,4,11,42#银索金铃:ask longnv")
+
+        wire.receive("008", "$2,3,9,30#查看技能:skills longnv")
+        XCTAssertEqual(game.dialog?.actions.map(\.command), ["skills longnv"])
+        XCTAssertEqual(game.dialog?.secondary.map(\.command), ["ask longnv"])
+        XCTAssertEqual(game.dialog?.layout.columns, 2)
+
+        wire.receive("009", "$1,4,11,42#风神诀:canwu")
+        XCTAssertEqual(game.dialog?.actions.map(\.command), ["skills longnv"])
+        XCTAssertEqual(game.dialog?.secondary.map(\.command), ["canwu"])
+        XCTAssertEqual(game.dialog?.secondaryLayout.columns, 1)
+    }
+
     func testHandshakeAndRejectedLoginCanRetry() {
         let keys = ["account", "host", "port"]
         let saved = keys.map { UserDefaults.standard.object(forKey: $0) }
