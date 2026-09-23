@@ -236,6 +236,35 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.stats[1].label, "气血.850")
     }
 
+    func testStatsDisplayVitalEnergyAsInnateQiWithoutChangingServerBinding() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive("012", "$2,2,40,35#精力.125:125/4000:#BB3F51B5:hp")
+
+        XCTAssertEqual(game.stats.count, 1)
+        XCTAssertEqual(game.stats[0].label, "先天之炁.125")
+        XCTAssertEqual(game.stats[0].value, "125/4000")
+        XCTAssertEqual(game.stats[0].color, "#BB3F51B5")
+        XCTAssertEqual(game.stats[0].command, "hp")
+    }
+
+    func testCombatFrameDoesNotChangeServerBoundStats() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive("012", "$2,2,40,35#先天之炁.125:125/4000:#BB3F51B5:hp")
+        let statsBeforeCombat = game.stats
+        let layoutBeforeCombat = game.statsLayout
+
+        wire.receive("016", "你与对手交上了手。")
+
+        XCTAssertTrue(game.fighting)
+        XCTAssertEqual(game.stats.map(\.label), statsBeforeCombat.map(\.label))
+        XCTAssertEqual(game.stats.map(\.value), statsBeforeCombat.map(\.value))
+        XCTAssertEqual(game.stats.map(\.color), statsBeforeCombat.map(\.color))
+        XCTAssertEqual(game.stats.map(\.command), statsBeforeCombat.map(\.command))
+        XCTAssertEqual(game.statsLayout, layoutBeforeCombat)
+    }
+
     func testSkillActionsSurviveDescriptionFrameArrivingAfterButtons() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
