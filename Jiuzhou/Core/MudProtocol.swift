@@ -257,12 +257,6 @@ enum MudText {
         for range in removals.sorted(by: { $0.location > $1.location }) {
             result = (result as NSString).replacingCharacters(in: range, with: "")
         }
-        // A tab is only a visual separator between adjacent inline links. Once
-        // those links are promoted to fixed actions, do not leave the separator
-        // behind in the page description.
-        if !removals.isEmpty {
-            result = result.replacingOccurrences(of: "\t", with: "")
-        }
         return result
     }
 

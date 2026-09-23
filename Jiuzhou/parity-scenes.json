@@ -22,7 +22,7 @@
     {"code":"003","text":"north:旧北路$zj#enter:小院"},
     {"code":"003","text":"northup:上山:climb"},
     {"code":"021","text":"标题甲:look$zj#标题乙:look"},
-    {"code":"012","text":"$2,2,40,35#气血:8/10:#aa3300:hp║内力:5/10:#0000aa:hp║潜能:30:#ffffff:score"},
+    {"code":"012","text":"$2,2,40,40#气血:8/10:#aa3300:hp║内力:5/10:#0000aa:hp║潜能:30:#ffffff:score"},
     {"code":"007","text":"重复指令保留不同按钮"},
     {"code":"008","text":"$2,3,9,30#查看:look$zj#刷新:look$zj#发送语音:record"}
   ],

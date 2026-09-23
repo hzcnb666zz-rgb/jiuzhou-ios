@@ -450,11 +450,11 @@ struct AndroidWorldView: View {
         VStack(alignment: .leading, spacing: 0) {
             if let dialog = game.dialog {
                 let inputHeight: CGFloat = dialog.inputCommand == nil ? 0 : 40
-                let actionHeight = usesNPCLayout ? interactionActionHeight(dialog, unit: unit) : 0
+                let actionHeight = interactionActionHeight(dialog, unit: unit)
                 let availableHeight = max(0, geometry.size.height - 11 - inputHeight)
                 let descriptionHeight = usesNPCLayout
                     ? min(interactionTextHeight, max(0, availableHeight - actionHeight))
-                    : min(interactionTextHeight, max(0, geometry.size.height - 11))
+                    : min(interactionTextHeight, max(0, availableHeight - actionHeight))
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
@@ -484,7 +484,7 @@ struct AndroidWorldView: View {
                 let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, dialog.actions.count)) / CGFloat(dialog.layout.widthDivisor))
                 let listHeight = usesNPCLayout
                     ? max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
-                    : max(0, geometry.size.height - 15 - interactionTextHeight - inputHeight)
+                    : max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
                 HStack(alignment: .top, spacing: 2) {
                     actionList(dialog.actions, layout: dialog.layout, unit: unit, width: firstWidth, maxHeight: listHeight, identifier: "interaction.primary")
                         .padding(.trailing, 4)

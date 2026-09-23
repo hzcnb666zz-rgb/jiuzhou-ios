@@ -78,8 +78,28 @@ final class GameModelTests: XCTestCase {
         let game = GameModel(transport: wire)
         wire.onStatus?("已连接", true)
 
+        wire.receive("005", "老村长:look elder$zj#布衣:look cloth")
+        game.act("look elder")
         wire.receive("007", "【布衣平民】导师「人见人爱」老村长$br#他的武功达到了深不可测。$br#他看起来气血充盈。")
         XCTAssertEqual(game.dialog?.kind, "npc")
+
+        wire.receive("002", "未明谷")
+        wire.receive("005", "布衣:look cloth")
+        game.act("look cloth")
+        wire.receive("007", "布衣$br#这是一件普通的布衣。$br#防御：5")
+        wire.receive("008", "$3,3,9,30#装备:wear cloth$zj#丢弃:drop cloth")
+        XCTAssertEqual(game.dialog?.kind, "interaction")
+
+        wire.receive("008", "$2,3,9,30#交谈:ask elder")
+        XCTAssertEqual(game.dialog?.kind, "npc")
+
+        wire.receive("002", "未明谷")
+        wire.receive("005", "老村长:look elder")
+        game.act("look elder")
+        wire.receive("008", "$2,3,9,30#交谈:ask elder$zj#交易:list elder")
+        XCTAssertEqual(game.dialog?.kind, "npc")
+        wire.receive("007", "老村长$br#你想打听什么？")
+        XCTAssertEqual(game.dialog?.actions.map(\.command), ["ask elder", "list elder"])
 
         wire.receive("002", "未明谷")
         wire.receive("007", "电子驿站$br#这里是邮件列表。")
@@ -87,6 +107,10 @@ final class GameModelTests: XCTestCase {
 
         wire.receive("013", "寻路结果")
         XCTAssertEqual(game.dialog?.kind, "pages")
+
+        wire.receive("002", "未明谷")
+        wire.receive("007", "导师系统说明")
+        XCTAssertEqual(game.dialog?.kind, "interaction")
     }
 
     func testHandshakeAndRejectedLoginCanRetry() {

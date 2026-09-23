@@ -186,6 +186,7 @@ final class GameModel: ObservableObject {
             }
             for scene in ["common", "inventory", "item", "player", "npc", "edge"] where ProcessInfo.processInfo.arguments.contains("--ui-check-" + scene) {
                 replayParityScene("common")
+                if scene == "npc" { pendingNPCObjectLook = true }
                 replayParityScene(scene)
             }
             if ProcessInfo.processInfo.arguments.contains("--ui-check-voice") { voiceRecorderVisible = true }
@@ -255,6 +256,7 @@ final class GameModel: ObservableObject {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-check-common"),
            let scene = ["mycmds ofen": "common", "i": "inventory", "look cloth": "item", "look player": "player", "look elder": "npc"][command] {
+            dialog = nil
             replayParityScene(scene)
             return
         }
@@ -349,14 +351,14 @@ final class GameModel: ObservableObject {
         case "007":
             // Android keeps the description and action frames in one overlay even
             // when the server delivers the action frame first.
-            let npc = looksLikeNPCDescription(text)
+            let npc = dialog?.kind == "npc" || (pendingNPCObjectLook && looksLikeNPCDescription(text))
             var next = dialog ?? GameDialog()
             next.text = styleStream.render(MudText.removingInlinePageActions(text))
             let pageActions = styledInlinePageActions(text)
             next.kind = npc ? "npc" : (pageActions.isEmpty ? "interaction" : "pages")
             next.actions = appendUnique(pageActions, to: next.actions)
             dialog = next
-            if npc { pendingNPCObjectLook = false }
+            pendingNPCObjectLook = false
         case "008", "009":
             var next = dialog ?? GameDialog()
             if frame.code == "008" {

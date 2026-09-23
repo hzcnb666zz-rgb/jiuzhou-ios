@@ -89,7 +89,7 @@ final class MudProtocolTests: XCTestCase {
         let text = "\u{001B}[u:cmds:walk]\u{001B}[s:28]\u{001B}[1;37m[搜索]\u{001B}[0m\t\u{001B}[u:cmds:recall]\u{001B}[s:28]\u{001B}[36m[回城]\u{001B}[0m"
         XCTAssertEqual(MudText.inlinePageActions(text).map(\.label), ["[搜索]", "[回城]"])
         XCTAssertEqual(MudText.inlinePageActions(text).map(\.command), ["walk", "recall"])
-        XCTAssertEqual(MudText.plain(MudText.removingInlinePageActions("寻路" + text)), "寻路")
+        XCTAssertEqual(MudText.plain(MudText.removingInlinePageActions("寻路" + text)).trimmingCharacters(in: .whitespacesAndNewlines), "寻路")
     }
 
     func testCommandNormalizationOnlyRemovesExertTwice() {
