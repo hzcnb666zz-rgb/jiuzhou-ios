@@ -90,15 +90,6 @@ final class GameModelTests: XCTestCase {
         wire.receive("008", "$3,3,9,30#装备:wear cloth$zj#丢弃:drop cloth")
         XCTAssertEqual(game.dialog?.kind, "interaction")
 
-        wire.receive("002", "未明谷")
-        wire.receive("005", "三清剑:look sword")
-        game.act("look sword")
-        wire.receive("007", "物品描述：这是一把剑。$br#物品类型：武器$br#装备耐久：100")
-        XCTAssertEqual(game.dialog?.kind, "item")
-
-        wire.receive("002", "未明谷")
-        wire.receive("005", "老村长:look elder")
-        game.act("look elder")
         wire.receive("008", "$2,3,9,30#交谈:ask elder")
         XCTAssertEqual(game.dialog?.kind, "interaction")
 
@@ -120,6 +111,19 @@ final class GameModelTests: XCTestCase {
         wire.receive("002", "未明谷")
         wire.receive("007", "导师系统说明")
         XCTAssertEqual(game.dialog?.kind, "interaction")
+    }
+
+    func testItemDescriptionUsesIsolatedDetailKindWithoutAffectingPages() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        wire.receive("005", "三清剑:look sword")
+        game.act("look sword")
+        wire.receive("007", "物品描述：这是一把剑。$br#物品类型：武器$br#装备耐久：100")
+
+        XCTAssertEqual(game.dialog?.kind, "item")
+        wire.receive("013", "电子驿站邮件列表")
+        XCTAssertEqual(game.dialog?.kind, "pages")
     }
 
     func testNPCActionFramesReplaceOnlyTheirMatchingAndroidActionTable() {
@@ -293,6 +297,22 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.stats.map(\.value), statsBeforeCombat.map(\.value))
         XCTAssertEqual(game.stats.map(\.color), statsBeforeCombat.map(\.color))
         XCTAssertEqual(game.stats.map(\.command), statsBeforeCombat.map(\.command))
+        XCTAssertEqual(game.statsLayout, layoutBeforeCombat)
+    }
+
+    func testCombatStatRefreshUpdatesValuesWithoutChangingStatusBarStructure() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive("012", "$3,3,25,40#姓名：试江青青:100/100:#336666║气血.850:850/850/850:#99FF0000:exert recover║精神.200:200/200/200:#99990000:exert regenerate║精力.125:125/4000:#BB3F51B5:hp║内力.300:300/500:#990066FF:hp║元神.80:80/200:#990066CC")
+        let structureBeforeCombat = game.stats.map { $0.label.components(separatedBy: ".").first ?? $0.label }
+        let layoutBeforeCombat = game.statsLayout
+
+        wire.receive("016", "你与对手交上了手。")
+        wire.receive("012", "$2,2,22,35#姓名：试江青青:100/100:#336666║气血.820:820/850/850:#99FF0000:exert recover║精神.190:190/200/200:#99990000:exert regenerate║精力.120:120/4000:#BB3F51B5:hp║内力.280:280/500:#990066FF:hp║元神.75:75/200:#990066CC")
+
+        XCTAssertEqual(game.stats.map { $0.label.components(separatedBy: ".").first ?? $0.label }, structureBeforeCombat)
+        XCTAssertEqual(game.stats[3].label, "先天之炁.120")
+        XCTAssertEqual(game.stats[3].value, "120/4000")
         XCTAssertEqual(game.statsLayout, layoutBeforeCombat)
     }
 
