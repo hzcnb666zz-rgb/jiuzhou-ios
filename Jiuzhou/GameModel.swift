@@ -391,7 +391,7 @@ final class GameModel: ObservableObject {
             // name plus the five server-provided resource values.
             if count >= 10 { layout.columns = 5 }
             if count == 6 { layout.columns = 3 }
-            let updatedStats = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry in
+            let updatedStats: [GameStat] = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry -> GameStat? in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }
                 let label = parts[0].hasPrefix("精力.") || parts[0] == "精力"
@@ -405,8 +405,10 @@ final class GameModel: ObservableObject {
                     let base = stat.label.components(separatedBy: ".").first ?? stat.label
                     return base == "精力" ? "先天之炁" : base
                 }
-                guard updatedStats.count == stats.count,
-                      zip(updatedStats, stats).allSatisfy({ identity($0.0) == identity($0.1) }) else { return }
+                let sameStructure = zip(updatedStats, stats).allSatisfy { pair in
+                    identity(pair.0) == identity(pair.1)
+                }
+                guard updatedStats.count == stats.count, sameStructure else { return }
                 stats = updatedStats
             } else {
                 statsLayout = layout
