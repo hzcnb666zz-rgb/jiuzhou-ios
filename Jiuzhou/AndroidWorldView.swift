@@ -305,7 +305,11 @@ struct AndroidWorldView: View {
     }
 
     private var extraExits: [MudAction] {
-        game.exits.filter { exit in !compass.filter { !$0.isEmpty }.contains { exit.slot == $0 || exit.slot == $0 + "up" || exit.slot == $0 + "down" } }
+        let hidden = Set(["发送坐标", "任务"])
+        return game.exits.filter { exit in
+            !hidden.contains(exit.label) &&
+            !compass.filter { !$0.isEmpty }.contains { exit.slot == $0 || exit.slot == $0 + "up" || exit.slot == $0 + "down" }
+        }
     }
 
     private func exits(unit: CGFloat) -> some View {
@@ -536,9 +540,11 @@ struct AndroidWorldView: View {
                     : 0
                 let descriptionHeight = max(0, availableHeight - actionViewport)
                 let availableWidth = max(0, geometry.size.width - 14)
+                let hasSpecialActions = dialog.kind == "npc" &&
+                    !dialog.actions.isEmpty && !dialog.secondary.isEmpty
                 let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
                 let calculatedWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, max(1, dialog.actions.count))) / CGFloat(dialog.layout.widthDivisor))
-                let firstWidth = dialog.kind == "item" && dialog.secondary.isEmpty ? availableWidth : calculatedWidth
+                let firstWidth = hasSpecialActions ? calculatedWidth : availableWidth
                 let listHeight = actionViewport
                 VStack(alignment: .leading, spacing: 0) {
                     ScrollView(.vertical) {
@@ -570,6 +576,7 @@ struct AndroidWorldView: View {
                         }.padding(.horizontal, 5)
                     }
                     HStack(alignment: .top, spacing: 2) {
+                    if hasSpecialActions {
                         actionList(dialog.actions,
                                    layout: dialog.layout,
                                    unit: unit,
@@ -577,17 +584,23 @@ struct AndroidWorldView: View {
                                    maxHeight: listHeight,
                                    identifier: "interaction.primary")
                             .padding(.trailing, 4)
-                        if !dialog.secondary.isEmpty {
-                            let secondaryWidth = max(0, availableWidth - firstWidth - 8)
-                            actionList(dialog.secondary,
-                                       layout: dialog.secondaryLayout,
+                        let secondaryWidth = max(0, availableWidth - firstWidth - 8)
+                        actionList(dialog.secondary,
+                                   layout: dialog.secondaryLayout,
                                        unit: unit,
                                        width: secondaryWidth,
                                        maxHeight: listHeight,
                                        identifier: "interaction.secondary")
                                 .padding(.leading, 2)
-                        }
-                    }.padding(2).frame(height: actionViewport, alignment: .top)
+                    } else if !dialog.actions.isEmpty {
+                        actionList(dialog.actions,
+                                   layout: dialog.layout,
+                                   unit: unit,
+                                   width: availableWidth,
+                                   maxHeight: listHeight,
+                                   identifier: "interaction.primary")
+                    }
+                }.padding(2).frame(height: actionViewport, alignment: .top)
                     Spacer(minLength: 0)
                 }
                 .padding(.bottom, 3)
@@ -726,8 +739,9 @@ struct AndroidWorldView: View {
     private func pagesPanel(_ dialog: GameDialog, unit: CGFloat) -> some View {
         GeometryReader { geometry in
             let availableWidth = max(0, geometry.size.width - 10)
-            let inlineLabels = Set(["上一页", "下一页", "搜索", "回城", "门派", "家园", "一键删除", "一键领取", "添加草稿", "返回"])
-            let pageActions = (dialog.actions + dialog.secondary).filter { !inlineLabels.contains($0.label) }
+            // Inline links have already been removed from the body by the model,
+            // so every page action belongs in this dedicated footer.
+            let pageActions = dialog.actions + dialog.secondary
             let pageLayout = dialog.layout.resolved(for: pageActions.count)
             let actionRows = pageActions.isEmpty ? 0 : (pageActions.count + pageLayout.columns - 1) / pageLayout.columns
             let actionContentHeight = CGFloat(actionRows) * (unit / CGFloat(pageLayout.heightDivisor) + 2) + 4
@@ -749,7 +763,9 @@ struct AndroidWorldView: View {
                 }
             }
             .foregroundStyle(Color(white: 221/255))
-            .background(Color.black.opacity(0.35))
+            // The page must cover the underlying message stream. A translucent
+            // panel makes mail and route links paint over chat messages.
+            .background(Color.black)
             .overlay(alignment: .topTrailing) {
                 Button { game.closeDialog() } label: {
                     BundleImage(name: "exitxx", ext: "png").frame(width: unit / 12, height: unit / 14)

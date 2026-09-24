@@ -84,7 +84,9 @@ struct AndroidEntryView: View {
                         Button("会员中心") { accountCenter = true }
                         Button("返回登录") { game.logout(); chooseServer = false }
                     }.buttonStyle(LoginButtonStyle(heightDivisor: 9)).padding(.horizontal, 10)
+                    #if DEBUG
                     Button("服务器设置") { settings = true }.font(.android(size: 13)).padding(10)
+                    #endif
                     Text(game.status).font(.android(size: 13)).padding(10)
                     if game.connecting { ProgressView() }
                     Spacer(minLength: 0)
