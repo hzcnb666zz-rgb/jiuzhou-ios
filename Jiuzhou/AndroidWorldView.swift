@@ -739,7 +739,10 @@ struct AndroidWorldView: View {
                             }
                         }
                         Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: buttonHeight) }
-                    }.font(.android(size: unit / 26)).buttonStyle(AndroidButtonStyle())
+                    }
+                    .font(.android(size: unit / 26))
+                    .buttonStyle(AndroidButtonStyle())
+                    .frame(minWidth: geometry.size.width, alignment: .trailing)
                 }.frame(height: buttonHeight)
             }
             .foregroundStyle(Color(white: 221/255))
