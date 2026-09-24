@@ -108,10 +108,11 @@ struct AndroidWorldView: View {
             let width = geometry.size.width
             // Android uses the actual screen width (scrw) for every main-face dimension.
             let unit = width
+            let usesIsolatedInteraction = game.dialog?.kind == "npc" || game.dialog?.kind == "item"
             ZStack(alignment: .top) {
                 BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png")
                 VStack(spacing: 0) {
-                    if !game.chatMessages.isEmpty {
+                    if !game.chatMessages.isEmpty && !usesIsolatedInteraction {
                         messages(Array(game.chatMessages.suffix(100)))
                             .frame(height: unit / CGFloat(max(1, chatDivisor)))
                     }
@@ -163,12 +164,14 @@ struct AndroidWorldView: View {
                                         rule
                                     }
                                     messages(game.fighting ? game.fightMessages : game.messages)
-                                }
-                                if let dialog = game.dialog {
-                                    if dialog.kind == "map" { mapPanel(dialog, unit: unit) }
-                                    else if dialog.kind == "interaction" || dialog.kind == "npc" {
-                                        interaction(unit: unit, usesNPCLayout: dialog.kind == "npc")
-                                    }
+                                 }
+                                 if let dialog = game.dialog {
+                                     if dialog.kind == "map" { mapPanel(dialog, unit: unit) }
+                                     else if dialog.kind == "npc" || dialog.kind == "item" {
+                                         isolatedInteraction(unit: unit)
+                                     } else if dialog.kind == "interaction" {
+                                         interaction(unit: unit, usesNPCLayout: dialog.kind == "npc")
+                                     }
                                 }
                                 if !game.notice.isEmpty {
                                     MudRichText(raw: game.notice, send: game.act).font(.android(size: 14)).foregroundStyle(.cyan)
@@ -192,6 +195,9 @@ struct AndroidWorldView: View {
                     rule
                     bottomBar(unit: unit)
                 }.padding(1)
+                // NPC and item details are isolated from the transient top chat rail.
+                // The messages remain available in the history panel instead of
+                // consuming or covering the detail panel's viewport.
                 if menuVisible { mainMenu(unit: unit).frame(maxHeight: .infinity) }
                 if historyVisible { historyPanel(unit: unit) }
                 if let popup = game.popup { popupMenu(popup, unit: unit) }
@@ -514,6 +520,76 @@ struct AndroidWorldView: View {
             .padding(.horizontal, 4).padding(.vertical, 3)
             .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
             .onPreferenceChange(InteractionTextHeight.self) { interactionTextHeight = $0 }
+        }
+    }
+
+    private func isolatedInteraction(unit: CGFloat) -> some View {
+        GeometryReader { geometry in
+            if let dialog = game.dialog {
+                let availableWidth = max(0, geometry.size.width - 14)
+                let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
+                let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, max(1, dialog.actions.count))) / CGFloat(dialog.layout.widthDivisor))
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        MudRichText(raw: dialog.text, send: game.act)
+                            .font(.android(size: unit / 30))
+                            .padding(5)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if dialog.inputCommand != nil {
+                            HStack(spacing: 0) {
+                                TextField("", text: $dialogInput)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .focused($inputFocused)
+                                    .keyboardType(dialog.numeric ? .numberPad : .default)
+                                    .onSubmit { game.submitInput(dialogInput) }
+                                    .font(.android(size: 15))
+                                    .padding(.leading, 15)
+                                    .frame(height: 40)
+                                    .background(BundleImage(name: "input_bg", ext: "png"))
+                                Button { game.submitInput(dialogInput) } label: {
+                                    Text("确定").font(.android(size: 14)).frame(width: 65, height: 40)
+                                }.buttonStyle(AndroidButtonStyle())
+                            }.padding(.horizontal, 5)
+                        }
+                        HStack(alignment: .top, spacing: 2) {
+                            actionGrid(dialog.actions,
+                                       layout: dialog.layout,
+                                       unit: unit,
+                                       width: firstWidth)
+                                .padding(.trailing, 4)
+                            if !dialog.secondary.isEmpty {
+                                let secondaryWidth = max(0, availableWidth - firstWidth - 8)
+                                actionGrid(dialog.secondary,
+                                           layout: dialog.secondaryLayout,
+                                           unit: unit,
+                                           width: secondaryWidth)
+                                    .padding(.leading, 2)
+                            }
+                        }.padding(2)
+                    }
+                }
+                .accessibilityIdentifier("interaction.primary")
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background {
+                    if mode == "mud" {
+                        RoundedRectangle(cornerRadius: 4).fill(Color(white: 34/255))
+                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color(red: 238/255, green: 232/255, blue: 205/255).opacity(0.6)))
+                    } else {
+                        BundleImage(name: mode == "day" ? "bk1" : "bk2", ext: "jpeg")
+                    }
+                }
+                .overlay(alignment: .topTrailing) {
+                    Button { game.closeDialog() } label: {
+                        BundleImage(name: "exitxx", ext: "png").frame(width: unit / 12, height: unit / 14)
+                    }.buttonStyle(.plain).accessibilityLabel("关闭").accessibilityIdentifier("interaction.close")
+                }
+                .padding(1)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color(white: 34/255)).overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(red: 238/255, green: 232/255, blue: 205/255).opacity(0.6))))
+                .padding(.horizontal, 4).padding(.vertical, 3)
+                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
+            }
         }
     }
 

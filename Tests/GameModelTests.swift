@@ -90,6 +90,15 @@ final class GameModelTests: XCTestCase {
         wire.receive("008", "$3,3,9,30#装备:wear cloth$zj#丢弃:drop cloth")
         XCTAssertEqual(game.dialog?.kind, "interaction")
 
+        wire.receive("002", "未明谷")
+        wire.receive("005", "三清剑:look sword")
+        game.act("look sword")
+        wire.receive("007", "物品描述：这是一把剑。$br#物品类型：武器$br#装备耐久：100")
+        XCTAssertEqual(game.dialog?.kind, "item")
+
+        wire.receive("002", "未明谷")
+        wire.receive("005", "老村长:look elder")
+        game.act("look elder")
         wire.receive("008", "$2,3,9,30#交谈:ask elder")
         XCTAssertEqual(game.dialog?.kind, "interaction")
 

@@ -352,10 +352,11 @@ final class GameModel: ObservableObject {
             // Android keeps the description and action frames in one overlay even
             // when the server delivers the action frame first.
             let npc = dialog?.kind == "npc" || (pendingNPCObjectLook && looksLikeNPCDescription(text))
+            let item = !npc && (dialog?.kind == "item" || looksLikeItemDescription(text))
             var next = dialog ?? GameDialog()
             next.text = styleStream.render(MudText.removingInlinePageActions(text))
             let pageActions = styledInlinePageActions(text)
-            next.kind = npc ? "npc" : (pageActions.isEmpty ? "interaction" : "pages")
+            next.kind = npc ? "npc" : (item ? "item" : (pageActions.isEmpty ? "interaction" : "pages"))
             next.actions = appendUnique(pageActions, to: next.actions)
             dialog = next
             pendingNPCObjectLook = false
@@ -502,6 +503,12 @@ final class GameModel: ObservableObject {
     private func looksLikeNPCActionFrame(_ text: String) -> Bool {
         let plain = MudText.plain(text)
         return ["ask ", "follow ", "guard ", "touxi ", "attack ", "exert force."]
+            .contains { plain.contains($0) }
+    }
+
+    private func looksLikeItemDescription(_ text: String) -> Bool {
+        let plain = MudText.plain(text)
+        return ["物品描述", "物品特性", "物品类型", "装备位置", "物品效果", "装备持有", "装备耐久", "装备评分", "镶嵌"]
             .contains { plain.contains($0) }
     }
 
