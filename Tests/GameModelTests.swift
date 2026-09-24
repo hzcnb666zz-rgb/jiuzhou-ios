@@ -331,6 +331,24 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.statsLayout, layoutBeforeCombat)
     }
 
+    func testCombatStatFrameWithDifferentAttributesCannotReplaceStatusBar() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        let stableValues = (1...10).map { index in
+            "属性\(index):\(index)/10:#aa3300:score\(index)"
+        }.joined(separator: "║")
+        wire.receive("012", "$5,2,22,35#" + stableValues)
+        let statsBeforeCombat = game.stats
+        let layoutBeforeCombat = game.statsLayout
+
+        wire.receive("016", "你与对手交上了手。")
+        wire.receive("012", "$3,3,25,40#姓名：试江青青:100/100:#336666║气血.820:820/850/850:#99FF0000║精神.190:190/200/200:#99990000")
+
+        XCTAssertEqual(game.stats.map(\.label), statsBeforeCombat.map(\.label))
+        XCTAssertEqual(game.stats.map(\.value), statsBeforeCombat.map(\.value))
+        XCTAssertEqual(game.statsLayout, layoutBeforeCombat)
+    }
+
     func testSkillActionsSurviveDescriptionFrameArrivingAfterButtons() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)

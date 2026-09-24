@@ -108,11 +108,10 @@ struct AndroidWorldView: View {
             let width = geometry.size.width
             // Android uses the actual screen width (scrw) for every main-face dimension.
             let unit = width
-            let usesIsolatedInteraction = game.dialog?.kind == "npc" || game.dialog?.kind == "item"
             ZStack(alignment: .top) {
                 BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png")
                 VStack(spacing: 0) {
-                    if !game.chatMessages.isEmpty && !usesIsolatedInteraction {
+                    if !game.chatMessages.isEmpty {
                         messages(Array(game.chatMessages.suffix(100)))
                             .frame(height: unit / CGFloat(max(1, chatDivisor)))
                     }
