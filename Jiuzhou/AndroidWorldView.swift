@@ -111,10 +111,15 @@ struct AndroidWorldView: View {
             ZStack(alignment: .top) {
                 BundleImage(name: background.replacingOccurrences(of: ".jpeg", with: "").replacingOccurrences(of: ".png", with: ""), ext: background.hasSuffix("jpeg") ? "jpeg" : "png")
                 VStack(spacing: 0) {
-                    if !game.chatMessages.isEmpty {
-                        messages(Array(game.chatMessages.suffix(100)))
-                            .frame(height: unit / CGFloat(max(1, chatDivisor)))
+                    // Keep the chat rail's height stable. New messages must not
+                    // resize the world/detail area underneath it.
+                    ZStack(alignment: .bottomLeading) {
+                        if !game.chatMessages.isEmpty {
+                            messages(Array(game.chatMessages.suffix(100)))
+                        }
                     }
+                    .frame(height: unit / CGFloat(max(1, chatDivisor)))
+                    .clipped()
                     rule
                     titleBar(unit: unit)
                     rule
@@ -168,6 +173,8 @@ struct AndroidWorldView: View {
                                      if dialog.kind == "map" { mapPanel(dialog, unit: unit) }
                                      else if dialog.kind == "npc" || dialog.kind == "item" {
                                          isolatedInteraction(unit: unit)
+                                     } else if dialog.kind == "pages" {
+                                         pagesPanel(dialog, unit: unit)
                                      } else if dialog.kind == "interaction" {
                                          interaction(unit: unit, usesNPCLayout: dialog.kind == "npc")
                                      }
@@ -200,10 +207,6 @@ struct AndroidWorldView: View {
                 if menuVisible { mainMenu(unit: unit).frame(maxHeight: .infinity) }
                 if historyVisible { historyPanel(unit: unit) }
                 if let popup = game.popup { popupMenu(popup, unit: unit) }
-                if let dialog = game.dialog, dialog.kind == "pages" {
-                    pagesPanel(dialog, unit: unit)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                }
                 if game.dialog?.kind == "confirmation" { confirmation(unit: unit) }
             }
             .foregroundStyle(ink).font(.android(size: unit / 28))
@@ -524,13 +527,19 @@ struct AndroidWorldView: View {
         GeometryReader { geometry in
             if let dialog = game.dialog {
                 let inputHeight: CGFloat = dialog.inputCommand == nil ? 0 : 40
-                let actionHeight = interactionActionHeight(dialog, unit: unit)
                 let availableHeight = max(0, geometry.size.height - 11 - inputHeight)
-                let descriptionHeight = min(interactionTextHeight, max(0, availableHeight - actionHeight))
+                let hasActions = !dialog.actions.isEmpty || !dialog.secondary.isEmpty
+                // Reserve a fixed action viewport. Extra NPC actions scroll inside
+                // this viewport instead of consuming the description area.
+                let actionViewport = hasActions
+                    ? min(availableHeight, max(unit * 2.5, availableHeight * 0.38))
+                    : 0
+                let descriptionHeight = max(0, availableHeight - actionViewport)
                 let availableWidth = max(0, geometry.size.width - 14)
                 let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
-                let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, max(1, dialog.actions.count))) / CGFloat(dialog.layout.widthDivisor))
-                let listHeight = max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
+                let calculatedWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, max(1, dialog.actions.count))) / CGFloat(dialog.layout.widthDivisor))
+                let firstWidth = dialog.kind == "item" && dialog.secondary.isEmpty ? availableWidth : calculatedWidth
+                let listHeight = actionViewport
                 VStack(alignment: .leading, spacing: 0) {
                     ScrollView(.vertical) {
                         MudRichText(raw: dialog.text, send: game.act)
@@ -578,7 +587,7 @@ struct AndroidWorldView: View {
                                        identifier: "interaction.secondary")
                                 .padding(.leading, 2)
                         }
-                    }.padding(2)
+                    }.padding(2).frame(height: actionViewport, alignment: .top)
                     Spacer(minLength: 0)
                 }
                 .padding(.bottom, 3)
@@ -619,7 +628,7 @@ struct AndroidWorldView: View {
     private func actionList(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat, maxHeight: CGFloat, identifier: String) -> some View {
         let resolvedLayout = layout.resolved(for: items.count)
         let rows = (items.count + resolvedLayout.columns - 1) / resolvedLayout.columns
-        return ScrollView {
+        return ScrollView(.vertical, showsIndicators: true) {
             actionGrid(items, layout: resolvedLayout, unit: unit, width: width)
         }.frame(width: width, height: min(maxHeight, CGFloat(rows) * (unit / CGFloat(resolvedLayout.heightDivisor) + 2)))
             .accessibilityIdentifier(identifier)
@@ -716,37 +725,36 @@ struct AndroidWorldView: View {
 
     private func pagesPanel(_ dialog: GameDialog, unit: CGFloat) -> some View {
         GeometryReader { geometry in
-            let buttonHeight = unit / 10
+            let availableWidth = max(0, geometry.size.width - 10)
+            let inlineLabels = Set(["上一页", "下一页", "搜索", "回城", "门派", "家园", "一键删除", "一键领取", "添加草稿", "返回"])
+            let pageActions = (dialog.actions + dialog.secondary).filter { !inlineLabels.contains($0.label) }
+            let pageLayout = dialog.layout.resolved(for: pageActions.count)
+            let actionRows = pageActions.isEmpty ? 0 : (pageActions.count + pageLayout.columns - 1) / pageLayout.columns
+            let actionContentHeight = CGFloat(actionRows) * (unit / CGFloat(pageLayout.heightDivisor) + 2) + 4
+            let actionViewport = min(max(0, geometry.size.height - unit * 4), actionContentHeight)
             VStack(spacing: 0) {
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
                         .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(5)
                 }
-                .frame(maxHeight: max(0, geometry.size.height - buttonHeight))
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 0) {
-                        if !dialog.actions.contains(where: { $0.label.contains("上一页") }) {
-                            Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: buttonHeight) }
-                        }
-                        if !dialog.actions.contains(where: { $0.label.contains("下一页") }) {
-                            Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: buttonHeight) }
-                        }
-                        ForEach(dialog.actions + dialog.secondary) { action in
-                            Button { game.act(action) } label: {
-                                MudRichText(raw: action.display, send: game.act)
-                                    .frame(width: unit / 6, height: buttonHeight)
-                            }
-                        }
-                        Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: buttonHeight) }
+                .frame(maxHeight: max(0, geometry.size.height - actionViewport))
+                if !pageActions.isEmpty {
+                    ScrollView(.vertical, showsIndicators: true) {
+                        actionGrid(pageActions, layout: pageLayout, unit: unit, width: availableWidth)
                     }
-                    .font(.android(size: unit / 26))
-                    .buttonStyle(AndroidButtonStyle())
-                    .frame(minWidth: geometry.size.width, alignment: .trailing)
-                }.frame(height: buttonHeight)
+                    .frame(width: availableWidth, height: actionViewport, alignment: .top)
+                    .accessibilityIdentifier("pages.actions")
+                }
             }
             .foregroundStyle(Color(white: 221/255))
-            .background(.black)
+            .background(Color.black.opacity(0.35))
+            .overlay(alignment: .topTrailing) {
+                Button { game.closeDialog() } label: {
+                    BundleImage(name: "exitxx", ext: "png").frame(width: unit / 12, height: unit / 14)
+                }.buttonStyle(.plain).accessibilityLabel("关闭页面")
+            }
         }
     }
 

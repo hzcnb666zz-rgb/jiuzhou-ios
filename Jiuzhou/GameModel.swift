@@ -79,6 +79,8 @@ final class GameModel: ObservableObject {
     private var sentCredentials = false
     private var styleStream = MudStyleStream()
     private var pendingNPCObjectLook = false
+    private var stableStats: [GameStat] = []
+    private var stableStatsLayout = MudLayout("", defaults: [5, 2, 22, 35])
 
     private func styledActions(_ text: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
         MudText.actions(text, exits: exits, slots: slots).map { action in
@@ -182,7 +184,7 @@ final class GameModel: ObservableObject {
                 dialog = GameDialog(text: "山路$br# |$br#未明谷 -- 村口$br# |$br#青石桥", kind: "map")
             }
             if ProcessInfo.processInfo.arguments.contains("--ui-check-pages") {
-                dialog = GameDialog(text: "未明谷记事$br#清溪沿着山脚流过。$br#村长记得这里的往事。", kind: "pages")
+                dialog = GameDialog(text: "寻路\u{001B}[u:cmds:prev][上一页]  \u{001B}[u:cmds:next][下一页]$br#\u{001B}[u:cmds:search][搜索]  \u{001B}[u:cmds:recall][回城]$br#未明谷记事$br#清溪沿着山脚流过。", kind: "pages")
             }
             for scene in ["common", "inventory", "item", "player", "npc", "edge"] where ProcessInfo.processInfo.arguments.contains("--ui-check-" + scene) {
                 replayParityScene("common")
@@ -212,7 +214,7 @@ final class GameModel: ObservableObject {
         needsCharacter = false
         inWorld = false
         dialog = nil; popup = nil; webURL = nil
-        objects = []; exits = []; buttons = []; topActions = []; stats = []; messages = []
+        objects = []; exits = []; buttons = []; topActions = []; stats = []; stableStats = []; messages = []
         description = ""; notice = ""
         chatMessages = []; fightMessages = []; history = []; objectHealth = [:]
         fighting = false; customButtonsVisible = false
@@ -353,11 +355,18 @@ final class GameModel: ObservableObject {
             // when the server delivers the action frame first.
             let npc = dialog?.kind == "npc" || (pendingNPCObjectLook && looksLikeNPCDescription(text))
             let item = !npc && (dialog?.kind == "item" || looksLikeItemDescription(text))
-            var next = dialog ?? GameDialog()
-            next.text = styleStream.render(MudText.removingInlinePageActions(text))
             let pageActions = styledInlinePageActions(text)
+            let canReuse = dialog?.kind == "pages" || dialog?.kind == "interaction" || dialog?.kind == "npc" || dialog?.kind == "item"
+            var next = canReuse ? dialog! : GameDialog()
+            // Keep inline page links in the body. MudRichText handles their
+            // commands directly; moving them to a footer changes Android's layout.
+            next.text = styleStream.render(text)
             next.kind = npc ? "npc" : (item ? "item" : (pageActions.isEmpty ? "interaction" : "pages"))
-            next.actions = appendUnique(pageActions, to: next.actions)
+            if next.kind == "pages" {
+                next.actions = next.actions.filter { existing in
+                    !pageActions.contains { inline in inline.command == existing.command }
+                }
+            }
             dialog = next
             pendingNPCObjectLook = false
         case "008", "009":
@@ -379,10 +388,10 @@ final class GameModel: ObservableObject {
         case "013":
             // The mail station sends the page text and its action frames separately.
             // Keep any 008/009 actions already received instead of replacing them.
-            var next = dialog ?? GameDialog()
-            next.text = styleStream.render(MudText.removingInlinePageActions(text))
+            let canReuse = dialog?.kind == "pages" || dialog?.kind == "interaction"
+            var next = canReuse ? dialog! : GameDialog()
+            next.text = styleStream.render(text)
             next.kind = "pages"
-            next.actions = appendUnique(styledInlinePageActions(text), to: next.actions)
             dialog = next
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
@@ -400,19 +409,26 @@ final class GameModel: ObservableObject {
                 return GameStat(label: label, value: parts[1], color: statDisplayColor(label, serverColor: parts[2]),
                                 command: parts.count > 3 ? parts[3] : "")
             }
-            if fighting && !stats.isEmpty {
+            if fighting {
+                // Combat frames can contain a different six-field status list.
+                // Map values onto the last normal ten-field schema instead of
+                // allowing that transient frame to replace the status bar.
+                guard !stableStats.isEmpty else { return }
                 let identity: (GameStat) -> String = { stat in
                     let base = stat.label.components(separatedBy: ".").first ?? stat.label
                     return base == "精力" ? "先天之炁" : base
                 }
-                let sameStructure = zip(updatedStats, stats).allSatisfy { pair in
-                    identity(pair.0) == identity(pair.1)
+                let incoming = Dictionary(updatedStats.map { (identity($0), $0) }) { first, _ in first }
+                stats = stableStats.map { original in
+                    guard let update = incoming[identity(original)] else { return original }
+                    return GameStat(label: update.label, value: update.value, color: original.color, command: original.command)
                 }
-                guard updatedStats.count == stats.count, sameStructure else { return }
-                stats = updatedStats
+                statsLayout = stableStatsLayout
             } else {
                 statsLayout = layout
-                stats = updatedStats
+                stableStatsLayout = layout
+                stableStats = updatedStats
+                stats = stableStats
             }
         case "014": transport.send(text)
         case "015":

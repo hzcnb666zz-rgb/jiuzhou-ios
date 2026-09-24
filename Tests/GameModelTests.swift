@@ -399,13 +399,14 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.actions.map(\.command), ["prev", "next", "mail delete", "mail receive"])
     }
 
-    func testRouteInlineLinksStayInFixedPageActions() {
+    func testRouteInlineLinksStayInPageBody() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
         wire.receive("007", "寻路\u{001B}[u:cmds:walk]\u{001B}[s:28]\u{001B}[37m[搜索]\u{001B}[0m\u{001B}[u:cmds:recall]\u{001B}[s:28]\u{001B}[36m[回城]\u{001B}[0m")
         XCTAssertEqual(game.dialog?.kind, "pages")
-        XCTAssertEqual(game.dialog?.actions.map(\.command), ["walk", "recall"])
-        XCTAssertEqual(MudText.plain(game.dialog?.text ?? ""), "寻路")
+        XCTAssertTrue(game.dialog?.actions.isEmpty == true)
+        XCTAssertTrue(game.dialog?.text.contains("[搜索]") == true)
+        XCTAssertTrue(game.dialog?.text.contains("[回城]") == true)
     }
 
     func testServerShowRespectsLocalPreferenceAndClearScreen() {

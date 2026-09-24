@@ -153,11 +153,8 @@ final class InteractionTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-check-world", "--ui-check-pages"]
         app.launch()
-        app.buttons["下一页"].tap()
-        XCTAssertTrue(app.buttons["上一页"].exists)
-        app.buttons["上一页"].tap()
-        XCTAssertTrue(app.buttons["下一页"].exists)
-        app.buttons["关闭"].tap()
+        XCTAssertTrue(app.buttons["关闭页面"].waitForExistence(timeout: 5))
+        app.buttons["关闭页面"].tap()
         XCTAssertTrue(app.buttons["菜单"].waitForExistence(timeout: 5))
     }
 
