@@ -203,9 +203,7 @@ struct AndroidWorldView: View {
                 if let popup = game.popup { popupMenu(popup, unit: unit) }
                 if let dialog = game.dialog, dialog.kind == "pages" {
                     pagesPanel(dialog, unit: unit)
-                        .frame(width: min(width - 20, width / 2 + 100),
-                               height: min(geometry.size.height - 20, geometry.size.height * 0.9))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 }
                 if game.dialog?.kind == "confirmation" { confirmation(unit: unit) }
             }
@@ -526,51 +524,65 @@ struct AndroidWorldView: View {
     private func isolatedInteraction(unit: CGFloat) -> some View {
         GeometryReader { geometry in
             if let dialog = game.dialog {
+                let inputHeight: CGFloat = dialog.inputCommand == nil ? 0 : 40
+                let actionHeight = interactionActionHeight(dialog, unit: unit)
+                let availableHeight = max(0, geometry.size.height - 11 - inputHeight)
+                let descriptionHeight = min(interactionTextHeight, max(0, availableHeight - actionHeight))
                 let availableWidth = max(0, geometry.size.width - 14)
                 let dialogColumns = dialog.layout.resolvedColumns(for: dialog.actions.count)
                 let firstWidth = min(max(0, availableWidth - 4), unit * CGFloat(min(dialogColumns, max(1, dialog.actions.count))) / CGFloat(dialog.layout.widthDivisor))
-                ScrollView(.vertical) {
-                    VStack(alignment: .leading, spacing: 0) {
+                let listHeight = max(0, geometry.size.height - 15 - descriptionHeight - inputHeight)
+                VStack(alignment: .leading, spacing: 0) {
+                    ScrollView(.vertical) {
                         MudRichText(raw: dialog.text, send: game.act)
                             .font(.android(size: unit / 30))
                             .padding(5)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .fixedSize(horizontal: false, vertical: true)
-                        if dialog.inputCommand != nil {
-                            HStack(spacing: 0) {
-                                TextField("", text: $dialogInput)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
-                                    .focused($inputFocused)
-                                    .keyboardType(dialog.numeric ? .numberPad : .default)
-                                    .onSubmit { game.submitInput(dialogInput) }
-                                    .font(.android(size: 15))
-                                    .padding(.leading, 15)
-                                    .frame(height: 40)
-                                    .background(BundleImage(name: "input_bg", ext: "png"))
-                                Button { game.submitInput(dialogInput) } label: {
-                                    Text("确定").font(.android(size: 14)).frame(width: 65, height: 40)
-                                }.buttonStyle(AndroidButtonStyle())
-                            }.padding(.horizontal, 5)
-                        }
-                        HStack(alignment: .top, spacing: 2) {
-                            actionGrid(dialog.actions,
-                                       layout: dialog.layout,
-                                       unit: unit,
-                                       width: firstWidth)
-                                .padding(.trailing, 4)
-                            if !dialog.secondary.isEmpty {
-                                let secondaryWidth = max(0, availableWidth - firstWidth - 8)
-                                actionGrid(dialog.secondary,
-                                           layout: dialog.secondaryLayout,
-                                           unit: unit,
-                                           width: secondaryWidth)
-                                    .padding(.leading, 2)
-                            }
-                        }.padding(2)
+                            .background(GeometryReader { textGeometry in
+                                Color.clear.preference(key: InteractionTextHeight.self, value: textGeometry.size.height)
+                            })
+                    }.frame(height: descriptionHeight)
+                        .accessibilityIdentifier("interaction.description")
+                    if dialog.inputCommand != nil {
+                        HStack(spacing: 0) {
+                            TextField("", text: $dialogInput)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .focused($inputFocused)
+                                .keyboardType(dialog.numeric ? .numberPad : .default)
+                                .onSubmit { game.submitInput(dialogInput) }
+                                .font(.android(size: 15))
+                                .padding(.leading, 15)
+                                .frame(height: 40)
+                                .background(BundleImage(name: "input_bg", ext: "png"))
+                            Button { game.submitInput(dialogInput) } label: {
+                                Text("确定").font(.android(size: 14)).frame(width: 65, height: 40)
+                            }.buttonStyle(AndroidButtonStyle())
+                        }.padding(.horizontal, 5)
                     }
+                    HStack(alignment: .top, spacing: 2) {
+                        actionList(dialog.actions,
+                                   layout: dialog.layout,
+                                   unit: unit,
+                                   width: firstWidth,
+                                   maxHeight: listHeight,
+                                   identifier: "interaction.primary")
+                            .padding(.trailing, 4)
+                        if !dialog.secondary.isEmpty {
+                            let secondaryWidth = max(0, availableWidth - firstWidth - 8)
+                            actionList(dialog.secondary,
+                                       layout: dialog.secondaryLayout,
+                                       unit: unit,
+                                       width: secondaryWidth,
+                                       maxHeight: listHeight,
+                                       identifier: "interaction.secondary")
+                                .padding(.leading, 2)
+                        }
+                    }.padding(2)
+                    Spacer(minLength: 0)
                 }
-                .accessibilityIdentifier("interaction.primary")
+                .padding(.bottom, 3)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background {
                     if mode == "mud" {
@@ -589,6 +601,7 @@ struct AndroidWorldView: View {
                 .background(RoundedRectangle(cornerRadius: 4).fill(Color(white: 34/255)).overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(red: 238/255, green: 232/255, blue: 205/255).opacity(0.6))))
                 .padding(.horizontal, 4).padding(.vertical, 3)
                 .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
+                .onPreferenceChange(InteractionTextHeight.self) { interactionTextHeight = $0 }
             }
         }
     }
@@ -703,36 +716,36 @@ struct AndroidWorldView: View {
     }
 
     private func pagesPanel(_ dialog: GameDialog, unit: CGFloat) -> some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .center)
+        GeometryReader { geometry in
+            let buttonHeight = unit / 10
+            VStack(spacing: 0) {
+                ScrollView {
+                    MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .frame(maxHeight: max(0, geometry.size.height - buttonHeight))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        if !dialog.actions.contains(where: { $0.label.contains("上一页") }) {
+                            Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: buttonHeight) }
+                        }
+                        if !dialog.actions.contains(where: { $0.label.contains("下一页") }) {
+                            Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: buttonHeight) }
+                        }
+                        ForEach(dialog.actions + dialog.secondary) { action in
+                            Button { game.act(action) } label: {
+                                MudRichText(raw: action.display, send: game.act)
+                                    .frame(width: unit / 6, height: buttonHeight)
+                            }
+                        }
+                        Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: buttonHeight) }
+                    }.font(.android(size: unit / 26)).buttonStyle(AndroidButtonStyle())
+                }.frame(height: buttonHeight)
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    if !dialog.actions.contains(where: { $0.label.contains("上一页") }) {
-                        Button { game.turnPage(next: false) } label: { Text("上一页").frame(width: unit / 6, height: unit / 10) }
-                    }
-                    if !dialog.actions.contains(where: { $0.label.contains("下一页") }) {
-                        Button { game.turnPage(next: true) } label: { Text("下一页").frame(width: unit / 6, height: unit / 10) }
-                    }
-                    ForEach(dialog.actions) { action in
-                        Button { game.act(action) } label: {
-                            MudRichText(raw: action.display, send: game.act)
-                                .frame(width: unit / 6, height: unit / 10)
-                        }
-                    }
-                    ForEach(dialog.secondary) { action in
-                        Button { game.act(action) } label: {
-                            MudRichText(raw: action.display, send: game.act)
-                                .frame(width: unit / 6, height: unit / 10)
-                        }
-                    }
-                    Button { game.closeDialog() } label: { Text("关闭").frame(width: unit / 6, height: unit / 10) }
-                }.font(.android(size: unit / 26)).buttonStyle(AndroidButtonStyle())
-            }.frame(height: unit / 10)
-        }.foregroundStyle(Color(white: 221/255)).background(.black)
+            .foregroundStyle(Color(white: 221/255))
+            .background(.black)
+        }
     }
 
     private func historyPanel(unit: CGFloat) -> some View {

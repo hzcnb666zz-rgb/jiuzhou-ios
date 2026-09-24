@@ -279,8 +279,23 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.stats.count, 1)
         XCTAssertEqual(game.stats[0].label, "先天之炁.125")
         XCTAssertEqual(game.stats[0].value, "125/4000")
-        XCTAssertEqual(game.stats[0].color, "#BB3F51B5")
+        XCTAssertEqual(game.stats[0].color, "#72C51F")
         XCTAssertEqual(game.stats[0].command, "hp")
+    }
+
+    func testReferenceStatColorsUseDisplayNames() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        let values = [
+            "精神.200:200/200:#99990000:exert regenerate",
+            "潜能.100:100:#99990000:potential",
+            "先天之炁.125:125/4000:#BB3F51B5:hp"
+        ].joined(separator: "║")
+
+        wire.receive("012", "$3,2,22,35#" + values)
+
+        XCTAssertEqual(game.stats.map(\.color), ["#6A1BB4", "#D84BC8", "#72C51F"])
+        XCTAssertEqual(game.stats.map(\.command), ["exert regenerate", "potential", "hp"])
     }
 
     func testCombatFrameDoesNotChangeServerBoundStats() {

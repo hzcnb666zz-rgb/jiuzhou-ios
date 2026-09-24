@@ -397,7 +397,7 @@ final class GameModel: ObservableObject {
                 let label = parts[0].hasPrefix("精力.") || parts[0] == "精力"
                     ? "先天之炁" + String(parts[0].dropFirst("精力".count))
                     : parts[0]
-                return GameStat(label: label, value: parts[1], color: parts[2],
+                return GameStat(label: label, value: parts[1], color: statDisplayColor(label, serverColor: parts[2]),
                                 command: parts.count > 3 ? parts[3] : "")
             }
             if fighting && !stats.isEmpty {
@@ -523,6 +523,16 @@ final class GameModel: ObservableObject {
         let plain = MudText.plain(text)
         return ["物品描述", "物品特性", "物品类型", "装备位置", "物品效果", "装备持有", "装备耐久", "装备评分", "镶嵌"]
             .contains { plain.contains($0) }
+    }
+
+    private func statDisplayColor(_ label: String, serverColor: String) -> String {
+        let name = label.components(separatedBy: ".").first ?? label
+        switch name {
+        case "精神": return "#6A1BB4"
+        case "潜能": return "#D84BC8"
+        case "先天之炁", "精力": return "#72C51F"
+        default: return serverColor
+        }
     }
 
     #if DEBUG
