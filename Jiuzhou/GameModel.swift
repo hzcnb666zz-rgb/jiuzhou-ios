@@ -409,8 +409,8 @@ final class GameModel: ObservableObject {
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
             var layout = MudLayout(text, defaults: [max(1, count / 2), 2, 22, 35]).resolved(for: count)
-            // The reference MUD status panel is three columns by two rows for
-            // name plus the five server-provided resource values.
+            // The reference MUD status panel is five columns by two rows for
+            // name plus the nine server-provided resource values.
             if count >= 10 { layout.columns = 5 }
             if count == 6 { layout.columns = 3 }
             let updatedStats: [GameStat] = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry -> GameStat? in
@@ -422,26 +422,33 @@ final class GameModel: ObservableObject {
                 return GameStat(label: label, value: parts[1], color: statDisplayColor(label, serverColor: parts[2]),
                                 command: parts.count > 3 ? parts[3] : "")
             }
-            if fighting {
-                // Combat frames can contain a different six-field status list.
-                // Map values onto the last normal ten-field schema instead of
-                // allowing that transient frame to replace the status bar.
-                guard !stableStats.isEmpty else { return }
-                let identity: (GameStat) -> String = { stat in
-                    let base = stat.label.components(separatedBy: ".").first ?? stat.label
-                    return base == "精力" ? "先天之炁" : base
-                }
-                let incoming = Dictionary(updatedStats.map { (identity($0), $0) }) { first, _ in first }
-                stats = stableStats.map { original in
-                    guard let update = incoming[identity(original)] else { return original }
-                    return GameStat(label: update.label, value: update.value, color: original.color, command: original.command)
-                }
-                statsLayout = stableStatsLayout
-            } else {
+            // A full status frame (>=10 fields) establishes the stable schema
+            // and layout. A short frame (6-7 fields, combat format) must never
+            // replace that schema even if it arrives before the fighting flag
+            // is set; map its values onto the existing stable layout instead.
+            if count >= 10 {
                 statsLayout = layout
                 stableStatsLayout = layout
                 stableStats = updatedStats
                 stats = stableStats
+            } else if !stableStats.isEmpty {
+                // Normalize combat label bases onto the stable schema bases.
+                let combatAliases: [String: String] = [
+                    "我": "姓名", "血量": "气血", "血": "气血",
+                    "炁": "先天之炁", "精力": "先天之炁"
+                ]
+                let identity: (GameStat) -> String = { stat in
+                    let base = stat.label.components(separatedBy: ".").first ?? stat.label
+                    if base == "精力" { return "先天之炁" }
+                    return combatAliases[base] ?? base
+                }
+                let incoming = Dictionary(updatedStats.map { (identity($0), $0) }) { first, _ in first }
+                stats = stableStats.map { original in
+                    guard let update = incoming[identity(original)] else { return original }
+                    // Keep stable label/color/command; only refresh the value.
+                    return GameStat(label: original.label, value: update.value, color: original.color, command: original.command)
+                }
+                statsLayout = stableStatsLayout
             }
         case "014": transport.send(text)
         case "015":
