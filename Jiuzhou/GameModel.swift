@@ -286,18 +286,20 @@ final class GameModel: ObservableObject {
             transport.send(command)
         } else {
             let confirmation = dialog?.kind == "confirmation"
-            // Item interactions (e.g. pushing a stone door) can reveal a new
-            // exit in the SAME room. The server may not push that exit until
-            // the next "look", so refresh the room shortly after. Movement
-            // commands also just refresh the destination room, which is fine.
-            let wasItemDialog = dialog?.kind == "item"
+            // Interacting with a scene object can reveal a new exit in the SAME
+            // room (e.g. pushing the 巨石 stone door). Such panels are classified
+            // as "item" (equipment), "interaction" (generic objects like the
+            // stone), or "npc" — not just "item". The server may not push that
+            // exit until the next "look", so refresh the room shortly after.
+            // "pages" (route/mail lists) and confirmations are excluded.
+            let refreshKinds = Set(["item", "interaction"])
+            let needsRoomRefresh = dialog.map { refreshKinds.contains($0.kind) } ?? false
             dialog = nil; popup = nil
             if confirmation { command.components(separatedBy: "$sock#").filter { !$0.isEmpty }.forEach(transport.send) }
             else { transport.send(command) }
-            if wasItemDialog {
+            if needsRoomRefresh {
                 // The server opens mechanisms like the stone door in a delayed
-                // second step ("缓缓向后移去，现出门户"), so a single early look
-                // can still return the closed-room exits. Refresh after the
+                // second step ("缓缓向后移去，现出门户"), so refresh after the
                 // opening has settled.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
                     if self?.connected == true && self?.inWorld == true { self?.transport.send("look") }
