@@ -577,6 +577,7 @@ final class GameModel: ObservableObject {
                 pendingNPCObjectLook = false
             }
             dialog = next
+            applyTaskPageButtonOverride()
         case "010": receiveConfirmation(text)
         case "011": dialog = GameDialog(text: styleStream.render(text), kind: "map")
         case "013":
@@ -770,6 +771,36 @@ final class GameModel: ObservableObject {
         let plain = MudText.plain(text)
         return ["物品描述", "物品特性", "物品类型", "装备位置", "物品效果", "装备持有", "装备耐久", "装备评分", "镶嵌"]
             .contains { plain.contains($0) }
+    }
+
+    /// 任务第二页中，"宝石合成"旁边的"暂无"按钮替换为"活动"，点击后发送 renwu 活动 打开活动面板。
+    private func applyTaskPageButtonOverride() {
+        guard var current = dialog else { return }
+        let allLabels = (current.actions + current.secondary).map { $0.label }
+        // 任务第二页的特征：同时存在"宝石合成"和"上一页"按钮
+        guard allLabels.contains("宝石合成"), allLabels.contains("上一页") else { return }
+
+        // 在 actions 中找到"宝石合成"后面的第一个"暂无"
+        if let gemIndex = current.actions.firstIndex(where: { $0.label == "宝石合成" }) {
+            let tail = current.actions.indices.suffix(from: gemIndex + 1)
+            if let noneIndex = tail.first(where: { current.actions[$0].label == "暂无" }) {
+                let old = current.actions[noneIndex]
+                current.actions[noneIndex] = MudAction(label: "活动", command: "renwu 活动",
+                                                        slot: old.slot, styledLabel: "活动")
+                dialog = current
+                return
+            }
+        }
+        // 若 actions 中没有，则在 secondary 中查找
+        if let gemIndex = current.secondary.firstIndex(where: { $0.label == "宝石合成" }) {
+            let tail = current.secondary.indices.suffix(from: gemIndex + 1)
+            if let noneIndex = tail.first(where: { current.secondary[$0].label == "暂无" }) {
+                let old = current.secondary[noneIndex]
+                current.secondary[noneIndex] = MudAction(label: "活动", command: "renwu 活动",
+                                                         slot: old.slot, styledLabel: "活动")
+                dialog = current
+            }
+        }
     }
 
     private func statDisplayColor(_ label: String, serverColor: String) -> String {
