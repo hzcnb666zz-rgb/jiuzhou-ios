@@ -536,7 +536,7 @@ struct AndroidWorldView: View {
                 // Reserve a fixed action viewport. Extra NPC actions scroll inside
                 // this viewport instead of consuming the description area.
                 let actionViewport = hasActions
-                    ? min(availableHeight, max(unit * 2.5, availableHeight * 0.38))
+                    ? min(availableHeight * 0.4, unit / 2)
                     : 0
                 let descriptionHeight = max(0, availableHeight - actionViewport)
                 let availableWidth = max(0, geometry.size.width - 14)
