@@ -7,9 +7,14 @@ private final class RecordingTransport: MudTransporting {
     var preservesNewlines = true
     var commands: [String] = []
     var endpoint = ""
-    func connect(host: String, port: UInt16) { endpoint = "\(host):\(port)"; onStatus?("已连接", true) }
+    var connectCount = 0
+    private(set) var isReady = false
+    func connect(host: String, port: UInt16) {
+        endpoint = "\(host):\(port)"; connectCount += 1; isReady = true
+        onStatus?("已连接", true)
+    }
     func send(_ command: String) { commands.append(command) }
-    func disconnect() {}
+    func disconnect() { isReady = false }
     func receive(_ code: String?, _ text: String) { onFrame?(MudFrame(code: code, text: text)) }
 }
 
@@ -298,6 +303,68 @@ final class GameModelTests: XCTestCase {
         wire.receive("012", "$6,6,25,40#我：试剑台:100/100:#333333║气血.800:800/800/800:#99FF0000║炁.120:120/4000/4000:#990066CC║忙乱.0:0/1:#BB3F51B5")
         let combatQiBar = game.stats.first { $0.label.hasPrefix("先天之炁") }
         XCTAssertEqual(combatQiBar?.value, "120/4000/4000")
+    }
+
+    private func enterWorld(_ wire: RecordingTransport, _ game: GameModel, account: String = "tester01", password: String = "secret") {
+        game.account = account
+        game.password = password
+        wire.receive(nil, "ver1.0,x")
+        wire.receive(nil, "版本验证成功")
+        wire.receive("000", "0007")
+    }
+
+    func testUnexpectedDropWhileActiveReconnectsAndResendsCredentials() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        enterWorld(wire, game)
+        XCTAssertTrue(game.inWorld)
+        let firstConnect = wire.connectCount
+
+        // The socket dies while the app is in the foreground.
+        wire.onStatus?("服务器已断开连接", false)
+        let settled = expectation(description: "auto-relogin timer")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { settled.fulfill() }
+        wait(for: [settled], timeout: 3)
+
+        XCTAssertEqual(wire.connectCount, firstConnect + 1)
+        // Replay the server handshake; the client must re-send credentials.
+        wire.commands.removeAll()
+        wire.receive(nil, "ver1.0,x")
+        wire.receive(nil, "版本验证成功")
+        XCTAssertEqual(wire.commands.last, "tester01║secret║123456789abcd║local@localhost")
+    }
+
+    func testForegroundResumeWithDeadSocketReconnects() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        enterWorld(wire, game)
+        let firstConnect = wire.connectCount
+
+        // Simulate returning from background with a link that is no longer ready.
+        #if canImport(UIKit)
+        wire.disconnect()
+        NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        let settled = expectation(description: "foreground reconnect")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { settled.fulfill() }
+        wait(for: [settled], timeout: 2)
+        XCTAssertEqual(wire.connectCount, firstConnect + 1)
+        #else
+        // Lifecycle notifications are UIKit-only; on macOS the reconnect core
+        // is covered by the unexpected-drop test above.
+        XCTAssertEqual(wire.connectCount, firstConnect)
+        #endif
+    }
+
+    func testManualLogoutDoesNotAutoReconnect() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        enterWorld(wire, game)
+        game.logout()
+        let settled = expectation(description: "no relogin")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { settled.fulfill() }
+        wait(for: [settled], timeout: 3)
+        XCTAssertFalse(game.inWorld)
+        XCTAssertEqual(wire.connectCount, 1)
     }
 
     func testReferenceStatColorsUseDisplayNames() {

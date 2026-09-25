@@ -6,6 +6,9 @@ protocol MudTransporting: AnyObject {
     var onFrame: ((MudFrame) -> Void)? { get set }
     var onStatus: ((String, Bool) -> Void)? { get set }
     var preservesNewlines: Bool { get set }
+    // True only while the underlying socket reports it is ready. Used to decide
+    // whether a foreground resume needs a fresh connection.
+    var isReady: Bool { get }
     func connect(host: String, port: UInt16)
     func send(_ command: String)
     func disconnect()
@@ -15,6 +18,7 @@ final class MudTransport: MudTransporting {
     var preservesNewlines = true
     var onFrame: ((MudFrame) -> Void)?
     var onStatus: ((String, Bool) -> Void)?
+    private(set) var isReady = false
     private var connection: NWConnection?
     private var decoder = MudDecoder()
     private var timeout: DispatchWorkItem?
@@ -27,6 +31,12 @@ final class MudTransport: MudTransporting {
         guard let endpointPort = NWEndpoint.Port(rawValue: port) else { return }
         let tcp = NWProtocolTCP.Options()
         tcp.enableKeepalive = true
+        // Probe an idle link early so a dead socket (common after the app was
+        // suspended in the background) is detected within about a minute
+        // instead of relying on the multi-hour OS defaults.
+        tcp.keepaliveIdle = 30
+        tcp.keepaliveInterval = 10
+        tcp.keepaliveCount = 3
         let socket = NWConnection(host: NWEndpoint.Host(host), port: endpointPort, using: NWParameters(tls: nil, tcp: tcp))
         connection = socket
         onStatus?("正在连接", false)
@@ -35,6 +45,7 @@ final class MudTransport: MudTransporting {
             switch state {
             case .ready:
                 self.timeout?.cancel()
+                self.isReady = true
                 self.onStatus?("已连接", true)
                 self.receive(socket, token: token)
             case .failed(let error): self.fail(error.localizedDescription)
@@ -88,6 +99,7 @@ final class MudTransport: MudTransporting {
 
     func disconnect() {
         generation = UUID()
+        isReady = false
         timeout?.cancel()
         connection?.stateUpdateHandler = nil
         connection?.cancel()

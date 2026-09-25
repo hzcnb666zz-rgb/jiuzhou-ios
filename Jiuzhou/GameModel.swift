@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct GameMessage: Identifiable {
     let id = UUID()
@@ -97,6 +100,21 @@ final class GameModel: ObservableObject {
     private var roomRefreshTimer: DispatchWorkItem?
     private static let roomRefreshDialogCodes: Set<String> = ["001", "007", "008", "009", "010", "011", "013"]
 
+    // Background / reconnect handling. iOS suspends the process (and freezes
+    // the TCP socket) shortly after the app leaves the foreground; after a
+    // longer switch the link is usually dead when the user returns. We keep a
+    // short background grace window for quick switches, then transparently
+    // re-login on resume (the MUD reattaches the net-dead session and sends
+    // "重连完毕"), so the player doesn't have to type credentials again.
+    private var intentionalDisconnect = false
+    private var backgroundedAt: Date?
+    private var autoReloginTimer: DispatchWorkItem?
+    private var autoReloginAttempts = 0
+    #if canImport(UIKit)
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    #endif
+    private static let maxAutoReloginAttempts = 6
+
     private func styledActions(_ text: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
         MudText.actions(text, exits: exits, slots: slots).map { action in
             var result = action
@@ -173,10 +191,16 @@ final class GameModel: ObservableObject {
         self.transport = transport
         transport.onFrame = { [weak self] in self?.receive($0) }
         transport.onStatus = { [weak self] text, ready in
-            self?.status = text
-            self?.connected = ready
-            if ready || !text.hasPrefix("等待网络") && text != "正在连接" { self?.connecting = false }
+            guard let self else { return }
+            self.status = text
+            self.connected = ready
+            if ready || !text.hasPrefix("等待网络") && text != "正在连接" { self.connecting = false }
+            if !ready { self.handleUnexpectedDisconnect(after: text) }
         }
+        #if canImport(UIKit)
+        NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.handleBackground() }
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.handleForeground() }
+        #endif
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-check-world") {
             connected = true; inWorld = true; room = "未明谷"
@@ -233,6 +257,9 @@ final class GameModel: ObservableObject {
         #endif
         UserDefaults.standard.set(account, forKey: "account")
         sentCredentials = false
+        intentionalDisconnect = false
+        autoReloginAttempts = 0
+        autoReloginTimer?.cancel()
         cancelRoomRefresh()
         styleStream = MudStyleStream(); combatEffects = []
         needsCharacter = false
@@ -252,12 +279,106 @@ final class GameModel: ObservableObject {
     }
 
     func logout() {
+        intentionalDisconnect = true
+        autoReloginTimer?.cancel()
+        endBackgroundTask()
         transport.disconnect()
         cancelRoomRefresh()
         connected = false; connecting = false; inWorld = false; needsCharacter = false
         dialog = nil; popup = nil; webURL = nil; status = "未连接"
         combatEffects = []; voiceRecorderVisible = false; voiceFilename = nil
         pendingNPCObjectLook = false
+    }
+
+    private var hasSessionCredentials: Bool {
+        account.range(of: "^[A-Za-z][A-Za-z0-9]{3,19}$", options: .regularExpression) != nil
+            && !password.isEmpty
+            && !password.contains(where: { "║\r\n".contains($0) })
+    }
+
+    private func handleBackground() {
+        backgroundedAt = Date()
+        #if canImport(UIKit)
+        endBackgroundTask()
+        let task = UIApplication.shared.beginBackgroundTask(withName: "JiuzhouKeepAlive") { [weak self] in
+            self?.endBackgroundTask()
+        }
+        backgroundTask = task
+        // Release the grace window a little before the OS hard limit; after
+        // that the foreground handler rebuilds the connection if needed.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 25) { [weak self] in
+            guard let self, self.backgroundTask != .invalid else { return }
+            self.endBackgroundTask()
+        }
+        #endif
+    }
+
+    private func endBackgroundTask() {
+        #if canImport(UIKit)
+        guard backgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTask)
+        backgroundTask = .invalid
+        #endif
+    }
+
+    private func handleForeground() {
+        endBackgroundTask()
+        let elapsed = backgroundedAt.map { Date().timeIntervalSince($0) } ?? 0
+        backgroundedAt = nil
+        guard inWorld, hasSessionCredentials, !intentionalDisconnect else { return }
+        // Beyond the background grace the socket is suspended or dead; also
+        // reconnect whenever the transport no longer reports a ready link.
+        if elapsed >= 20 || !transport.isReady {
+            scheduleAutoRelogin(delay: 0.2)
+        }
+    }
+
+    private func handleUnexpectedDisconnect(after text: String) {
+        // Only react to a hard drop, not "正在连接"/"等待网络" transient states.
+        guard text != "正在连接", !text.hasPrefix("等待网络") else { return }
+        #if canImport(UIKit)
+        guard UIApplication.shared.applicationState == .active else { return }
+        #endif
+        guard inWorld, hasSessionCredentials, !intentionalDisconnect else { return }
+        scheduleAutoRelogin(delay: 1)
+    }
+
+    private func scheduleAutoRelogin(delay: TimeInterval) {
+        guard !intentionalDisconnect, inWorld, hasSessionCredentials else { return }
+        autoReloginTimer?.cancel()
+        guard autoReloginAttempts < Self.maxAutoReloginAttempts else {
+            status = "多次重连失败，请手动登录"
+            connecting = false
+            return
+        }
+        let work = DispatchWorkItem { [weak self] in self?.performAutoRelogin() }
+        autoReloginTimer = work
+        status = "正在重连…"
+        connecting = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
+    private func performAutoRelogin() {
+        guard !intentionalDisconnect, inWorld, hasSessionCredentials else { return }
+        autoReloginAttempts += 1
+        sentCredentials = false
+        needsCharacter = false
+        connecting = true
+        #if DEBUG
+        guard let connectionPort = UInt16(port), connectionPort > 0,
+              !host.trimmingCharacters(in: .whitespaces).isEmpty else {
+            status = "测试连接地址无效"; connecting = false; return
+        }
+        transport.connect(host: host.trimmingCharacters(in: .whitespaces), port: connectionPort)
+        #else
+        transport.connect(host: fixedHost, port: fixedPort)
+        #endif
+    }
+
+    private func noteReconnected() {
+        autoReloginAttempts = 0
+        autoReloginTimer?.cancel()
+        connecting = false
     }
 
     func createCharacter(name: String, gender: String) {
@@ -396,12 +517,13 @@ final class GameModel: ObservableObject {
             if text == "0008" { needsCharacter = true }
             if text == "0007" {
                 needsCharacter = false; inWorld = true; status = "已进入江湖"
+                noteReconnected()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                     if self?.connected == true && self?.inWorld == true { self?.transport.send("look") }
                 }
             }
             if text == "0003" { transport.send(password) }
-            if text == "重连完毕" { transport.send("look") }
+            if text == "重连完毕" { noteReconnected(); transport.send("look") }
         case "001":
             let parts = text.components(separatedBy: "$zj#")
             if parts.count >= 2 { dialog = GameDialog(text: styleStream.render(parts[0]), inputCommand: parts[1]) }
