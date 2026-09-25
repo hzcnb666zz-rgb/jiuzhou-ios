@@ -53,7 +53,7 @@ struct MudRichText: View {
         }
         func append(_ string: String) {
             let rendered = fullwidth ? String(String.UnicodeScalarView(string.unicodeScalars.map { scalar in
-                scalar.value == 32 ? UnicodeScalar(0x3000)! : (33...126).contains(scalar.value) ? UnicodeScalar(scalar.value + 65248)! : scalar
+                scalar.value == 32 ? (UnicodeScalar(0x3000) ?? scalar) : (33...126).contains(scalar.value) ? (UnicodeScalar(scalar.value + 65248) ?? scalar) : scalar
             })) : string
             var part = AttributedString(rendered)
             // Android retains both spans and applies hcolsp/hbcolsp last.

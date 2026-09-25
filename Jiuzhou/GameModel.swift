@@ -85,6 +85,17 @@ final class GameModel: ObservableObject {
     private let fixedPort: UInt16 = 6666
     private var stableStats: [GameStat] = []
     private var stableStatsLayout = MudLayout("", defaults: [5, 2, 22, 35])
+    // Post-action room refresh: some room mechanisms (e.g. pushing the 巨石
+    // stone door) add an exit server-side without pushing an exit frame, so the
+    // client must "look" to learn about it. The look is armed only for item /
+    // interaction actions and is fired as soon as the server answers the action
+    // (or by a short fallback timer). If a new dialog frame arrives first, the
+    // action opened a menu panel (fly 门派 / fly 活动 / 定时活动...) and the
+    // refresh is cancelled — otherwise the late "look" would tear that panel
+    // down right after it appeared.
+    private var pendingRoomRefresh = false
+    private var roomRefreshTimer: DispatchWorkItem?
+    private static let roomRefreshDialogCodes: Set<String> = ["001", "007", "008", "009", "010", "011", "013"]
 
     private func styledActions(_ text: String, exits: Bool = false, slots: Bool = false) -> [MudAction] {
         MudText.actions(text, exits: exits, slots: slots).map { action in
@@ -222,6 +233,7 @@ final class GameModel: ObservableObject {
         #endif
         UserDefaults.standard.set(account, forKey: "account")
         sentCredentials = false
+        cancelRoomRefresh()
         styleStream = MudStyleStream(); combatEffects = []
         needsCharacter = false
         inWorld = false
@@ -241,6 +253,7 @@ final class GameModel: ObservableObject {
 
     func logout() {
         transport.disconnect()
+        cancelRoomRefresh()
         connected = false; connecting = false; inWorld = false; needsCharacter = false
         dialog = nil; popup = nil; webURL = nil; status = "未连接"
         combatEffects = []; voiceRecorderVisible = false; voiceFilename = nil
@@ -297,15 +310,33 @@ final class GameModel: ObservableObject {
             dialog = nil; popup = nil
             if confirmation { command.components(separatedBy: "$sock#").filter { !$0.isEmpty }.forEach(transport.send) }
             else { transport.send(command) }
-            if needsRoomRefresh {
-                // The server opens mechanisms like the stone door in a delayed
-                // second step ("缓缓向后移去，现出门户"), so refresh after the
-                // opening has settled.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
-                    if self?.connected == true && self?.inWorld == true { self?.transport.send("look") }
-                }
-            }
+            if needsRoomRefresh { armRoomRefresh() }
         }
+    }
+
+    // The server sets the mechanism's exit synchronously inside the command
+    // handler (mumen.c sets exits/south before its 5s close call_out), so the
+    // refresh can run the moment the action's own response arrives. A 0.5s
+    // fallback covers mechanisms that answer silently.
+    private func armRoomRefresh() {
+        pendingRoomRefresh = true
+        roomRefreshTimer?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.fireRoomRefresh() }
+        roomRefreshTimer = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
+    }
+
+    private func fireRoomRefresh() {
+        roomRefreshTimer = nil
+        guard pendingRoomRefresh else { return }
+        pendingRoomRefresh = false
+        if connected && inWorld { transport.send("look") }
+    }
+
+    private func cancelRoomRefresh() {
+        pendingRoomRefresh = false
+        roomRefreshTimer?.cancel()
+        roomRefreshTimer = nil
     }
 
     func submitInput(_ value: String) {
@@ -336,6 +367,18 @@ final class GameModel: ObservableObject {
     }
 
     private func receive(_ frame: MudFrame) {
+        // A room-refresh look is pending. The action's own response frames
+        // (message text with no code) mean the server already finished the
+        // command, so the new exit is in place — refresh immediately. If a new
+        // dialog frame arrives instead, the action opened a menu panel, so drop
+        // the refresh rather than having a late "look" close that panel.
+        if pendingRoomRefresh {
+            if frame.code == nil {
+                fireRoomRefresh()
+            } else if let code = frame.code, Self.roomRefreshDialogCodes.contains(code) || code == "002" {
+                cancelRoomRefresh()
+            }
+        }
         let text = frame.text
         if frame.code == nil {
             if text.hasPrefix("ver1.0,") { transport.send("local") }

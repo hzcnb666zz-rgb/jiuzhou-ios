@@ -658,7 +658,7 @@ struct AndroidWorldView: View {
                 Button { game.act(item) } label: {
                     let parts = item.display.components(separatedBy: "|")
                     VStack(spacing: 0) {
-                        MudRichText(raw: parts[0], send: game.act)
+                        MudRichText(raw: parts.first ?? "", send: game.act)
                     }.font(.android(size: unit / CGFloat(resolvedLayout.fontDivisor)))
                         .padding(.horizontal, 3).frame(maxWidth: .infinity, maxHeight: .infinity)
                         .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))

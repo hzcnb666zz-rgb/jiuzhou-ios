@@ -495,4 +495,45 @@ final class GameModelTests: XCTestCase {
         game.toggleCustomButtons()
         XCTAssertEqual(game.buttons.first { $0.slot == "b1" }?.command, "look")
     }
+
+    func testInteractionActionResponseTriggersImmediateRoomRefresh() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        game.inWorld = true
+        // A mechanism panel (the 巨石 stone door) is an "interaction" dialog.
+        wire.receive("007", "【巨石】")
+        wire.receive("009", "$2,2,9,43#推一下:move shi")
+        XCTAssertEqual(game.dialog?.kind, "interaction")
+        game.act("move shi")
+        XCTAssertTrue(wire.commands.contains("move shi"))
+        XCTAssertFalse(wire.commands.contains("look"))
+        // The action's own response arrives; the exit is set server-side, so
+        // the client must look immediately instead of waiting 1.8s.
+        wire.receive(nil, "你推动巨石，吱吱连声。")
+        XCTAssertTrue(wire.commands.contains("look"))
+    }
+
+    func testMenuPanelDialogCancelsPendingRoomRefresh() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        game.inWorld = true
+        // The fly map is also an interaction panel.
+        wire.receive("007", "江湖悠悠")
+        wire.receive("009", "$3,3,10,35#应天:fly yingtian")
+        wire.receive("008", "$1,5,10,35#❃ 门派 ❃:fly 门派$zj#❃ 活动 ❃:fly 活动")
+        game.act("fly 门派")
+        XCTAssertTrue(wire.commands.contains("fly 门派"))
+        // The server answers with a new panel (sect list) — the pending look
+        // must be cancelled so it cannot tear the panel down moments later.
+        wire.receive("007", "请选择你要前往的门派")
+        wire.receive("009", "$3,3,10,35#少林:fly shaolin$zj#武当:fly wudang")
+        XCTAssertFalse(wire.commands.contains("look"))
+        let fallback = expectation(description: "fallback look window")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { fallback.fulfill() }
+        wait(for: [fallback], timeout: 2)
+        XCTAssertFalse(wire.commands.contains("look"), "a late look must not close the menu panel")
+        XCTAssertEqual(game.dialog?.kind, "interaction")
+    }
 }
