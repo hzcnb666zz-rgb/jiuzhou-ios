@@ -197,7 +197,7 @@ struct AndroidWorldView: View {
                             exits(unit: unit)
                         }
                     }.frame(maxHeight: .infinity)
-                    if !game.stats.isEmpty { stats(unit: unit) }
+                    stats(unit: unit)
                     rule
                     bottomBar(unit: unit)
                 }.padding(1)
