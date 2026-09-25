@@ -14,6 +14,14 @@ extension EnvironmentValues {
     }
 }
 
+/// Parsed AttributedString cache so the same server text isn't re-run through
+/// the ANSI regex every time SwiftUI re-evaluates a row (which happens often).
+private final class MudAttributedBox {
+    let value: AttributedString
+    init(_ value: AttributedString) { self.value = value }
+}
+private let mudAttributedCache = NSCache<NSString, MudAttributedBox>()
+
 struct MudRichText: View {
     let raw: String
     let send: (String) -> Void
@@ -21,7 +29,7 @@ struct MudRichText: View {
     @AppStorage("androidMode") private var mode = "night"
 
     var body: some View {
-        Text(attributed)
+        Text(cachedAttributed)
             .environment(\.openURL, OpenURLAction { url in
                 if ["http", "https"].contains(url.scheme ?? "") { return .systemAction }
                 guard url.scheme == "mudcmd",
@@ -32,7 +40,16 @@ struct MudRichText: View {
             })
     }
 
-    private var attributed: AttributedString {
+    private var cachedAttributed: AttributedString {
+        // Width is rounded; the size tags it drives don't need sub-point precision.
+        let key = "\(mode)|\(Int(displayWidth))|\(raw)" as NSString
+        if let box = mudAttributedCache.object(forKey: key) { return box.value }
+        let result = MudRichText.parse(raw: raw, displayWidth: displayWidth, mode: mode)
+        mudAttributedCache.setObject(MudAttributedBox(result), forKey: key)
+        return result
+    }
+
+    static func parse(raw: String, displayWidth: CGFloat, mode: String) -> AttributedString {
         let text = raw.replacingOccurrences(of: "$br#", with: "\n")
             .replacingOccurrences(of: "\u{001B}[2J", with: "").replacingOccurrences(of: "\u{001B}[H", with: "")
         let ns = text as NSString
