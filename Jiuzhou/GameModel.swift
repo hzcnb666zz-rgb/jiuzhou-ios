@@ -405,7 +405,6 @@ final class GameModel: ObservableObject {
             var next = canReuse ? dialog! : GameDialog()
             next.text = styleStream.render(text)
             next.kind = "pages"
-            next.actions = appendUnique(styledInlinePageActions(text), to: next.actions)
             dialog = next
         case "012":
             let count = MudText.withoutLayout(text).components(separatedBy: "║").count
