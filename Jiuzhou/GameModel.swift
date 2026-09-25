@@ -547,6 +547,7 @@ final class GameModel: ObservableObject {
                 if let slot = Int(button.slot.dropFirst()), (1...10).contains(slot) { customButtonsVisible = true }
             }
             buttons.sort { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
+            applyQuickButtonOverride()
         case "007":
             // Android keeps the description and action frames in one overlay even
             // when the server delivers the action frame first.
@@ -800,6 +801,28 @@ final class GameModel: ObservableObject {
                                                          slot: old.slot, styledLabel: "活动")
                 dialog = current
             }
+        }
+    }
+
+    /// 任务第二页的快捷按钮（b1-b11）中，"宝石合成"后面的"暂无"替换为"活动"。
+    private func applyQuickButtonOverride() {
+        // 只处理 b1-b11 的快捷按钮（自定义按钮区域）
+        let quick = buttons.filter { action in
+            guard let slot = Int(action.slot.dropFirst()) else { return false }
+            return (1...11).contains(slot)
+        }.sorted { (Int($0.slot.dropFirst()) ?? 0) < (Int($1.slot.dropFirst()) ?? 0) }
+        let labels = quick.map { $0.label }
+        // 任务第二页特征：同时存在"宝石合成"和"上一页"
+        guard labels.contains("宝石合成"), labels.contains("上一页") else { return }
+        guard let gemIndex = quick.firstIndex(where: { $0.label == "宝石合成" }) else { return }
+        let tail = quick.indices.suffix(from: gemIndex + 1)
+        guard let noneIndex = tail.first(where: { quick[$0].label == "暂无" }) else { return }
+        let targetSlot = quick[noneIndex].slot
+        // 替换 buttons 数组中对应 slot 的按钮
+        if let idx = buttons.firstIndex(where: { $0.slot == targetSlot }) {
+            let old = buttons[idx]
+            buttons[idx] = MudAction(label: "活动", command: "renwu 活动",
+                                     slot: old.slot, styledLabel: "活动")
         }
     }
 
