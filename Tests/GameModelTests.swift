@@ -399,14 +399,16 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.actions.map(\.command), ["prev", "next", "mail delete", "mail receive"])
     }
 
-    func testRouteInlineLinksMoveToPageActions() {
+    func testRouteInlineLinksStayInBodyText() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
         wire.receive("007", "寻路\u{001B}[u:cmds:walk]\u{001B}[s:28]\u{001B}[37m[搜索]\u{001B}[0m\u{001B}[u:cmds:recall]\u{001B}[s:28]\u{001B}[36m[回城]\u{001B}[0m")
         XCTAssertEqual(game.dialog?.kind, "pages")
-        XCTAssertEqual(game.dialog?.actions.map(\.command), ["walk", "recall"])
-        XCTAssertFalse(game.dialog?.text.contains("[搜索]") == true)
-        XCTAssertFalse(game.dialog?.text.contains("[回城]") == true)
+        // Inline links stay in the body text as clickable colored text;
+        // they are NOT extracted into footer actions.
+        XCTAssertEqual(game.dialog?.actions.map(\.command), [])
+        XCTAssertTrue(game.dialog?.text.contains("[搜索]") == true)
+        XCTAssertTrue(game.dialog?.text.contains("[回城]") == true)
     }
 
     func testServerShowRespectsLocalPreferenceAndClearScreen() {
