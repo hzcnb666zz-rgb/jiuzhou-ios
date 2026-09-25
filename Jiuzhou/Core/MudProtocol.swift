@@ -199,6 +199,8 @@ enum MudText {
             }
             let label = plain(ns.substring(with: NSRange(location: labelStart, length: cursor - labelStart)))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+            let key = label.trimmingCharacters(in: CharacterSet(charactersIn: "[]()"))
+            guard allowedLabels.contains(key) else { continue }
 
             let command: String
             if target.hasPrefix("cmds:") { command = String(target.dropFirst(5)) }
