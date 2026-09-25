@@ -833,11 +833,17 @@ final class GameModel: ObservableObject {
         let categoryLabels: Set<String> = ["主线任务", "支线任务", "江湖奇遇", "副本刷怪", "定时活动"]
         let hasCategoryColumn = current.actions.contains { categoryLabels.contains($0.label) }
         guard hasCategoryColumn, !current.secondary.isEmpty else { return }
-        // 将右侧活动列表移到主区域，清空左侧分类列
-        current.actions = current.secondary
+        // 去掉"活动奖励：""活动时间：""今日完成："前缀，节省横向空间让内容显示完整
+        current.actions = current.secondary.map { action in
+            let cleaned = (action.styledLabel ?? action.label)
+                .replacingOccurrences(of: "活动奖励：", with: "")
+                .replacingOccurrences(of: "活动时间：", with: "")
+                .replacingOccurrences(of: "今日完成：", with: "")
+            return MudAction(label: action.label, command: action.command, slot: action.slot, styledLabel: cleaned)
+        }
         current.secondary = []
-        // 3列布局，占满整个面板宽度
-        current.layout = MudLayout("$3,3,9,30#")
+        // 3列布局，按钮加高(heightDivisor=7)、字体缩小(fontDivisor=33)，三行内容完整显示
+        current.layout = MudLayout("$3,3,7,33#")
         current.secondaryLayout = MudLayout()
         dialog = current
     }
