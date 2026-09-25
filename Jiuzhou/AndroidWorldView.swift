@@ -739,32 +739,24 @@ struct AndroidWorldView: View {
     private func pagesPanel(_ dialog: GameDialog, unit: CGFloat) -> some View {
         GeometryReader { geometry in
             let availableWidth = max(0, geometry.size.width - 10)
-            // Inline links have already been removed from the body by the model,
-            // so every page action belongs in this dedicated footer.
+            // Inline links ([上一页]/[搜索]/etc) stay in the text as clickable
+            // colored text. The 008/009 footer buttons (destinations, mailbox
+            // folders) render as a grid right below, all in one scroll view.
             let pageActions = dialog.actions + dialog.secondary
-            let pageLayout = dialog.layout.resolved(for: pageActions.count)
-            let actionRows = pageActions.isEmpty ? 0 : (pageActions.count + pageLayout.columns - 1) / pageLayout.columns
-            let actionContentHeight = CGFloat(actionRows) * (unit / CGFloat(pageLayout.heightDivisor) + 2) + 4
-            let actionViewport = min(geometry.size.height / 2, actionContentHeight)
-            VStack(spacing: 0) {
-                ScrollView {
-                    MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
+            ScrollView {
+                VStack(spacing: 0) {
+                    MudRichText(raw: dialog.text, send: game.act)
+                        .font(.android(size: unit / 32))
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(5)
-                }
-                .frame(maxHeight: max(0, geometry.size.height - actionViewport))
-                if !pageActions.isEmpty {
-                    ScrollView(.vertical, showsIndicators: true) {
-                        actionGrid(pageActions, layout: pageLayout, unit: unit, width: availableWidth)
+                    if !pageActions.isEmpty {
+                        actionGrid(pageActions, layout: dialog.layout, unit: unit, width: availableWidth)
                     }
-                    .frame(width: availableWidth, height: actionViewport, alignment: .top)
-                    .accessibilityIdentifier("pages.actions")
                 }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .foregroundStyle(Color(white: 221/255))
-            // The page must cover the underlying message stream. A translucent
-            // panel makes mail and route links paint over chat messages.
             .background(Color.black)
             .overlay(alignment: .topTrailing) {
                 Button { game.closeDialog() } label: {

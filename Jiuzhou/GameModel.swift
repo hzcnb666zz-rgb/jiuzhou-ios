@@ -374,13 +374,12 @@ final class GameModel: ObservableObject {
             let pageActions = styledInlinePageActions(text)
             let canReuse = dialog?.kind == "pages" || dialog?.kind == "interaction" || dialog?.kind == "npc" || dialog?.kind == "item"
             var next = canReuse ? dialog! : GameDialog()
-            // Page links are controls, not body text. Remove them from the
-            // description so they cannot paint over mail/route content.
-            next.text = styleStream.render(MudText.removingInlinePageActions(text))
+            // Keep inline page links in the body text so they render as
+            // colored clickable text right after the description, matching
+            // the Android client. The 008/009 footer buttons carry the
+            // actual content grid (destinations, mailbox folders).
+            next.text = styleStream.render(text)
             next.kind = npc ? "npc" : (item ? "item" : (pageActions.isEmpty ? "interaction" : "pages"))
-            if next.kind == "pages" {
-                next.actions = appendUnique(pageActions, to: next.actions)
-            }
             dialog = next
             pendingNPCObjectLook = false
         case "008", "009":
@@ -401,10 +400,10 @@ final class GameModel: ObservableObject {
         case "011": dialog = GameDialog(text: styleStream.render(text), kind: "map")
         case "013":
             // The mail station sends the page text and its action frames separately.
-            // Keep any 008/009 actions already received instead of replacing them.
+            // Keep inline links in the body; footer buttons come from 008/009.
             let canReuse = dialog?.kind == "pages" || dialog?.kind == "interaction"
             var next = canReuse ? dialog! : GameDialog()
-            next.text = styleStream.render(MudText.removingInlinePageActions(text))
+            next.text = styleStream.render(text)
             next.kind = "pages"
             next.actions = appendUnique(styledInlinePageActions(text), to: next.actions)
             dialog = next
