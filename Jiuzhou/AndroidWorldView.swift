@@ -593,10 +593,12 @@ struct AndroidWorldView: View {
                                    identifier: "interaction.secondary")
                                 .padding(.leading, 2)
                     } else if !dialog.actions.isEmpty || !dialog.secondary.isEmpty {
-                        actionGrid(dialog.actions.isEmpty ? dialog.secondary : dialog.actions,
+                        actionList(dialog.actions.isEmpty ? dialog.secondary : dialog.actions,
                                    layout: dialog.actions.isEmpty ? dialog.secondaryLayout : dialog.layout,
                                    unit: unit,
-                                   width: availableWidth)
+                                   width: availableWidth,
+                                   maxHeight: listHeight,
+                                   identifier: "interaction.primary")
                     }
                 }.padding(2).frame(height: actionViewport, alignment: .top)
                     Spacer(minLength: 0)
