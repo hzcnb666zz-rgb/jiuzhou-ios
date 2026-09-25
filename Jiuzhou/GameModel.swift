@@ -827,23 +827,17 @@ final class GameModel: ObservableObject {
         }
     }
 
-    /// 活动面板：去掉左侧分类竖列，将活动列表移到主区域占满宽度，改为3列布局。
+    /// 活动面板：去掉左侧分类竖列，将活动列表移到主区域占满宽度，改为2列布局。
     private func applyActivityPanelLayout() {
         guard var current = dialog else { return }
         let categoryLabels: Set<String> = ["主线任务", "支线任务", "江湖奇遇", "副本刷怪", "定时活动"]
         let hasCategoryColumn = current.actions.contains { categoryLabels.contains($0.label) }
         guard hasCategoryColumn, !current.secondary.isEmpty else { return }
-        // 去掉"活动奖励：""活动时间：""今日完成："前缀，节省横向空间让内容显示完整
-        current.actions = current.secondary.map { action in
-            let cleaned = (action.styledLabel ?? action.label)
-                .replacingOccurrences(of: "活动奖励：", with: "")
-                .replacingOccurrences(of: "活动时间：", with: "")
-                .replacingOccurrences(of: "今日完成：", with: "")
-            return MudAction(label: action.label, command: action.command, slot: action.slot, styledLabel: cleaned)
-        }
+        // 将右侧活动列表移到主区域，清空左侧分类列
+        current.actions = current.secondary
         current.secondary = []
-        // 3列布局，按钮加高(heightDivisor=7)、字体缩小(fontDivisor=33)，三行内容完整显示
-        current.layout = MudLayout("$3,3,7,33#")
+        // 2列布局，每个卡片更宽，活动奖励/活动时间文字能完整显示
+        current.layout = MudLayout("$2,2,8,28#")
         current.secondaryLayout = MudLayout()
         dialog = current
     }
