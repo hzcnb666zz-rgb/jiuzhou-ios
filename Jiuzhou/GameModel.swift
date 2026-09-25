@@ -422,31 +422,47 @@ final class GameModel: ObservableObject {
                 return GameStat(label: label, value: parts[1], color: statDisplayColor(label, serverColor: parts[2]),
                                 command: parts.count > 3 ? parts[3] : "")
             }
-            // A full status frame (>=10 fields) establishes the stable schema
-            // and layout. A short frame (6-7 fields, combat format) must never
-            // replace that schema even if it arrives before the fighting flag
-            // is set; map its values onto the existing stable layout instead.
-            if count >= 10 {
+            // Decide whether this frame establishes the stable status schema
+            // or is a transient combat refresh that must map onto it.
+            // - Establish when no schema exists yet, or a same/larger frame
+            //   arrives while not fighting.
+            // - Map when fighting, or a shorter frame arrives (combat format
+            //   can precede the fighting flag in the real game).
+            let shouldEstablish = stableStats.isEmpty
+                || (!fighting && count >= stableStats.count)
+            if shouldEstablish {
                 statsLayout = layout
                 stableStatsLayout = layout
                 stableStats = updatedStats
                 stats = stableStats
             } else if !stableStats.isEmpty {
-                // Normalize combat label bases onto the stable schema bases.
+                // Combat label bases map onto stable schema bases.
                 let combatAliases: [String: String] = [
                     "我": "姓名", "血量": "气血", "血": "气血",
                     "炁": "先天之炁", "精力": "先天之炁"
                 ]
                 let identity: (GameStat) -> String = { stat in
-                    let base = stat.label.components(separatedBy: ".").first ?? stat.label
+                    let separators: Set<Character> = [".", ":", "："]
+                    let base = String(stat.label.prefix { !separators.contains($0) })
                     if base == "精力" { return "先天之炁" }
                     return combatAliases[base] ?? base
+                }
+                // Swap an incoming label's base for the stable base so that
+                // e.g. "我:X" -> "姓名:X" and "炁.0" -> "先天之炁.0", while
+                // resource bars keep their refreshed embedded value.
+                let relabel: (String, String) -> String = { incomingLabel, stableBase in
+                    let separators: Set<Character> = [".", ":", "："]
+                    if let sep = incomingLabel.firstIndex(where: { separators.contains($0) }) {
+                        return stableBase + incomingLabel[sep...]
+                    }
+                    return stableBase
                 }
                 let incoming = Dictionary(updatedStats.map { (identity($0), $0) }) { first, _ in first }
                 stats = stableStats.map { original in
                     guard let update = incoming[identity(original)] else { return original }
-                    // Keep stable label/color/command; only refresh the value.
-                    return GameStat(label: original.label, value: update.value, color: original.color, command: original.command)
+                    let stableBase = identity(original)
+                    return GameStat(label: relabel(update.label, stableBase),
+                                    value: update.value, color: original.color, command: original.command)
                 }
                 statsLayout = stableStatsLayout
             }
