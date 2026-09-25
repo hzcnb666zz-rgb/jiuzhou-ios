@@ -295,7 +295,11 @@ final class GameModel: ObservableObject {
             if confirmation { command.components(separatedBy: "$sock#").filter { !$0.isEmpty }.forEach(transport.send) }
             else { transport.send(command) }
             if wasItemDialog {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                // The server opens mechanisms like the stone door in a delayed
+                // second step ("缓缓向后移去，现出门户"), so a single early look
+                // can still return the closed-room exits. Refresh after the
+                // opening has settled.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
                     if self?.connected == true && self?.inWorld == true { self?.transport.send("look") }
                 }
             }
