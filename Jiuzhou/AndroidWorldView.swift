@@ -592,9 +592,9 @@ struct AndroidWorldView: View {
                                    maxHeight: listHeight,
                                    identifier: "interaction.secondary")
                                 .padding(.leading, 2)
-                    } else if !dialog.actions.isEmpty {
-                        actionGrid(dialog.actions,
-                                   layout: dialog.layout,
+                    } else if !dialog.actions.isEmpty || !dialog.secondary.isEmpty {
+                        actionGrid(dialog.actions.isEmpty ? dialog.secondary : dialog.actions,
+                                   layout: dialog.actions.isEmpty ? dialog.secondaryLayout : dialog.layout,
                                    unit: unit,
                                    width: availableWidth)
                     }
