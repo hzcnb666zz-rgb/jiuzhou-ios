@@ -585,20 +585,16 @@ struct AndroidWorldView: View {
                                    identifier: "interaction.primary")
                             .padding(.trailing, 4)
                         let secondaryWidth = max(0, availableWidth - firstWidth - 8)
-                        actionList(dialog.secondary,
+                        actionGrid(dialog.secondary,
                                    layout: dialog.secondaryLayout,
-                                       unit: unit,
-                                       width: secondaryWidth,
-                                       maxHeight: listHeight,
-                                       identifier: "interaction.secondary")
+                                   unit: unit,
+                                   width: secondaryWidth)
                                 .padding(.leading, 2)
                     } else if !dialog.actions.isEmpty {
-                        actionList(dialog.actions,
+                        actionGrid(dialog.actions,
                                    layout: dialog.layout,
                                    unit: unit,
-                                   width: availableWidth,
-                                   maxHeight: listHeight,
-                                   identifier: "interaction.primary")
+                                   width: availableWidth)
                     }
                 }.padding(2).frame(height: actionViewport, alignment: .top)
                     Spacer(minLength: 0)
