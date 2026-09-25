@@ -286,9 +286,19 @@ final class GameModel: ObservableObject {
             transport.send(command)
         } else {
             let confirmation = dialog?.kind == "confirmation"
+            // Item interactions (e.g. pushing a stone door) can reveal a new
+            // exit in the SAME room. The server may not push that exit until
+            // the next "look", so refresh the room shortly after. Movement
+            // commands also just refresh the destination room, which is fine.
+            let wasItemDialog = dialog?.kind == "item"
             dialog = nil; popup = nil
             if confirmation { command.components(separatedBy: "$sock#").filter { !$0.isEmpty }.forEach(transport.send) }
             else { transport.send(command) }
+            if wasItemDialog {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                    if self?.connected == true && self?.inWorld == true { self?.transport.send("look") }
+                }
+            }
         }
     }
 
