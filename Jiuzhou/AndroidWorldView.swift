@@ -593,12 +593,14 @@ struct AndroidWorldView: View {
                                    identifier: "interaction.secondary")
                                 .padding(.leading, 2)
                     } else if !dialog.actions.isEmpty {
-                        actionGrid(dialog.actions,
+                        actionList(dialog.actions,
                                    layout: dialog.layout,
                                    unit: unit,
-                                   width: availableWidth)
+                                   width: availableWidth,
+                                   maxHeight: listHeight,
+                                   identifier: "interaction.primary")
                     }
-                }.padding(2).frame(height: actionViewport, alignment: .top)
+                }.padding(2)
                     Spacer(minLength: 0)
                 }
                 .padding(.bottom, 3)
@@ -738,21 +740,26 @@ struct AndroidWorldView: View {
         GeometryReader { geometry in
             let availableWidth = max(0, geometry.size.width - 10)
             // Inline links have already been removed from the body by the model,
-            // so every page action belongs below the text in one scroll view.
+            // so every page action belongs in this dedicated footer.
             let pageActions = dialog.actions + dialog.secondary
+            let pageLayout = dialog.layout.resolved(for: pageActions.count)
+            let actionRows = pageActions.isEmpty ? 0 : (pageActions.count + pageLayout.columns - 1) / pageLayout.columns
+            let actionContentHeight = CGFloat(actionRows) * (unit / CGFloat(pageLayout.heightDivisor) + 2) + 4
+            let actionViewport = min(geometry.size.height / 2, actionContentHeight)
             VStack(spacing: 0) {
                 ScrollView {
-                    VStack(spacing: 0) {
-                        MudRichText(raw: dialog.text, send: game.act)
-                            .font(.android(size: unit / 32))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(5)
-                        if !pageActions.isEmpty {
-                            actionGrid(pageActions, layout: dialog.layout, unit: unit, width: availableWidth)
-                        }
+                    MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(5)
+                }
+                .frame(maxHeight: max(0, geometry.size.height - actionViewport))
+                if !pageActions.isEmpty {
+                    ScrollView(.vertical, showsIndicators: true) {
+                        actionGrid(pageActions, layout: pageLayout, unit: unit, width: availableWidth)
                     }
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .frame(width: availableWidth, height: actionViewport, alignment: .top)
+                    .accessibilityIdentifier("pages.actions")
                 }
             }
             .foregroundStyle(Color(white: 221/255))
