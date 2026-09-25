@@ -743,6 +743,15 @@ struct AndroidWorldView: View {
             // colored text. The 008/009 footer buttons (destinations, mailbox
             // folders) render as a grid right below, all in one scroll view.
             let pageActions = dialog.actions + dialog.secondary
+            // If the server did not specify a column layout (defaults to 1),
+            // auto-pick 4 columns for long lists (route destinations) so the
+            // grid matches the Android client. Short lists (mail folders)
+            // keep the server-sent single column.
+            var pageLayout = dialog.layout.resolved(for: pageActions.count)
+            if pageActions.count > 8 {
+                // Long lists (route destinations): force a 4-column grid.
+                pageLayout.columns = 4
+            }
             ScrollView {
                 VStack(spacing: 0) {
                     MudRichText(raw: dialog.text, send: game.act)
@@ -751,7 +760,7 @@ struct AndroidWorldView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(5)
                     if !pageActions.isEmpty {
-                        actionGrid(pageActions, layout: dialog.layout, unit: unit, width: availableWidth)
+                        actionGrid(pageActions, layout: pageLayout, unit: unit, width: availableWidth)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
