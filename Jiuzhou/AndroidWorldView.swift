@@ -745,7 +745,7 @@ struct AndroidWorldView: View {
             let pageLayout = dialog.layout.resolved(for: pageActions.count)
             let actionRows = pageActions.isEmpty ? 0 : (pageActions.count + pageLayout.columns - 1) / pageLayout.columns
             let actionContentHeight = CGFloat(actionRows) * (unit / CGFloat(pageLayout.heightDivisor) + 2) + 4
-            let actionViewport = min(max(0, geometry.size.height - unit * 4), actionContentHeight)
+            let actionViewport = min(geometry.size.height / 2, actionContentHeight)
             VStack(spacing: 0) {
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 32))

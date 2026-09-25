@@ -81,7 +81,7 @@ final class GameModel: ObservableObject {
     private var sentCredentials = false
     private var styleStream = MudStyleStream()
     private var pendingNPCObjectLook = false
-    private let fixedHost = "43.139.191.9"
+    private let fixedHost = "60.205.8.72"
     private let fixedPort: UInt16 = 6666
     private var stableStats: [GameStat] = []
     private var stableStatsLayout = MudLayout("", defaults: [5, 2, 22, 35])
