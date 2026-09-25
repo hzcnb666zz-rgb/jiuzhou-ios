@@ -579,6 +579,7 @@ final class GameModel: ObservableObject {
             }
             dialog = next
             applyTaskPageButtonOverride()
+            applyActivityPanelLayout()
         case "010": receiveConfirmation(text)
         case "011": dialog = GameDialog(text: styleStream.render(text), kind: "map")
         case "013":
@@ -824,6 +825,21 @@ final class GameModel: ObservableObject {
             buttons[idx] = MudAction(label: "活动", command: "renwu 活动",
                                      slot: old.slot, styledLabel: "活动")
         }
+    }
+
+    /// 活动面板：去掉左侧分类竖列，将活动列表移到主区域占满宽度，改为3列布局。
+    private func applyActivityPanelLayout() {
+        guard var current = dialog else { return }
+        let categoryLabels: Set<String> = ["主线任务", "支线任务", "江湖奇遇", "副本刷怪", "定时活动"]
+        let hasCategoryColumn = current.actions.contains { categoryLabels.contains($0.label) }
+        guard hasCategoryColumn, !current.secondary.isEmpty else { return }
+        // 将右侧活动列表移到主区域，清空左侧分类列
+        current.actions = current.secondary
+        current.secondary = []
+        // 3列布局，占满整个面板宽度
+        current.layout = MudLayout("$3,3,9,30#")
+        current.secondaryLayout = MudLayout()
+        dialog = current
     }
 
     private func statDisplayColor(_ label: String, serverColor: String) -> String {
