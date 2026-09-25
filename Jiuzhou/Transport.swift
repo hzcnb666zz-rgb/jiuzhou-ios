@@ -65,7 +65,7 @@ final class MudTransport: MudTransporting {
             }
         }
         let timeout = DispatchWorkItem { [weak self] in
-            guard self?.generation == token else { return }
+            guard let self, self.generation == token else { return }
             self.fail("连接超时，请检查服务器地址和局域网权限")
         }
         self.timeout = timeout
