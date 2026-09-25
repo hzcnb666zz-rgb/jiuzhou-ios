@@ -739,14 +739,12 @@ struct AndroidWorldView: View {
     private func pagesPanel(_ dialog: GameDialog, unit: CGFloat) -> some View {
         GeometryReader { geometry in
             let availableWidth = max(0, geometry.size.width - 10)
-            // Inline links ([上一页]/[搜索]/etc) stay in the text as clickable
-            // colored text. The 008/009 footer buttons (destinations, mailbox
-            // folders) render as a grid right below, all in one scroll view.
-            let pageActions = dialog.actions + dialog.secondary
-            // Long lists (route destinations, >8 buttons): force a 4-column
-            // grid. Short lists (mail folders) keep the server layout.
-            let resolvedLayout = dialog.layout.resolved(for: pageActions.count)
-            let pageLayout = pageActions.count > 8 ? resolvedLayout.withColumns(4) : resolvedLayout
+            // Inline links stay in the body text as clickable colored text.
+            let hasSecondary = !dialog.secondary.isEmpty
+            let primaryActions = dialog.actions
+            let primaryLayout = dialog.layout.resolved(for: primaryActions.count)
+            // Long lists (route destinations, >8 buttons): force a 4-column grid.
+            let gridLayout = primaryActions.count > 8 ? primaryLayout.withColumns(4) : primaryLayout
             ScrollView {
                 VStack(spacing: 0) {
                     MudRichText(raw: dialog.text, send: game.act)
@@ -754,8 +752,15 @@ struct AndroidWorldView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(5)
-                    if !pageActions.isEmpty {
-                        actionGrid(pageActions, layout: pageLayout, unit: unit, width: availableWidth)
+                    if hasSecondary {
+                        // Mail layout: narrow left column (folder buttons)
+                        // + wider right column (message content).
+                        HStack(alignment: .top, spacing: 4) {
+                            actionGrid(primaryActions, layout: primaryLayout, unit: unit, width: availableWidth * 0.38)
+                            actionGrid(dialog.secondary, layout: dialog.secondaryLayout.resolved(for: dialog.secondary.count), unit: unit, width: availableWidth * 0.58)
+                        }
+                    } else if !primaryActions.isEmpty {
+                        actionGrid(primaryActions, layout: gridLayout, unit: unit, width: availableWidth)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
