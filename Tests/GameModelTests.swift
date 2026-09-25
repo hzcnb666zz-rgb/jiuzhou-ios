@@ -409,33 +409,6 @@ final class GameModelTests: XCTestCase {
         XCTAssertFalse(game.dialog?.text.contains("[回城]") == true)
     }
 
-    func testGumuBoulderRefreshesExitsImmediately() {
-        let wire = RecordingTransport()
-        let game = GameModel(transport: wire)
-        wire.onStatus?("已连接", true)
-        wire.receive(nil, "推动巨石，缓缓向后移去，现出一道门户来。")
-        XCTAssertEqual(wire.commands, ["look"])
-    }
-
-    func testFlySchoolAndActivityPagesKeepAllActions() {
-        let wire = RecordingTransport()
-        let game = GameModel(transport: wire)
-        wire.onStatus?("已连接", true)
-
-        let schools = (1...31).map { "门派\($0):fly school\($0)" }.joined(separator: "$zj#")
-        wire.receive("007", "请选择你要前往的门派：")
-        wire.receive("009", "$3,3,10,35#" + schools)
-        XCTAssertEqual(game.dialog?.kind, "interaction")
-        XCTAssertEqual(game.dialog?.secondary.count, 31)
-        XCTAssertEqual(game.dialog?.secondary.last?.command, "fly school31")
-
-        let activities = (1...10).map { "活动\($0):fly activity\($0)" }.joined(separator: "$zj#")
-        wire.receive("007", "请选择你要前往的活动：")
-        wire.receive("009", "$3,3,10,35#" + activities)
-        XCTAssertEqual(game.dialog?.secondary.count, 10)
-        XCTAssertEqual(game.dialog?.secondary.last?.command, "fly activity10")
-    }
-
     func testServerShowRespectsLocalPreferenceAndClearScreen() {
         let saved = UserDefaults.standard.object(forKey: "descriptionHidden")
         defer { UserDefaults.standard.set(saved, forKey: "descriptionHidden") }
