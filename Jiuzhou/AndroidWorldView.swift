@@ -746,9 +746,7 @@ struct AndroidWorldView: View {
             // Long lists (route destinations, >8 buttons): force a 4-column
             // grid. Short lists (mail folders) keep the server layout.
             let resolvedLayout = dialog.layout.resolved(for: pageActions.count)
-            let pageLayout = pageActions.count > 8
-                ? MudLayout(columns: 4, widthDivisor: resolvedLayout.widthDivisor, heightDivisor: resolvedLayout.heightDivisor, fontDivisor: resolvedLayout.fontDivisor)
-                : resolvedLayout
+            let pageLayout = pageActions.count > 8 ? resolvedLayout.withColumns(4) : resolvedLayout
             ScrollView {
                 VStack(spacing: 0) {
                     MudRichText(raw: dialog.text, send: game.act)

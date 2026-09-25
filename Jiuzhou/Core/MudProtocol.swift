@@ -122,6 +122,13 @@ struct MudLayout: Equatable {
         copy.automaticColumns = false
         return copy
     }
+
+    func withColumns(_ n: Int) -> MudLayout {
+        var copy = self
+        copy.columns = n
+        copy.automaticColumns = false
+        return copy
+    }
 }
 
 enum MudText {
