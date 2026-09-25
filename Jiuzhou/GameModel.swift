@@ -788,7 +788,7 @@ final class GameModel: ObservableObject {
             if let noneIndex = tail.first(where: { current.actions[$0].label == "暂无" }) {
                 let old = current.actions[noneIndex]
                 current.actions[noneIndex] = MudAction(label: "活动", command: "renwu 活动",
-                                                        slot: old.slot, styledLabel: "活动")
+                                                        slot: old.slot, styledLabel: "\u{001B}[1;32m活动\u{001B}[0m")
                 dialog = current
                 return
             }
@@ -799,7 +799,7 @@ final class GameModel: ObservableObject {
             if let noneIndex = tail.first(where: { current.secondary[$0].label == "暂无" }) {
                 let old = current.secondary[noneIndex]
                 current.secondary[noneIndex] = MudAction(label: "活动", command: "renwu 活动",
-                                                         slot: old.slot, styledLabel: "活动")
+                                                         slot: old.slot, styledLabel: "\u{001B}[1;32m活动\u{001B}[0m")
                 dialog = current
             }
         }
@@ -823,7 +823,7 @@ final class GameModel: ObservableObject {
         if let idx = buttons.firstIndex(where: { $0.slot == targetSlot }) {
             let old = buttons[idx]
             buttons[idx] = MudAction(label: "活动", command: "renwu 活动",
-                                     slot: old.slot, styledLabel: "活动")
+                                     slot: old.slot, styledLabel: "\u{001B}[1;32m活动\u{001B}[0m")
         }
     }
 

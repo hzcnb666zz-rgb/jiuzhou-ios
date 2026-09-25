@@ -305,9 +305,9 @@ struct AndroidWorldView: View {
     }
 
     private var extraExits: [MudAction] {
-        let hidden = Set(["发送坐标", "任务"])
+        let hidden = ["发送坐标", "任务"]
         return game.exits.filter { exit in
-            !hidden.contains(exit.label) &&
+            !hidden.contains(where: { exit.label.contains($0) }) &&
             !compass.filter { !$0.isEmpty }.contains { exit.slot == $0 || exit.slot == $0 + "up" || exit.slot == $0 + "down" }
         }
     }
