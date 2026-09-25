@@ -740,11 +740,16 @@ struct AndroidWorldView: View {
         GeometryReader { geometry in
             let availableWidth = max(0, geometry.size.width - 10)
             // Inline links stay in the body text as clickable colored text.
-            let hasSecondary = !dialog.secondary.isEmpty
             let primaryActions = dialog.actions
-            let primaryLayout = dialog.layout.resolved(for: primaryActions.count)
-            // Long lists (route destinations, >8 buttons): force a 4-column grid.
-            let gridLayout = primaryActions.count > 8 ? primaryLayout.withColumns(4) : primaryLayout
+            let secondaryActions = dialog.secondary
+            // Mail = a few folder buttons + one content box (secondary <= 2).
+            // Route = a long destination list (often all in secondary).
+            let isMailLayout = !secondaryActions.isEmpty && secondaryActions.count <= 2
+                && (primaryActions.count + secondaryActions.count) <= 8
+            // For route, merge primary+secondary into one full-width list.
+            let routeActions = primaryActions + secondaryActions
+            let routeLayout = dialog.layout.resolved(for: routeActions.count)
+            let gridLayout = routeActions.count > 8 ? routeLayout.withColumns(4) : routeLayout
             ScrollView {
                 VStack(spacing: 0) {
                     MudRichText(raw: dialog.text, send: game.act)
@@ -752,15 +757,15 @@ struct AndroidWorldView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(5)
-                    if hasSecondary {
-                        // Mail layout: narrow left column (folder buttons)
-                        // + wider right column (message content).
+                    if isMailLayout {
+                        // Mail: narrow left column (folders) + wider right (content).
                         HStack(alignment: .top, spacing: 4) {
-                            actionGrid(primaryActions, layout: primaryLayout, unit: unit, width: availableWidth * 0.38)
-                            actionGrid(dialog.secondary, layout: dialog.secondaryLayout.resolved(for: dialog.secondary.count), unit: unit, width: availableWidth * 0.58)
+                            actionGrid(primaryActions, layout: dialog.layout.resolved(for: primaryActions.count), unit: unit, width: availableWidth * 0.38)
+                            actionGrid(secondaryActions, layout: dialog.secondaryLayout.resolved(for: secondaryActions.count), unit: unit, width: availableWidth * 0.58)
                         }
-                    } else if !primaryActions.isEmpty {
-                        actionGrid(primaryActions, layout: gridLayout, unit: unit, width: availableWidth)
+                    } else if !routeActions.isEmpty {
+                        // Route: full-width merged grid (4 columns when long).
+                        actionGrid(routeActions, layout: gridLayout, unit: unit, width: availableWidth)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
