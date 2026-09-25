@@ -321,6 +321,12 @@ final class GameModel: ObservableObject {
 
     private func receive(_ frame: MudFrame) {
         let text = frame.text
+        // Pushing the Gumu boulder changes the room exits server-side, but the
+        // driver does not send a new 003 exit frame. Refresh immediately after
+        // the success message instead of waiting for the player to leave/re-enter.
+        if connected && MudText.plain(text).contains("现出一道门户来") {
+            transport.send("look")
+        }
         if frame.code == nil {
             if text.hasPrefix("ver1.0,") { transport.send("local") }
             else if text == "版本验证成功", !sentCredentials {

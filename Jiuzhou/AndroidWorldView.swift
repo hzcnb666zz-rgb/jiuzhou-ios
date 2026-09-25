@@ -649,12 +649,17 @@ struct AndroidWorldView: View {
 
     private func actionGrid(_ items: [MudAction], layout: MudLayout, unit: CGFloat, width: CGFloat) -> some View {
         let resolvedLayout = layout.resolved(for: items.count)
-        let rows = (items.count + resolvedLayout.columns - 1) / resolvedLayout.columns
+        let columns = max(1, resolvedLayout.columns)
+        // Snapshot each row before building the view tree. The server can send
+        // 007/008/009 frames back-to-back; indexing the live array from a
+        // ForEach lets SwiftUI reuse an old row after the array has changed.
+        let rows: [[MudAction]] = stride(from: 0, to: items.count, by: columns).map { start in
+            Array(items[start..<min(items.count, start + columns)])
+        }
         return VStack(spacing: 2) {
-            ForEach(0..<rows, id: \.self) { row in
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, rowItems in
                 HStack(spacing: 0) {
-                ForEach((row * resolvedLayout.columns)..<min(items.count, (row + 1) * resolvedLayout.columns), id: \.self) { index in
-                let item = items[index]
+                ForEach(rowItems) { item in
                 Button { game.act(item) } label: {
                     let parts = item.display.components(separatedBy: "|")
                     VStack(spacing: 0) {
