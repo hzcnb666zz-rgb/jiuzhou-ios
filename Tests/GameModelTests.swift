@@ -364,7 +364,8 @@ final class GameModelTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { settled.fulfill() }
         wait(for: [settled], timeout: 3)
         XCTAssertFalse(game.inWorld)
-        XCTAssertEqual(wire.connectCount, 1)
+        // No connect must have happened: logout must not trigger re-login.
+        XCTAssertEqual(wire.connectCount, 0)
     }
 
     func testReferenceStatColorsUseDisplayNames() {
