@@ -475,9 +475,19 @@ final class GameModel: ObservableObject {
             let updatedStats: [GameStat] = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry -> GameStat? in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }
-                let label = parts[0].hasPrefix("精力.") || parts[0] == "精力"
-                    ? "先天之炁" + String(parts[0].dropFirst("精力".count))
-                    : parts[0]
+                // The status frame names the innate-qi bar "精力" (older frames)
+                // or "炁" (current frames). Both are the same 先天之炁 resource;
+                // normalize the label so the bar reads "先天之炁" and tracks the
+                // real xiantian value instead of a different resource.
+                let rawLabel = parts[0]
+                let label: String
+                if rawLabel.hasPrefix("精力.") || rawLabel == "精力" {
+                    label = "先天之炁" + String(rawLabel.dropFirst("精力".count))
+                } else if rawLabel.hasPrefix("炁.") || rawLabel == "炁" {
+                    label = "先天之炁" + String(rawLabel.dropFirst("炁".count))
+                } else {
+                    label = rawLabel
+                }
                 return GameStat(label: label, value: parts[1], color: statDisplayColor(label, serverColor: parts[2]),
                                 command: parts.count > 3 ? parts[3] : "")
             }

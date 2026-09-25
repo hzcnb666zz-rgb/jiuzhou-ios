@@ -283,6 +283,23 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.stats[0].command, "hp")
     }
 
+    func testCurrentQiFrameBindsInnateQiAndCombatKeepsIt() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        // Current non-combat frame names the bar "炁" with the real xiantian.
+        wire.receive("012", "$3,3,25,40#姓名：试剑台:100/100:#336666║炁.100:100/4000/4000:#990066CC║经验.1000:1000/1000:#99CCCC66")
+        let qiBar = game.stats.first { $0.label.hasPrefix("先天之炁") }
+        XCTAssertNotNil(qiBar)
+        XCTAssertEqual(qiBar?.value, "100/4000/4000")
+        // Combat frames also use "炁"; the bar must keep tracking xiantian
+        // instead of flipping to a different resource (or to zero).
+        wire.receive("016", "你与对手交上了手。")
+        wire.receive("012", "$6,6,25,40#我：试剑台:100/100:#333333║气血.800:800/800/800:#99FF0000║炁.120:120/4000/4000:#990066CC║忙乱.0:0/1:#BB3F51B5")
+        let combatQiBar = game.stats.first { $0.label.hasPrefix("先天之炁") }
+        XCTAssertEqual(combatQiBar?.value, "120/4000/4000")
+    }
+
     func testReferenceStatColorsUseDisplayNames() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
