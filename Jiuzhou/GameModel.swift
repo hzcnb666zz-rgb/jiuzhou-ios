@@ -212,6 +212,26 @@ final class GameModel: ObservableObject {
             if ProcessInfo.processInfo.arguments.contains("--ui-check-dialog") {
                 dialog = GameDialog(text: "\u{001B}[1;32m老村长\u{001B}[0m$br#你想打听什么？", actions: MudText.actions("交谈|未明谷的故事:ask elder$zj#交易|查看随身物品:list elder"), layout: MudLayout("$2,3,9,30#"))
             }
+            if ProcessInfo.processInfo.arguments.contains("--ui-check-activity") {
+                let categoryRaw = "主线任务:renwu 主线$zj#支线任务:renwu 支线$zj#江湖奇遇:renwu 奇遇$zj#副本刷怪:renwu 副本$zj#定时活动:renwu 活动"
+                func card(_ name: String, _ reward: String, _ thirdLabel: String, _ third: String, _ command: String) -> String {
+                    "\u{001B}[31m\(name)\u{001B}[0m$br#活动奖励：\u{001B}[33m\(reward)\u{001B}[0m$br#\(thirdLabel)\u{001B}[32m\(third)\u{001B}[0m:\(command)"
+                }
+                let activityRaw = [
+                    card("比武论剑", "论剑积分 灵石等", "活动时间：", "每日晚9点", "fly lunjian"),
+                    card("武林大会", "论剑积分 通宝等", "活动时间：", "每日早12点", "fly lunjians"),
+                    card("镜像排位", "竞技积分", "活动时间：", "每日转点结算", "fly paiwei"),
+                    card("蝶梦楼榜", "真解积分 装备 强化石", "活动时间：", "每周日转点结算", "fly diemeng"),
+                    card("钓鱼比赛", "钓鱼积分 灵石 潜能", "今日完成：", "[0/500]", "help diaoyu"),
+                    card("守卫襄阳", "悟道点 经验 潜能", "活动时间：", "每周1 3 5晚10点", "fly xiangyang")
+                ].joined(separator: "$zj#")
+                dialog = GameDialog(text: "任务系统",
+                                    actions: MudText.actions(categoryRaw),
+                                    secondary: MudText.actions(activityRaw),
+                                    layout: MudLayout("$1,5,12,30#"),
+                                    secondaryLayout: MudLayout("$2,2,9,52#"))
+                applyActivityPanelLayout()
+            }
             if ProcessInfo.processInfo.arguments.contains("--ui-check-input") {
                 dialog = GameDialog(text: "你想对老村长说些什么？", inputCommand: "say $txt#")
             }
