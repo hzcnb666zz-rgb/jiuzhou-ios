@@ -124,6 +124,7 @@ struct AndroidEntryView: View {
                     .font(.system(size: 11)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
             }
             .frame(width: width * 0.60)
+            .frame(maxWidth: .infinity)
             .padding(.top, height * 0.55)
 
             if chooseServer {
