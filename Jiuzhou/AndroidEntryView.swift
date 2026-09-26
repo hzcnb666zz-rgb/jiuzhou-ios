@@ -437,9 +437,9 @@ struct AndroidEntryView: View {
             }
 
             // 居中深色磨砂卡片，标题→称呼→输入框→性别→按钮全部收进卡片
-            // 卡片顶边对齐用户标注横线（约 17% 屏高），整体左右居中
+            // 卡片顶边精确对齐用户标注横线（安全区顶 + 15% 屏高 = 横线位置），整体左右居中
             VStack(spacing: 0) {
-                Spacer().frame(height: height * 0.17)
+                Spacer().frame(height: height * 0.15)
 
                 VStack(alignment: .center, spacing: 12) {
                     // 标题金字 Logo（居中，缩小）
