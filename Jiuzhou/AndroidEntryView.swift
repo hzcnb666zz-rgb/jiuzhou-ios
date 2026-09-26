@@ -158,7 +158,7 @@ struct AndroidEntryView: View {
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
             .contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityIdentifier(secure ? "login.password" : "login.account")
+        }.buttonStyle(ScalelessButtonStyle()).accessibilityIdentifier(secure ? "login.password" : "login.account")
     }
 
     // MARK: - 注册弹窗
@@ -364,5 +364,13 @@ private struct LoginFieldStyle: ViewModifier {
         content.font(.system(size: 18)).padding(.horizontal, 16).frame(height: 48)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.35)))
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.5), lineWidth: 1))
+    }
+}
+
+private struct ScalelessButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
     }
 }
