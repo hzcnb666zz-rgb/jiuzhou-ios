@@ -100,9 +100,9 @@ struct AndroidEntryView: View {
                         Text("本地九州书剑录").font(.system(size: 14)).foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
                         Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold)).foregroundStyle(.white.opacity(0.7))
                     }
-                    .padding(.horizontal, 18).frame(height: 44)
+                    .padding(.horizontal, 14).frame(height: 44)
                     .background(MartialTagShape().fill(Color(red: 26/255, green: 19/255, blue: 11/255).opacity(0.68)))
-                    .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.7), lineWidth: 1.2))
+                    .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.7), lineWidth: 1.1))
                 }.buttonStyle(.plain)
 
                 // 登录 / 注册 并排
@@ -124,8 +124,8 @@ struct AndroidEntryView: View {
                 Text(game.status == "未连接" ? "" : game.status)
                     .font(.system(size: 12)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
             }
-            .padding(.horizontal, 34)
-            .padding(.top, height * 0.60)
+            .padding(.horizontal, 64)
+            .padding(.top, height * 0.62)
 
             if chooseServer {
                 serverSelectPanel(width: width, height: height)
@@ -145,9 +145,9 @@ struct AndroidEntryView: View {
         @ViewBuilder _ content: () -> Content,
         leftIcon: () -> String
     ) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 9) {
             Image(systemName: leftIcon())
-                .font(.system(size: 15))
+                .font(.system(size: 14))
                 .foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
             content()
                 .font(.system(size: 16))
@@ -158,23 +158,23 @@ struct AndroidEntryView: View {
                 rightAction?()
             } label: {
                 Image(systemName: rightIcon)
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255).opacity(0.9))
             }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 18).frame(height: 50)
+        .padding(.horizontal, 14).frame(height: 46)
         .background(MartialTagShape().fill(Color(red: 26/255, green: 19/255, blue: 11/255).opacity(0.68)))
-        .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.75), lineWidth: 1.2))
-        .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(0.3), radius: 6)
+        .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.75), lineWidth: 1.1))
+        .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(0.28), radius: 5)
     }
 
     // 武侠菱形按钮
     private func martialButton(_ title: String, glow: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(glow ? Color.white : Color(red: 235/255, green: 205/255, blue: 140/255))
-                .frame(maxWidth: .infinity).frame(height: 50)
+                .frame(maxWidth: .infinity).frame(height: 46)
                 .background(
                     MartialTagShape().fill(
                         glow
@@ -182,8 +182,8 @@ struct AndroidEntryView: View {
                         : LinearGradient(colors: [Color(red: 38/255, green: 28/255, blue: 16/255), Color(red: 26/255, green: 19/255, blue: 11/255)], startPoint: .top, endPoint: .bottom)
                     )
                 )
-                .overlay(MartialTagShape().stroke(Color(red: 222/255, green: 188/255, blue: 112/255), lineWidth: 1.3))
-                .shadow(color: Color(red: 200/255, green: 155/255, blue: 85/255).opacity(glow ? 0.6 : 0.3), radius: glow ? 10 : 5)
+                .overlay(MartialTagShape().stroke(Color(red: 222/255, green: 188/255, blue: 112/255), lineWidth: 1.2))
+                .shadow(color: Color(red: 200/255, green: 155/255, blue: 85/255).opacity(glow ? 0.55 : 0.3), radius: glow ? 9 : 5)
         }.buttonStyle(.plain)
     }
 
@@ -384,11 +384,11 @@ private struct SplashBackground: View {
     }
 }
 
-// 武侠符文标签形状：两端尖角
+// 武侠符文标签形状：两端秀气尖角
 private struct MartialTagShape: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
-        let point: CGFloat = min(12, rect.height * 0.28)
+        let point: CGFloat = 8
         p.move(to: CGPoint(x: rect.minX + point, y: rect.minY))
         p.addLine(to: CGPoint(x: rect.maxX - point, y: rect.minY))
         p.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
