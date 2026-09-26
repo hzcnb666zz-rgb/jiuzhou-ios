@@ -479,6 +479,7 @@ struct AndroidWorldView: View {
                 let descriptionHeight = usesNPCLayout
                     ? min(interactionTextHeight, max(0, availableHeight - actionHeight))
                     : min(interactionTextHeight, max(0, availableHeight - actionHeight))
+                ScrollViewReader { proxy in
                 ScrollView {
                     MudRichText(raw: dialog.text, send: game.act).font(.android(size: unit / 30))
                         .padding(5).frame(maxWidth: .infinity, alignment: .leading)
@@ -486,8 +487,21 @@ struct AndroidWorldView: View {
                         .background(GeometryReader { textGeometry in
                             Color.clear.preference(key: InteractionTextHeight.self, value: textGeometry.size.height)
                         })
+                        .id("interaction.textTop")
                 }.frame(height: descriptionHeight)
                     .accessibilityIdentifier("interaction.description")
+                    // 弹窗描述较长时，先到按钮帧到达再压缩高度，会导致 ScrollView
+                    // 停在底部、顶部说明被截断。打开/内容变化时主动滚回顶部。
+                    .onAppear {
+                        proxy.scrollTo("interaction.textTop", anchor: .top)
+                    }
+                    .onChange(of: dialog.text) { _ in
+                        proxy.scrollTo("interaction.textTop", anchor: .top)
+                    }
+                    .onChange(of: dialog.actions.count) { _ in
+                        proxy.scrollTo("interaction.textTop", anchor: .top)
+                    }
+                }
                 if dialog.inputCommand != nil {
                     HStack(spacing: 0) {
                         TextField("", text: $dialogInput).textInputAutocapitalization(.never).autocorrectionDisabled()
