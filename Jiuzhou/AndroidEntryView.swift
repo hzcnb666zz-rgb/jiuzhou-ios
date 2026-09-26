@@ -142,23 +142,25 @@ struct AndroidEntryView: View {
     }
 
     private func loginField(icon: String, placeholder: String, secure: Bool) -> some View {
-        let value = secure ? game.password : game.account
-        return Button {
-            registrationFieldIndex = nil
-            editingPassword = secure; credentialDraft = value; editingCredential = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: icon).foregroundStyle(Color(red: 220/255, green: 185/255, blue: 110/255))
-                Text(value.isEmpty ? placeholder : (secure ? String(repeating: "•", count: value.count) : value))
-                    .foregroundStyle(value.isEmpty ? Color.white.opacity(0.5) : Color.white)
-                Spacer()
+        HStack(spacing: 10) {
+            Image(systemName: icon).foregroundStyle(Color(red: 220/255, green: 185/255, blue: 110/255))
+            Group {
+                if secure {
+                    SecureField(placeholder, text: $game.password)
+                } else {
+                    TextField(placeholder, text: $game.account)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
             }
             .font(.system(size: 16))
-            .padding(.horizontal, 16).frame(height: 46)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
-            .contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityIdentifier(secure ? "login.password" : "login.account")
+            .foregroundStyle(.white)
+            .tint(Color(red: 230/255, green: 190/255, blue: 110/255))
+        }
+        .padding(.horizontal, 16).frame(height: 46)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
+        .accessibilityIdentifier(secure ? "login.password" : "login.account")
     }
 
     // MARK: - 注册弹窗
