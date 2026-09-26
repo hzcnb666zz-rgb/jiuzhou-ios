@@ -14,17 +14,20 @@ private struct BundleImage: View {
     let name: String
     let ext: String
     var body: some View {
-        let cacheKey = (name + "." + ext) as NSString
-        if let cached = BundleImageCache.shared.object(forKey: cacheKey) {
-            Image(uiImage: cached).resizable()
-        } else if let path = Bundle.main.path(forResource: name, ofType: ext),
-           let image = UIImage(contentsOfFile: path) {
-            BundleImageCache.shared.setObject(image, forKey: cacheKey)
+        if let image = Self.load(name: name, ext: ext) {
             Image(uiImage: image).resizable()
         } else {
             Color.clear
                 .onAppear { assertionFailure("Missing Android image: \(name).\(ext)") }
         }
+    }
+    private static func load(name: String, ext: String) -> UIImage? {
+        let key = (name + "." + ext) as NSString
+        if let cached = BundleImageCache.shared.object(forKey: key) { return cached }
+        guard let path = Bundle.main.path(forResource: name, ofType: ext),
+              let image = UIImage(contentsOfFile: path) else { return nil }
+        BundleImageCache.shared.setObject(image, forKey: key)
+        return image
     }
 }
 
