@@ -69,61 +69,58 @@ struct AndroidEntryView: View {
     }
 
     private func login(width: CGFloat, height: CGFloat) -> some View {
-        ZStack {
+        ZStack(alignment: .top) {
             SplashBackground()
 
-            VStack(spacing: 0) {
-                Spacer().frame(height: height * 0.38)
-                VStack(spacing: 13) {
-                    loginField(icon: "person.fill", placeholder: "请输入你的账号", secure: false)
-                    loginField(icon: "lock.fill", placeholder: "请输入你的密码", secure: true)
-                    Button { chooseServer = true } label: {
-                        HStack(spacing: 8) {
-                            Circle().fill(Color(red: 120/255, green: 220/255, blue: 130/255)).frame(width: 8, height: 8)
-                            Text("推荐服务器").font(.system(size: 13)).foregroundStyle(.white.opacity(0.7))
-                            Spacer()
-                            Text("本地九州书剑录").font(.system(size: 14)).foregroundStyle(.white)
-                            Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.7))
-                        }
-                        .padding(.horizontal, 16).frame(height: 46)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
-                    }.buttonStyle(.plain)
-                    Button {
-                        if game.account.isEmpty || game.password.isEmpty {
-                            game.status = "请输入账号和密码"
-                        } else {
-                            game.login()
-                        }
-                    } label: {
-                        Text("登 录")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, minHeight: 54)
-                            .background(
-                                Capsule().fill(
-                                    LinearGradient(
-                                        colors: [Color(red: 160/255, green: 110/255, blue: 50/255), Color(red: 110/255, green: 70/255, blue: 30/255)],
-                                        startPoint: .leading, endPoint: .trailing
-                                    )
+            VStack(spacing: 13) {
+                loginField(icon: "person.fill", placeholder: "请输入你的账号", secure: false)
+                loginField(icon: "lock.fill", placeholder: "请输入你的密码", secure: true)
+                Button { chooseServer = true } label: {
+                    HStack(spacing: 8) {
+                        Circle().fill(Color(red: 120/255, green: 220/255, blue: 130/255)).frame(width: 8, height: 8)
+                        Text("推荐服务器").font(.system(size: 13)).foregroundStyle(.white.opacity(0.7))
+                        Spacer()
+                        Text("本地九州书剑录").font(.system(size: 14)).foregroundStyle(.white)
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.7))
+                    }
+                    .padding(.horizontal, 16).frame(height: 46)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
+                }.buttonStyle(.plain)
+                Button {
+                    if game.account.isEmpty || game.password.isEmpty {
+                        game.status = "请输入账号和密码"
+                    } else {
+                        game.login()
+                    }
+                } label: {
+                    Text("登 录")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 54)
+                        .background(
+                            Capsule().fill(
+                                LinearGradient(
+                                    colors: [Color(red: 160/255, green: 110/255, blue: 50/255), Color(red: 110/255, green: 70/255, blue: 30/255)],
+                                    startPoint: .leading, endPoint: .trailing
                                 )
                             )
-                            .overlay(Capsule().strokeBorder(Color(red: 230/255, green: 190/255, blue: 110/255), lineWidth: 1.2))
-                            .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
-                    }.disabled(registeringRequest)
-                    // 底部链接
-                    HStack(spacing: 0) {
-                        Button("注册账号") { registering = true }
-                            .font(.system(size: 14)).foregroundStyle(Color(red: 230/255, green: 200/255, blue: 140/255))
-                        Text("   |   ").foregroundStyle(.white.opacity(0.3))
-                        Button("忘记密码") { game.status = "请联系管理员找回密码" }
-                            .font(.system(size: 14)).foregroundStyle(Color(red: 230/255, green: 200/255, blue: 140/255))
-                    }.padding(.top, 4)
-                    Text(game.status == "未连接" ? "" : game.status)
-                        .font(.system(size: 12)).foregroundStyle(.white).padding(.top, 2)
-                }.padding(.horizontal, 32)
-                Spacer().frame(height: height * 0.12)
+                        )
+                        .overlay(Capsule().strokeBorder(Color(red: 230/255, green: 190/255, blue: 110/255), lineWidth: 1.2))
+                        .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
+                }.disabled(registeringRequest)
+                HStack(spacing: 0) {
+                    Button("注册账号") { registering = true }
+                        .font(.system(size: 14)).foregroundStyle(Color(red: 230/255, green: 200/255, blue: 140/255))
+                    Text("   |   ").foregroundStyle(.white.opacity(0.3))
+                    Button("忘记密码") { game.status = "请联系管理员找回密码" }
+                        .font(.system(size: 14)).foregroundStyle(Color(red: 230/255, green: 200/255, blue: 140/255))
+                }.padding(.top, 4)
+                Text(game.status == "未连接" ? "" : game.status)
+                    .font(.system(size: 12)).foregroundStyle(.white).padding(.top, 2)
             }
+            .padding(.horizontal, 32)
+            .padding(.top, height * 0.38)
 
             // 选服弹窗
             if chooseServer {
@@ -133,8 +130,9 @@ struct AndroidEntryView: View {
             if registering {
                 registerPopup(width: width, height: height)
             }
-        }.foregroundStyle(.white).preferredColorScheme(.dark)
-        .ignoresSafeArea(.keyboard)
+        }
+        .foregroundStyle(.white).preferredColorScheme(.dark)
+        .ignoresSafeArea(.keyboard, edges: .all)
     }
 
     private func loginField(icon: String, placeholder: String, secure: Bool) -> some View {
