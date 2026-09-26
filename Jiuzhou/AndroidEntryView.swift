@@ -102,7 +102,7 @@ struct AndroidEntryView: View {
                     }
                     .padding(.horizontal, 18).frame(height: 44)
                     .background(MartialTagShape().fill(Color(red: 26/255, green: 19/255, blue: 11/255).opacity(0.68)))
-                    .overlay(MartialTagShape().strokeBorder(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.7), lineWidth: 1.2))
+                    .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.7), lineWidth: 1.2))
                 }.buttonStyle(.plain)
 
                 // 登录 / 注册 并排
@@ -164,7 +164,7 @@ struct AndroidEntryView: View {
         }
         .padding(.horizontal, 18).frame(height: 50)
         .background(MartialTagShape().fill(Color(red: 26/255, green: 19/255, blue: 11/255).opacity(0.68)))
-        .overlay(MartialTagShape().strokeBorder(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.75), lineWidth: 1.2))
+        .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.75), lineWidth: 1.2))
         .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(0.3), radius: 6)
     }
 
@@ -182,7 +182,7 @@ struct AndroidEntryView: View {
                         : LinearGradient(colors: [Color(red: 38/255, green: 28/255, blue: 16/255), Color(red: 26/255, green: 19/255, blue: 11/255)], startPoint: .top, endPoint: .bottom)
                     )
                 )
-                .overlay(MartialTagShape().strokeBorder(Color(red: 222/255, green: 188/255, blue: 112/255), lineWidth: 1.3))
+                .overlay(MartialTagShape().stroke(Color(red: 222/255, green: 188/255, blue: 112/255), lineWidth: 1.3))
                 .shadow(color: Color(red: 200/255, green: 155/255, blue: 85/255).opacity(glow ? 0.6 : 0.3), radius: glow ? 10 : 5)
         }.buttonStyle(.plain)
     }
