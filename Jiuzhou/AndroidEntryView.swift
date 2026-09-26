@@ -157,28 +157,31 @@ struct AndroidEntryView: View {
 
     private func serverSelectPanel(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
-            Color.black.opacity(0.45).ignoresSafeArea()
+            Color.black.opacity(0.45).ignoresSafeArea().allowsHitTesting(false)
             VStack(spacing: 18) {
                 Text("选择服务器")
                     .font(.android(size: 22)).fontWeight(.bold).foregroundStyle(.white)
                 Text("SELECT SERVER")
                     .font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
                 serverItem(name: "本地九州书剑录", status: "流畅", dot: Color(red: 80/255, green: 220/255, blue: 120/255), zone: "1区", recommended: true)
-                Button { game.login() } label: {
+                Button { chooseServer = false } label: {
                     Text("确 定")
                         .font(.android(size: 18)).fontWeight(.bold).foregroundStyle(.white)
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .background(Capsule().fill(Color(red: 20/255, green: 70/255, blue: 170/255).opacity(0.7)))
                         .overlay(Capsule().strokeBorder(Color(red: 140/255, green: 200/255, blue: 255/255), lineWidth: 1.5))
                         .shadow(color: .blue.opacity(0.6), radius: 8)
-                }.disabled(game.connecting)
-                Button("返回") { chooseServer = false }
-                    .font(.android(size: 15)).foregroundStyle(.white.opacity(0.8))
-                    .frame(maxWidth: .infinity, minHeight: 38)
-                    .background(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.4), lineWidth: 1))
+                }.buttonStyle(.plain)
+                Button { chooseServer = false } label: {
+                    Text("返 回")
+                        .font(.android(size: 15)).foregroundStyle(.white.opacity(0.85))
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.4), lineWidth: 1))
+                }.buttonStyle(.plain)
             }
             .padding(24).frame(width: width - 60)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 10/255, green: 25/255, blue: 60/255).opacity(0.92)))
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 10/255, green: 25/255, blue: 60/255).opacity(0.95)))
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color(red: 120/255, green: 190/255, blue: 255/255).opacity(0.6), lineWidth: 1.5))
         }
     }
