@@ -73,7 +73,7 @@ struct AndroidEntryView: View {
         ZStack(alignment: .top) {
             SplashBackground()
 
-            VStack(spacing: 14) {
+            VStack(spacing: width * 0.038) {
                 // 账号输入框
                 martialField(rightIcon: "hexagon") {
                     TextField("你的账号：", text: $game.account)
@@ -93,20 +93,20 @@ struct AndroidEntryView: View {
 
                 // 服务器选择
                 Button { chooseServer = true } label: {
-                    HStack(spacing: 8) {
-                        Circle().fill(Color(red: 120/255, green: 215/255, blue: 135/255)).frame(width: 8, height: 8)
-                        Text("选择服务器").font(.system(size: 14)).foregroundStyle(.white.opacity(0.75))
+                    HStack(spacing: 7) {
+                        Circle().fill(Color(red: 120/255, green: 215/255, blue: 135/255)).frame(width: 7, height: 7)
+                        Text("选择服务器").font(.system(size: 13)).foregroundStyle(.white.opacity(0.75))
                         Spacer()
-                        Text("本地九州书剑录").font(.system(size: 14)).foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
-                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold)).foregroundStyle(.white.opacity(0.7))
+                        Text("九州书剑录").font(.system(size: 13)).foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
+                        Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.7))
                     }
-                    .padding(.horizontal, 14).frame(height: 44)
+                    .padding(.horizontal, 11).frame(height: 38)
                     .background(MartialTagShape().fill(Color(red: 26/255, green: 19/255, blue: 11/255).opacity(0.68)))
-                    .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.7), lineWidth: 1.1))
+                    .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.7), lineWidth: 1))
                 }.buttonStyle(.plain)
 
                 // 登录 / 注册 并排
-                HStack(spacing: 18) {
+                HStack(spacing: width * 0.026) {
                     martialButton("登 录", glow: true) {
                         if game.account.isEmpty || game.password.isEmpty {
                             game.status = "请输入账号和密码"
@@ -118,15 +118,13 @@ struct AndroidEntryView: View {
                 }
 
                 Button("忘记密码？") { game.status = "请联系管理员找回密码" }
-                    .font(.system(size: 13)).foregroundStyle(Color(red: 232/255, green: 200/255, blue: 135/255).opacity(0.9))
-                    .padding(.top, 2)
+                    .font(.system(size: 12)).foregroundStyle(Color(red: 232/255, green: 200/255, blue: 135/255).opacity(0.9))
 
                 Text(game.status == "未连接" ? "" : game.status)
-                    .font(.system(size: 12)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
+                    .font(.system(size: 11)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 64)
-            .padding(.top, height * 0.62)
+            .frame(width: width * 0.60)
+            .padding(.top, height * 0.55)
 
             if chooseServer {
                 serverSelectPanel(width: width, height: height)
@@ -146,12 +144,12 @@ struct AndroidEntryView: View {
         @ViewBuilder _ content: () -> Content,
         leftIcon: () -> String
     ) -> some View {
-        HStack(spacing: 9) {
+        HStack(spacing: 7) {
             Image(systemName: leftIcon())
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
             content()
-                .font(.system(size: 16))
+                .font(.system(size: 14))
                 .foregroundStyle(.white)
                 .tint(Color(red: 228/255, green: 195/255, blue: 125/255))
             Spacer(minLength: 0)
@@ -159,13 +157,13 @@ struct AndroidEntryView: View {
                 rightAction?()
             } label: {
                 Image(systemName: rightIcon)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255).opacity(0.9))
             }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 14).frame(height: 46)
+        .padding(.horizontal, 11).frame(height: 42)
         .background(MartialTagShape().fill(Color(red: 26/255, green: 19/255, blue: 11/255).opacity(0.68)))
-        .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.75), lineWidth: 1.1))
+        .overlay(MartialTagShape().stroke(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.75), lineWidth: 1))
         .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(0.28), radius: 5)
     }
 
@@ -173,9 +171,9 @@ struct AndroidEntryView: View {
     private func martialButton(_ title: String, glow: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 17, weight: .bold))
+                .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(glow ? Color.white : Color(red: 235/255, green: 205/255, blue: 140/255))
-                .frame(maxWidth: .infinity).frame(height: 46)
+                .frame(maxWidth: .infinity).frame(height: 40)
                 .background(
                     MartialTagShape().fill(
                         glow
@@ -183,8 +181,8 @@ struct AndroidEntryView: View {
                         : LinearGradient(colors: [Color(red: 38/255, green: 28/255, blue: 16/255), Color(red: 26/255, green: 19/255, blue: 11/255)], startPoint: .top, endPoint: .bottom)
                     )
                 )
-                .overlay(MartialTagShape().stroke(Color(red: 222/255, green: 188/255, blue: 112/255), lineWidth: 1.2))
-                .shadow(color: Color(red: 200/255, green: 155/255, blue: 85/255).opacity(glow ? 0.55 : 0.3), radius: glow ? 9 : 5)
+                .overlay(MartialTagShape().stroke(Color(red: 222/255, green: 188/255, blue: 112/255), lineWidth: 1.1))
+                .shadow(color: Color(red: 200/255, green: 155/255, blue: 85/255).opacity(glow ? 0.55 : 0.3), radius: glow ? 8 : 4)
         }.buttonStyle(.plain)
     }
 
