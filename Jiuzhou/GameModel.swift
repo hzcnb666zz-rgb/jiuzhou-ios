@@ -856,9 +856,10 @@ final class GameModel: ObservableObject {
         // 将右侧活动列表移到主区域，清空左侧分类列
         current.actions = current.secondary
         current.secondary = []
-        // 2列布局：卡片比原始版更宽，用 divisor=36 的字体（比服务器原始52略大、可读），
-        // 让奖励/时间长内容在一行内放下，三行紧凑完整、不换行不截断。
-        current.layout = MudLayout("$2,2,8,36#")
+        // 完全沿用活动列表原始布局参数(2列/小字divisor=52/卡片高divisor=9)，
+        // 与服务器原右侧活动卡片的字体大小、尺寸完全一致；只是去掉了左侧分类列，
+        // 活动卡片因此占满面板宽度，每行能显示更多内容而不截断。
+        current.layout = current.secondaryLayout.columns > 1 ? current.secondaryLayout : MudLayout("$2,2,9,52#")
         current.secondaryLayout = MudLayout()
         dialog = current
     }
