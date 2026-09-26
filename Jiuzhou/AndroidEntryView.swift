@@ -78,7 +78,7 @@ struct AndroidEntryView: View {
             ).ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Spacer()
+                Spacer().frame(height: height * 0.38)
                 VStack(spacing: 13) {
                     loginField(icon: "person.fill", placeholder: "请输入你的账号", secure: false)
                     loginField(icon: "lock.fill", placeholder: "请输入你的密码", secure: true)
@@ -142,23 +142,25 @@ struct AndroidEntryView: View {
     }
 
     private func loginField(icon: String, placeholder: String, secure: Bool) -> some View {
-        let value = secure ? game.password : game.account
-        return Button {
-            registrationFieldIndex = nil
-            editingPassword = secure; credentialDraft = value; editingCredential = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: icon).foregroundStyle(Color(red: 220/255, green: 185/255, blue: 110/255))
-                Text(value.isEmpty ? placeholder : (secure ? String(repeating: "•", count: value.count) : value))
-                    .foregroundStyle(value.isEmpty ? Color.white.opacity(0.5) : Color.white)
-                Spacer()
+        HStack(spacing: 10) {
+            Image(systemName: icon).foregroundStyle(Color(red: 220/255, green: 185/255, blue: 110/255))
+            Group {
+                if secure {
+                    SecureField(placeholder, text: $game.password)
+                } else {
+                    TextField(placeholder, text: $game.account)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
             }
-            .font(.system(size: 15))
-            .padding(.horizontal, 16).frame(height: 46)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
-            .contentShape(Rectangle())
-        }.buttonStyle(ScalelessButtonStyle()).accessibilityIdentifier(secure ? "login.password" : "login.account")
+            .font(.system(size: 16))
+            .foregroundStyle(.white)
+            .tint(Color(red: 230/255, green: 190/255, blue: 110/255))
+        }
+        .padding(.horizontal, 16).frame(height: 46)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
+        .accessibilityIdentifier(secure ? "login.password" : "login.account")
     }
 
     // MARK: - 注册弹窗
@@ -182,10 +184,10 @@ struct AndroidEntryView: View {
                     }.buttonStyle(.plain)
                 }.padding(.bottom, 18)
 
-                registerField("账号", value: registrationAccount, index: 0, placeholder: "字母开头，4-12位")
-                registerField("密码", value: registrationPassword, index: 1, placeholder: "15位以内")
-                registerField("确认密码", value: confirmedPassword, index: 2, placeholder: "再输一次密码")
-                registerField("手机号", value: phone, index: 3, placeholder: "11位手机号")
+                registerField("账号", text: $registrationAccount, placeholder: "字母开头，4-12位")
+                registerField("密码", text: $registrationPassword, placeholder: "15位以内", secure: true)
+                registerField("确认密码", text: $confirmedPassword, placeholder: "再输一次密码", secure: true)
+                registerField("手机号", text: $phone, placeholder: "11位手机号")
 
                 Button(action: register) {
                     Text("注 册")
@@ -220,24 +222,24 @@ struct AndroidEntryView: View {
         }
     }
 
-    private func registerField(_ label: String, value: String, index: Int, placeholder: String) -> some View {
+    private func registerField(_ label: String, text: Binding<String>, placeholder: String, secure: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.system(size: 13)).foregroundStyle(Color(red: 220/255, green: 190/255, blue: 130/255))
-            Button {
-                registrationFieldIndex = index
-                editingPassword = (index == 1 || index == 2)
-                credentialDraft = value
-                editingCredential = true
-            } label: {
-                Text(value.isEmpty ? placeholder : value)
-                    .font(.system(size: 15))
-                    .foregroundStyle(value.isEmpty ? Color.white.opacity(0.45) : Color.white)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14).frame(height: 42)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.3), lineWidth: 1))
-                    .contentShape(Rectangle())
-            }.buttonStyle(.plain)
+            Group {
+                if secure {
+                    SecureField(placeholder, text: text)
+                } else {
+                    TextField(placeholder, text: text)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+            }
+            .font(.system(size: 15))
+            .foregroundStyle(.white)
+            .tint(Color(red: 230/255, green: 190/255, blue: 110/255))
+            .padding(.horizontal, 14).frame(height: 42)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.3), lineWidth: 1))
         }.padding(.bottom, 12)
     }
 

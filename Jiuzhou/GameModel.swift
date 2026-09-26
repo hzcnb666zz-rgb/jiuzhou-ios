@@ -192,6 +192,14 @@ final class GameModel: ObservableObject {
         transport.onFrame = { [weak self] in self?.receive($0) }
         transport.onStatus = { [weak self] text, ready in
             guard let self else { return }
+            if !ready && self.sentCredentials && !self.inWorld && !self.intentionalDisconnect {
+                // 登录阶段发送凭证后被断开，说明账号或密码错误
+                self.status = "账号或密码错误，请重新输入"
+                self.connected = false
+                self.connecting = false
+                self.sentCredentials = false
+                return
+            }
             self.status = text
             self.connected = ready
             if ready || !text.hasPrefix("等待网络") && text != "正在连接" { self.connecting = false }
