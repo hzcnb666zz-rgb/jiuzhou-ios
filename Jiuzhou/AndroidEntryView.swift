@@ -518,7 +518,7 @@ private struct SplashBackground: View {
             Color(red: 13/255, green: 16/255, blue: 26/255).ignoresSafeArea()
             if let path = Bundle.main.path(forResource: "splash", ofType: "jpeg"),
                let image = UIImage(contentsOfFile: path) {
-                Image(uiImage: image).resizable().scaledToFit()
+                Image(uiImage: image).resizable().scaledToFill().ignoresSafeArea()
             }
         }
     }
