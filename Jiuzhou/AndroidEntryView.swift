@@ -437,9 +437,9 @@ struct AndroidEntryView: View {
             }
 
             // 居中深色磨砂卡片，标题→称呼→输入框→性别→按钮全部收进卡片
-            // 卡片整体上移：顶边对齐楼底（约 30% 屏高），按钮落到 ~57%（效果图位置），整体左右居中
+            // 卡顶精确落在 40% 屏高（spacer 从安全区算，0.38 + 顶部刘海 ≈ 40%），整体左右居中
             VStack(spacing: 0) {
-                Spacer().frame(height: height * 0.30)
+                Spacer().frame(height: height * 0.38)
 
                 VStack(alignment: .center, spacing: 9) {
                     // 标题金字 Logo（居中）
