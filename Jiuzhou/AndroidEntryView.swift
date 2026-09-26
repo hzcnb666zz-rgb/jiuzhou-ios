@@ -74,7 +74,7 @@ struct AndroidEntryView: View {
             if chooseServer {
                 serverSelectPanel(width: width, height: height)
             } else if registering {
-                registration(width: width)
+                registration(width: width, height: height)
             } else {
                 VStack(spacing: 0) {
                     Spacer()
@@ -250,29 +250,48 @@ struct AndroidEntryView: View {
         return editingPassword ? "请输入密码：" : "请输入账号："
     }
 
-    private func registration(width: CGFloat) -> some View {
-        ScrollView {
-            ZStack(alignment: .top) {
-                HStack(spacing: 0) {
-                    Button("登 录") { registering = false }.buttonStyle(LoginButtonStyle())
-                    Text("注 册").frame(maxWidth: .infinity).frame(height: 45)
+    private func registration(width: CGFloat, height: CGFloat) -> some View {
+        ZStack {
+            Group {
+                if let url = Bundle.main.url(forResource: "register_bg", withExtension: "jpeg"), let img = UIImage(contentsOfFile: url.path) {
+                    Image(uiImage: img).resizable().scaledToFill()
+                } else { Color(red: 8/255, green: 18/255, blue: 45/255) }
+            }.ignoresSafeArea()
+            VStack(spacing: 0) {
+                // 顶部Tab
+                HStack(spacing: 10) {
+                    Button { registering = false } label: {
+                        Text("登 录").font(.android(size: 15)).foregroundStyle(.white.opacity(0.7))
+                            .frame(maxWidth: .infinity, minHeight: 40)
+                            .background(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.3), lineWidth: 1))
+                    }.buttonStyle(.plain)
+                    Text("注 册").font(.android(size: 15)).fontWeight(.bold).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color(red: 30/255, green: 80/255, blue: 160/255).opacity(0.6)))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(red: 120/255, green: 190/255, blue: 255/255), lineWidth: 1))
+                }.padding(.horizontal, 30).padding(.top, 20)
+                ScrollView {
+                    VStack(spacing: 14) {
+                        registrationField("你的账号", hint: "字母开头，4-12位字母或数字", value: registrationAccount, index: 0)
+                        registrationField("你的密码", hint: "15位以内字母或数字", value: registrationPassword, index: 1)
+                        registrationField("确认你的密码", hint: "请再输一次密码", value: confirmedPassword, index: 2)
+                        registrationField("你的手机号", hint: "请输入11位手机号", value: phone, index: 3)
+                        Button(action: register) {
+                            Text("注 册").font(.android(size: 19)).fontWeight(.bold).foregroundStyle(.white)
+                                .frame(maxWidth: .infinity, minHeight: 50)
+                                .background(Capsule().fill(LinearGradient(colors: [Color(red: 30/255, green: 90/255, blue: 200/255), Color(red: 15/255, green: 50/255, blue: 130/255)], startPoint: .leading, endPoint: .trailing)))
+                                .overlay(Capsule().strokeBorder(Color(red: 140/255, green: 200/255, blue: 255/255), lineWidth: 1.5))
+                                .shadow(color: .blue.opacity(0.7), radius: 10)
+                        }.buttonStyle(.plain).disabled(registeringRequest)
+                            .accessibilityIdentifier("register.submit")
+                        Button("返回登录") { registering = false }
+                            .font(.android(size: 14)).foregroundStyle(.white.opacity(0.75)).padding(.top, 4)
+                        Text(game.status == "未连接" ? "" : game.status)
+                            .font(.android(size: 12)).foregroundStyle(.white).padding(.top, 2)
+                    }.padding(.horizontal, 30).padding(.top, 30)
                 }
-                VStack(alignment: .leading, spacing: 0) {
-                    registrationField("你的账号", hint: "字母开头，4-12位字母或数字", value: registrationAccount, index: 0)
-                    registrationField("你的密码", hint: "15位以内字母或数字", value: registrationPassword, index: 1)
-                    registrationField("确认你的密码", hint: "请再输一次密码", value: confirmedPassword, index: 2)
-                    registrationField("你的手机号", hint: "请输入您的手机号码", value: phone, index: 3)
-                    Button("注 册", action: register).buttonStyle(LoginButtonStyle())
-                        .accessibilityIdentifier("register.submit")
-                        #if DEBUG
-                        .accessibilityValue(String(Double(width)))
-                        #endif
-                        .padding(.leading, 13).padding(.trailing, 16).padding(.top, 43)
-                        .disabled(registeringRequest)
-                    Text(game.status == "未连接" ? "" : game.status).font(.android(size: 13)).padding(10)
-                }.padding(.top, 70)
-            }.padding(1)
-        }.disabled(registeringRequest)
+            }
+        }.foregroundStyle(.white).preferredColorScheme(.dark)
     }
 
     private func registrationField(_ label: String, hint: String, value: String, index: Int) -> some View {
