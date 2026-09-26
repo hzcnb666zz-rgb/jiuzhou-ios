@@ -372,15 +372,12 @@ struct AndroidEntryView: View {
 
 private struct SplashBackground: View {
     var body: some View {
-        if let path = Bundle.main.path(forResource: "splash", ofType: "jpeg"),
-           let image = UIImage(contentsOfFile: path) {
-            Image(uiImage: image).resizable().scaledToFill()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-                .ignoresSafeArea()
-        } else {
-            Color(red: 20/255, green: 15/255, blue: 10/255)
-                .ignoresSafeArea()
+        ZStack {
+            Color(red: 13/255, green: 16/255, blue: 26/255).ignoresSafeArea()
+            if let path = Bundle.main.path(forResource: "splash", ofType: "jpeg"),
+               let image = UIImage(contentsOfFile: path) {
+                Image(uiImage: image).resizable().scaledToFit()
+            }
         }
     }
 }
