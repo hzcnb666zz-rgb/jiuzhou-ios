@@ -330,7 +330,7 @@ struct AndroidEntryView: View {
             .font(.system(size: 15))
             .foregroundStyle(.white)
             .tint(Color(red: 228/255, green: 195/255, blue: 125/255))
-            .onChange(of: text.wrappedValue) { _, newValue in
+            .onChange(of: text.wrappedValue) { newValue in
                 if let maxLength, newValue.count > maxLength {
                     text.wrappedValue = String(newValue.prefix(maxLength))
                 }
