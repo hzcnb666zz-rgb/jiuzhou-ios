@@ -74,7 +74,7 @@ struct AndroidEntryView: View {
             if chooseServer {
                 VStack(spacing: 0) {
                     Text("分区列表").font(.android(size: 18)).foregroundStyle(.white)
-                        .frame(maxWidth: .infinity).frame(height: 50).background(.black).padding(.bottom, 5)
+                        .frame(maxWidth: .infinity).frame(height: 50).background(.black.opacity(0.4)).padding(.bottom, 5)
                     serverHeading("最近登录分区:", size: 13)
                     serverRow(width: width - 23, height: height, screenWidth: width).padding(.horizontal, 11.5)
                     serverHeading("更 多 分 区", size: 18)
@@ -87,39 +87,67 @@ struct AndroidEntryView: View {
                     #if DEBUG
                     Button("服务器设置") { settings = true }.font(.android(size: 13)).padding(10)
                     #endif
-                    Text(game.status).font(.android(size: 13)).padding(10)
+                    Text(game.status).font(.android(size: 13)).foregroundStyle(.white).padding(10)
                     if game.connecting { ProgressView() }
                     Spacer(minLength: 0)
                 }
             } else if registering {
                 registration(width: width)
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: height * 0.10)
+                    // 标题区
+                    Text("九州书剑录")
+                        .font(.system(size: width / 9, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .shadow(color: .blue.opacity(0.9), radius: 14, x: 0, y: 0)
+                        .shadow(color: .black.opacity(0.6), radius: 4, x: 0, y: 2)
+                    Text("以剑为书 · 以武入道")
+                        .font(.android(size: 14))
+                        .foregroundStyle(Color(red: 180/255, green: 210/255, blue: 255/255))
+                        .padding(.top, 8)
+                    Spacer()
+                    // 登录表单
+                    VStack(spacing: 14) {
                         HStack(spacing: 8) {
                             Button("登 录") { registering = false }
-                                .buttonStyle(.plain).frame(maxWidth: .infinity, minHeight: 45)
+                                .buttonStyle(.plain).frame(maxWidth: .infinity, minHeight: 40)
                             Button("注 册") { registering = true }
-                        }.buttonStyle(LoginButtonStyle()).padding(.bottom, 15)
-                        fieldLabel("你的账号：")
+                                .buttonStyle(.plain).frame(maxWidth: .infinity, minHeight: 40)
+                        }.buttonStyle(LoginTabStyle(active: !registering))
                         credentialField(password: false)
-                        fieldLabel("你的密码：")
                         credentialField(password: true)
-                        HStack(spacing: 8) {
-                            Button("登 录") {
-                                if game.account.isEmpty || game.password.isEmpty {
-                                    game.status = "请输入账号和密码"
-                                } else {
-                                    game.status = "请选择分区"; chooseServer = true
-                                }
+                        Button {
+                            if game.account.isEmpty || game.password.isEmpty {
+                                game.status = "请输入账号和密码"
+                            } else {
+                                game.status = "请选择分区"; chooseServer = true
                             }
-                            Button("退 出") { game.logout(); game.password = "" }
-                        }.buttonStyle(LoginButtonStyle()).padding(.top, 50).disabled(registeringRequest)
-                        Text(game.status == "未连接" ? "" : game.status).font(.android(size: 13)).padding(10)
-                    }.padding(.horizontal, 10)
+                        } label: {
+                            Text("进入游戏")
+                                .font(.android(size: 20)).fontWeight(.bold)
+                                .frame(maxWidth: .infinity, minHeight: 52)
+                                .foregroundStyle(.white)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(red: 20/255, green: 60/255, blue: 140/255).opacity(0.55))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .strokeBorder(Color(red: 120/255, green: 190/255, blue: 255/255), lineWidth: 1.5)
+                                        .shadow(color: .blue.opacity(0.6), radius: 8)
+                                )
+                        }.disabled(registeringRequest)
+                        Button("退 出") { game.logout(); game.password = "" }
+                            .font(.android(size: 14)).foregroundStyle(.white.opacity(0.8))
+                            .padding(.top, 4)
+                        Text(game.status == "未连接" ? "" : game.status)
+                            .font(.android(size: 13)).foregroundStyle(.white).padding(.top, 4)
+                    }.padding(.horizontal, 28)
+                    Spacer().frame(height: height * 0.12)
                 }
             }
-        }.foregroundStyle(.black).font(.android(size: 18)).tint(.black).preferredColorScheme(.light)
+        }.foregroundStyle(.white).font(.android(size: 18)).preferredColorScheme(.dark)
     }
 
     private func serverHeading(_ text: String, size: CGFloat) -> some View {
@@ -187,21 +215,21 @@ struct AndroidEntryView: View {
 
     private func registrationField(_ label: String, hint: String, value: String, index: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(label).font(.android(size: 20)).padding(.horizontal, 1).frame(height: 40)
+            Text(label).font(.android(size: 18)).foregroundStyle(Color(red: 180/255, green: 210/255, blue: 255/255)).padding(.horizontal, 4).frame(height: 36)
             Button {
                 registrationFieldIndex = index
                 editingPassword = false
                 credentialDraft = value
                 editingCredential = true
             } label: {
-                Text(value.isEmpty ? hint : value).font(.android(size: 18))
-                    .foregroundStyle(value.isEmpty ? Color.gray : Color.black)
+                Text(value.isEmpty ? hint : value).font(.android(size: 16))
+                    .foregroundStyle(value.isEmpty ? Color.white.opacity(0.5) : Color.white)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20).modifier(LoginFieldStyle())
+                    .padding(.horizontal, 16).modifier(LoginFieldStyle())
                     .contentShape(Rectangle())
             }.buttonStyle(.plain).padding(.horizontal, 10)
                 .accessibilityIdentifier("register.\(["account", "password", "confirmation", "phone"][index])")
-        }.padding(.bottom, 20)
+        }.padding(.bottom, 18)
     }
 
     private func register() {
@@ -236,10 +264,18 @@ struct AndroidEntryView: View {
             registrationFieldIndex = nil
             editingPassword = password; credentialDraft = value; editingCredential = true
         } label: {
-            Text(value.isEmpty ? (password ? "请输入你的密码" : "请输入你的账号") : password ? String(repeating: "•", count: value.count) : value)
-                .foregroundStyle(value.isEmpty ? Color.gray : Color.black)
-                .frame(maxWidth: .infinity, alignment: .leading).modifier(LoginFieldStyle())
-                .contentShape(Rectangle())
+            HStack(spacing: 10) {
+                Image(systemName: password ? "lock.fill" : "person.fill")
+                    .foregroundStyle(Color(red: 120/255, green: 190/255, blue: 255/255))
+                Text(value.isEmpty ? (password ? "请输入密码" : "请输入账号") : password ? String(repeating: "•", count: value.count) : value)
+                    .foregroundStyle(value.isEmpty ? Color.white.opacity(0.5) : Color.white)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .padding(.horizontal, 16)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.35)))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 120/255, green: 190/255, blue: 255/255).opacity(0.6), lineWidth: 1))
+            .contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier(password ? "login.password" : "login.account")
     }
 
@@ -271,9 +307,25 @@ private struct LoginButtonStyle: ButtonStyle {
     var heightDivisor: CGFloat = 10
     @Environment(\.mudDisplayWidth) private var width
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.foregroundStyle(Color.black).frame(maxWidth: .infinity, minHeight: width / heightDivisor)
-            .background(configuration.isPressed ? Color.white.opacity(0.3) : .clear)
-            .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(.gray, lineWidth: 1))
+        configuration.label.foregroundStyle(Color.white).frame(maxWidth: .infinity, minHeight: width / heightDivisor)
+            .background(configuration.isPressed ? Color.white.opacity(0.2) : Color.black.opacity(0.25))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 120/255, green: 190/255, blue: 255/255).opacity(0.5), lineWidth: 1))
+    }
+}
+
+private struct LoginTabStyle: ButtonStyle {
+    var active: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(active ? Color.white : Color.white.opacity(0.6))
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(active ? Color(red: 30/255, green: 80/255, blue: 160/255).opacity(0.6) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Color(red: 120/255, green: 190/255, blue: 255/255).opacity(active ? 0.8 : 0.3), lineWidth: 1)
+            )
     }
 }
 
@@ -291,7 +343,8 @@ private struct SplashBackground: View {
 private struct LoginFieldStyle: ViewModifier {
     @Environment(\.mudDisplayWidth) private var width
     func body(content: Content) -> some View {
-        content.font(.android(size: 20)).padding(.horizontal, 20).frame(height: width / 11)
-            .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(.gray, lineWidth: 1))
+        content.font(.android(size: 18)).padding(.horizontal, 16).frame(height: 48)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.35)))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 120/255, green: 190/255, blue: 255/255).opacity(0.6), lineWidth: 1))
     }
 }
