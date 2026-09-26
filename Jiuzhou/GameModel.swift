@@ -702,13 +702,13 @@ final class GameModel: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.1) { [weak self] in
                 self?.combatEffects.removeAll { $0.id == effect.id }
             }
-        case "017": fighting = false; fightMessages = []
+        case "017": fighting = false; fightMessages = []; objectHealth = [:]
         case "022":
             let parts = text.components(separatedBy: "$zj#")
             if parts.count == 2 {
                 let values = parts[1].split(separator: "/").compactMap { Double($0) }
                 if values.count >= 2, let maximum = values.last, maximum > 0 {
-                    objectHealth[parts[0]] = min(1, max(0, values[0] / maximum))
+                    objectHealth[MudText.plain(parts[0])] = min(1, max(0, values[0] / maximum))
                 }
             }
         case "023":
