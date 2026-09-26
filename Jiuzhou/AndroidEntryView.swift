@@ -139,6 +139,7 @@ struct AndroidEntryView: View {
                 registerPopup(width: width, height: height)
             }
         }.foregroundStyle(.white).preferredColorScheme(.dark)
+        .ignoresSafeArea(.keyboard)
     }
 
     private func loginField(icon: String, placeholder: String, secure: Bool) -> some View {
