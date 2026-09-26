@@ -620,11 +620,21 @@ final class GameModel: ObservableObject {
             let updatedStats: [GameStat] = MudText.withoutLayout(text).components(separatedBy: "║").compactMap { entry -> GameStat? in
                 let parts = entry.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false).map(String.init)
                 guard parts.count >= 3 else { return nil }
+                // 敌人血量条：标签形如 "敌.名字:当前/临时/最大:#颜色"。
+                // 不进底部玩家血条，而是按名字存入 objectHealth，驱动左侧NPC按钮上的红条。
+                let rawLabel = parts[0]
+                if rawLabel.hasPrefix("敌.") {
+                    let npcName = MudText.plain(String(rawLabel.dropFirst(2)))
+                    let nums = parts[1].split(separator: "/").compactMap { Double($0) }
+                    if nums.count >= 2, let maxHp = nums.last, maxHp > 0 {
+                        objectHealth[npcName] = min(1, max(0, nums[0] / maxHp))
+                    }
+                    return nil
+                }
                 // The status frame names the innate-qi bar "精力" (older frames)
                 // or "炁" (current frames). Both are the same 先天之炁 resource;
                 // normalize the label so the bar reads "先天之炁" and tracks the
                 // real xiantian value instead of a different resource.
-                let rawLabel = parts[0]
                 let label: String
                 if rawLabel.hasPrefix("精力.") || rawLabel == "精力" {
                     label = "先天之炁" + String(rawLabel.dropFirst("精力".count))

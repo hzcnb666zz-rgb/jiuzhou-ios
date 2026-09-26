@@ -130,11 +130,6 @@ struct AndroidWorldView: View {
                                     ForEach(game.objects) { object in
                                         Button { game.act(object.command) } label: {
                                             VStack(spacing: 0) {
-                                                MudRichText(raw: object.display, send: game.act)
-                                                    .foregroundStyle(mode == "night" ? Color(red: 221/255, green: 187/255, blue: 153/255) : ink)
-                                                    .font(.android(size: unit / 35)).multilineTextAlignment(.center)
-                                                    .frame(maxWidth: .infinity)
-                                                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
                                                 if let fraction = game.objectHealth[object.label] {
                                                     GeometryReader { g in
                                                         ZStack(alignment: .leading) {
@@ -143,6 +138,11 @@ struct AndroidWorldView: View {
                                                         }
                                                     }.frame(height: 3)
                                                 }
+                                                MudRichText(raw: object.display, send: game.act)
+                                                    .foregroundStyle(mode == "night" ? Color(red: 221/255, green: 187/255, blue: 153/255) : ink)
+                                                    .font(.android(size: unit / 35)).multilineTextAlignment(.center)
+                                                    .frame(maxWidth: .infinity)
+                                                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(red: 180/255, green: 105/255, blue: 62/255).opacity(0.2)))
                                             }.padding(.vertical, 3)
                                                 .background(mode == "night" ? Color(white: 238/255).opacity(34/255) : .clear)
                                                 .padding(1).frame(width: unit / 7, height: unit / 10)
