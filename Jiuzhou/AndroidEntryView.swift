@@ -144,7 +144,7 @@ struct AndroidEntryView: View {
             editingPassword = secure; credentialDraft = value; editingCredential = true
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: icon).foregroundStyle(Color(220/255, 185/255, 110/255))
+                Image(systemName: icon).foregroundStyle(Color(red: 220/255, green: 185/255, blue: 110/255))
                 Text(value.isEmpty ? placeholder : (secure ? String(repeating: "•", count: value.count) : value))
                     .foregroundStyle(value.isEmpty ? Color.white.opacity(0.5) : Color.white)
                 Spacer()
@@ -152,7 +152,7 @@ struct AndroidEntryView: View {
             .font(.system(size: 16))
             .padding(.horizontal, 16).frame(height: 46)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(200/255, 170/255, 100/255).opacity(0.4), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
             .contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier(secure ? "login.password" : "login.account")
     }
