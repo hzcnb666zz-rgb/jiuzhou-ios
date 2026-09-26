@@ -856,8 +856,9 @@ final class GameModel: ObservableObject {
         // 将右侧活动列表移到主区域，清空左侧分类列
         current.actions = current.secondary
         current.secondary = []
-        // 2列布局：卡片加高到unit/6，字体unit/30，保证名称/活动奖励/活动时间三行完整显示
-        current.layout = MudLayout("$2,2,6,30#")
+        // 2列布局：卡片加高到unit/5，可容纳名称+奖励(长则换两行)+时间共4行，
+        // 长奖励自然换行后第三行活动时间仍完整显示，不截断、不精简文字。
+        current.layout = MudLayout("$2,2,5,30#")
         current.secondaryLayout = MudLayout()
         dialog = current
     }
