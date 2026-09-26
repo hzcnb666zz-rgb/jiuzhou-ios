@@ -124,6 +124,7 @@ struct AndroidEntryView: View {
                 Text(game.status == "未连接" ? "" : game.status)
                     .font(.system(size: 12)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
             }
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 64)
             .padding(.top, height * 0.62)
 
@@ -378,8 +379,10 @@ private struct SplashBackground: View {
             Image(uiImage: image).resizable().scaledToFill()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipped()
+                .ignoresSafeArea()
         } else {
             Color(red: 20/255, green: 15/255, blue: 10/255)
+                .ignoresSafeArea()
         }
     }
 }
