@@ -19,6 +19,7 @@ struct GameDialog: Identifiable {
     var layout = MudLayout()
     var secondaryLayout = MudLayout()
     var kind = "interaction"
+    var persistent = false
     var rewards: [GameReward] = []
     var experience = ""
     var money = ""
@@ -556,7 +557,12 @@ final class GameModel: ObservableObject {
             let parts = text.components(separatedBy: "$zj#")
             if parts.count >= 2 { dialog = GameDialog(text: styleStream.render(parts[0]), inputCommand: parts[1]) }
         case "002":
-            room = styleStream.render(text); objects = []; exits = []; dialog = nil
+            room = styleStream.render(text); objects = []; exits = []
+            // The login announcement (news) is delivered as a 007 panel right
+            // before the first room frame; without protection the auto "look"
+            // would close it within a second ("更新公告跳一下就没了"). Keep it
+            // open until the player taps one of its buttons.
+            if dialog?.persistent != true { dialog = nil }
             combatEffects = []
             voiceRecorderVisible = false
             fighting = false; customButtonsVisible = false; objectHealth = [:]
@@ -590,6 +596,9 @@ final class GameModel: ObservableObject {
             // actual content grid (destinations, mailbox folders).
             next.text = styleStream.render(text)
             next.kind = npc ? "npc" : (item ? "item" : (pageActions.isEmpty ? "interaction" : "pages"))
+            // The server-sent update announcement opens as a panel; mark it
+            // persistent so the first room frame does not dismiss it.
+            next.persistent = MudText.plain(text).contains("更新公告")
             dialog = next
             pendingNPCObjectLook = false
         case "008", "009":

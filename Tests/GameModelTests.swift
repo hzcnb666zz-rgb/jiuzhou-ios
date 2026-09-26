@@ -118,6 +118,34 @@ final class GameModelTests: XCTestCase {
         XCTAssertEqual(game.dialog?.kind, "interaction")
     }
 
+    func testAnnouncementPanelSurvivesRoomFrameUntilButtonTap() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.onStatus?("已连接", true)
+        wire.receive("002", "未明谷")
+        // Server sends the login announcement as a 007 panel.
+        wire.receive("007", "【更新公告】$br#2024.5.20 (1/378)$br#首页|news$u#上一页|news 1$u#下一页|news 2")
+        XCTAssertEqual(game.dialog?.kind, "pages")
+        XCTAssertTrue(game.dialog?.persistent == true)
+        // The auto look's room frame must NOT dismiss the announcement.
+        wire.receive("002", "未明谷")
+        XCTAssertNotNil(game.dialog)
+        XCTAssertEqual(game.dialog?.kind, "pages")
+        // Tapping a button closes it, like any other panel.
+        game.act("news")
+        XCTAssertNil(game.dialog)
+    }
+
+    func testOrdinaryPanelStillClosesOnRoomFrame() {
+        let wire = RecordingTransport()
+        let game = GameModel(transport: wire)
+        wire.receive("002", "未明谷")
+        wire.receive("007", "电子驿站$br#这里是邮件列表。")
+        XCTAssertTrue(game.dialog?.persistent != true)
+        wire.receive("002", "未明谷")
+        XCTAssertNil(game.dialog)
+    }
+
     func testItemDescriptionUsesIsolatedDetailKindWithoutAffectingPages() {
         let wire = RecordingTransport()
         let game = GameModel(transport: wire)
