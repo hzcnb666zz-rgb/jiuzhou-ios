@@ -71,11 +71,6 @@ struct AndroidEntryView: View {
     private func login(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
             SplashBackground()
-            // 顶部压暗渐变，让标题更清晰
-            LinearGradient(
-                colors: [Color.black.opacity(0.35), Color.clear],
-                startPoint: .top, endPoint: .center
-            ).ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer().frame(height: height * 0.38)
@@ -139,6 +134,7 @@ struct AndroidEntryView: View {
                 registerPopup(width: width, height: height)
             }
         }.foregroundStyle(.white).preferredColorScheme(.dark)
+        .ignoresSafeArea(.keyboard)
     }
 
     private func loginField(icon: String, placeholder: String, secure: Bool) -> some View {
