@@ -125,12 +125,12 @@ final class GameModelTests: XCTestCase {
         wire.receive("002", "未明谷")
         // Server sends the login announcement as a 007 panel.
         wire.receive("007", "【更新公告】$br#2024.5.20 (1/378)$br#首页|news$u#上一页|news 1$u#下一页|news 2")
-        XCTAssertEqual(game.dialog?.kind, "pages")
+        XCTAssertEqual(game.dialog?.kind, "interaction")
         XCTAssertTrue(game.dialog?.persistent == true)
         // The auto look's room frame must NOT dismiss the announcement.
         wire.receive("002", "未明谷")
         XCTAssertNotNil(game.dialog)
-        XCTAssertEqual(game.dialog?.kind, "pages")
+        XCTAssertEqual(game.dialog?.kind, "interaction")
         // Tapping a button closes it, like any other panel.
         game.act("news")
         XCTAssertNil(game.dialog)
