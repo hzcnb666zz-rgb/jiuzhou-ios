@@ -441,14 +441,15 @@ struct AndroidEntryView: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: height * 0.50)
 
-                VStack(alignment: .leading, spacing: 14) {
-                    // 标题金字 Logo（居中）
+                VStack(alignment: .center, spacing: 12) {
+                    // 标题金字 Logo（居中，缩小）
                     Group {
                         if let path = Bundle.main.path(forResource: "charcreate_title", ofType: "png"),
                            let image = UIImage(contentsOfFile: path) {
                             Image(uiImage: image).resizable().scaledToFit()
+                                .frame(width: width * 0.56)
                         } else {
-                            Text("创建你的角色").font(.system(size: 25, weight: .bold))
+                            Text("创建你的角色").font(.system(size: 22, weight: .bold))
                                 .foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
                         }
                     }
@@ -457,15 +458,17 @@ struct AndroidEntryView: View {
 
                     Text("你的称呼，2-4个中文字符")
                         .font(.system(size: 13)).foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
+                        .frame(maxWidth: .infinity)
                     TextField("", text: $characterName)
                         .font(.system(size: 15)).foregroundStyle(.white)
                         .tint(Color(red: 228/255, green: 195/255, blue: 125/255))
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .padding(.horizontal, 11).frame(height: 42)
+                        .padding(.horizontal, 11).frame(height: 38)
                         .background(MartialTagShape().fill(Color(red: 52/255, green: 42/255, blue: 26/255).opacity(0.88)))
                         .overlay(MartialTagShape().stroke(Color(red: 222/255, green: 188/255, blue: 112/255).opacity(0.9), lineWidth: 1))
                         .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(0.3), radius: 5)
                     Text("你的性别").font(.system(size: 13)).foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
+                        .frame(maxWidth: .infinity)
                     HStack(spacing: 14) {
                         genderButton("男", "男性")
                         genderButton("女", "女性")
@@ -479,11 +482,12 @@ struct AndroidEntryView: View {
                     .padding(.top, 6)
 
                     Text(game.notice).font(.system(size: 12)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(20)
+                .padding(16)
                 .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 25/255, green: 18/255, blue: 12/255).opacity(0.92)))
                 .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color(red: 210/255, green: 175/255, blue: 100/255).opacity(0.65), lineWidth: 1.2))
-                .padding(.horizontal, width * 0.12)
+                .padding(.horizontal, width * 0.16)
 
                 Spacer(minLength: height * 0.06)
             }
