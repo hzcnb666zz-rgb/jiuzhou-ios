@@ -18,6 +18,7 @@ struct AndroidEntryView: View {
     @State private var editingCredential = false
     @State private var editingPassword = false
     @State private var credentialDraft = ""
+    @State private var showPassword = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -72,61 +73,63 @@ struct AndroidEntryView: View {
         ZStack(alignment: .top) {
             SplashBackground()
 
-            VStack(spacing: 13) {
-                loginField(icon: "person.fill", placeholder: "请输入你的账号", secure: false)
-                loginField(icon: "lock.fill", placeholder: "请输入你的密码", secure: true)
+            VStack(spacing: 14) {
+                // 账号输入框
+                martialField(rightIcon: "hexagon") {
+                    TextField("你的账号：", text: $game.account)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                } leftIcon: { "person.fill" }
+
+                // 密码输入框（带眼睛切换）
+                martialField(rightIcon: showPassword ? "eye" : "eye.slash", rightAction: { showPassword.toggle() }) {
+                    Group {
+                        if showPassword {
+                            TextField("你的密码：", text: $game.password)
+                        } else {
+                            SecureField("你的密码：", text: $game.password)
+                        }
+                    }
+                } leftIcon: { "lock.fill" }
+
+                // 服务器选择
                 Button { chooseServer = true } label: {
                     HStack(spacing: 8) {
-                        Circle().fill(Color(red: 120/255, green: 220/255, blue: 130/255)).frame(width: 8, height: 8)
-                        Text("推荐服务器").font(.system(size: 13)).foregroundStyle(.white.opacity(0.7))
+                        Circle().fill(Color(red: 120/255, green: 215/255, blue: 135/255)).frame(width: 8, height: 8)
+                        Text("选择服务器").font(.system(size: 14)).foregroundStyle(.white.opacity(0.75))
                         Spacer()
-                        Text("本地九州书剑录").font(.system(size: 14)).foregroundStyle(.white)
-                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.7))
+                        Text("本地九州书剑录").font(.system(size: 14)).foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
+                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold)).foregroundStyle(.white.opacity(0.7))
                     }
-                    .padding(.horizontal, 16).frame(height: 46)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
+                    .padding(.horizontal, 18).frame(height: 44)
+                    .background(MartialTagShape().fill(Color(red: 26/255, green: 19/255, blue: 11/255).opacity(0.68)))
+                    .overlay(MartialTagShape().strokeBorder(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.7), lineWidth: 1.2))
                 }.buttonStyle(.plain)
-                Button {
-                    if game.account.isEmpty || game.password.isEmpty {
-                        game.status = "请输入账号和密码"
-                    } else {
-                        game.login()
-                    }
-                } label: {
-                    Text("登 录")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 54)
-                        .background(
-                            Capsule().fill(
-                                LinearGradient(
-                                    colors: [Color(red: 160/255, green: 110/255, blue: 50/255), Color(red: 110/255, green: 70/255, blue: 30/255)],
-                                    startPoint: .leading, endPoint: .trailing
-                                )
-                            )
-                        )
-                        .overlay(Capsule().strokeBorder(Color(red: 230/255, green: 190/255, blue: 110/255), lineWidth: 1.2))
-                        .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
-                }.disabled(registeringRequest)
-                HStack(spacing: 0) {
-                    Button("注册账号") { registering = true }
-                        .font(.system(size: 14)).foregroundStyle(Color(red: 230/255, green: 200/255, blue: 140/255))
-                    Text("   |   ").foregroundStyle(.white.opacity(0.3))
-                    Button("忘记密码") { game.status = "请联系管理员找回密码" }
-                        .font(.system(size: 14)).foregroundStyle(Color(red: 230/255, green: 200/255, blue: 140/255))
-                }.padding(.top, 4)
-                Text(game.status == "未连接" ? "" : game.status)
-                    .font(.system(size: 12)).foregroundStyle(.white).padding(.top, 2)
-            }
-            .padding(.horizontal, 32)
-            .padding(.top, height * 0.46)
 
-            // 选服弹窗
+                // 登录 / 注册 并排
+                HStack(spacing: 18) {
+                    martialButton("登 录", glow: true) {
+                        if game.account.isEmpty || game.password.isEmpty {
+                            game.status = "请输入账号和密码"
+                        } else {
+                            game.login()
+                        }
+                    }
+                    martialButton("注 册", glow: false) { registering = true }
+                }
+
+                Button("忘记密码？") { game.status = "请联系管理员找回密码" }
+                    .font(.system(size: 13)).foregroundStyle(Color(red: 232/255, green: 200/255, blue: 135/255).opacity(0.9))
+                    .padding(.top, 2)
+
+                Text(game.status == "未连接" ? "" : game.status)
+                    .font(.system(size: 12)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
+            }
+            .padding(.horizontal, 34)
+            .padding(.top, height * 0.60)
+
             if chooseServer {
                 serverSelectPanel(width: width, height: height)
             }
-            // 注册弹窗（模态浮层，不再切页面）
             if registering {
                 registerPopup(width: width, height: height)
             }
@@ -135,24 +138,53 @@ struct AndroidEntryView: View {
         .ignoresSafeArea(.keyboard, edges: .all)
     }
 
-    private func loginField(icon: String, placeholder: String, secure: Bool) -> some View {
-        let value = secure ? game.password : game.account
-        return Button {
-            registrationFieldIndex = nil
-            editingPassword = secure; credentialDraft = value; editingCredential = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: icon).foregroundStyle(Color(red: 220/255, green: 185/255, blue: 110/255))
-                Text(value.isEmpty ? placeholder : (secure ? String(repeating: "•", count: value.count) : value))
-                    .foregroundStyle(value.isEmpty ? Color.white.opacity(0.5) : Color.white)
-                Spacer()
-            }
-            .font(.system(size: 16))
-            .padding(.horizontal, 16).frame(height: 46)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.4)))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.4), lineWidth: 1))
-            .contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityIdentifier(secure ? "login.password" : "login.account")
+    // 武侠尖角输入框
+    private func martialField<Content: View>(
+        rightIcon: String,
+        rightAction: (() -> Void)? = nil,
+        @ViewBuilder _ content: () -> Content,
+        leftIcon: () -> String
+    ) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: leftIcon())
+                .font(.system(size: 15))
+                .foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
+            content()
+                .font(.system(size: 16))
+                .foregroundStyle(.white)
+                .tint(Color(red: 228/255, green: 195/255, blue: 125/255))
+            Spacer(minLength: 0)
+            Button {
+                rightAction?()
+            } label: {
+                Image(systemName: rightIcon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255).opacity(0.9))
+            }.buttonStyle(.plain)
+        }
+        .padding(.horizontal, 18).frame(height: 50)
+        .background(MartialTagShape().fill(Color(red: 26/255, green: 19/255, blue: 11/255).opacity(0.68)))
+        .overlay(MartialTagShape().strokeBorder(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.75), lineWidth: 1.2))
+        .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(0.3), radius: 6)
+    }
+
+    // 武侠菱形按钮
+    private func martialButton(_ title: String, glow: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(glow ? Color.white : Color(red: 235/255, green: 205/255, blue: 140/255))
+                .frame(maxWidth: .infinity).frame(height: 50)
+                .background(
+                    MartialTagShape().fill(
+                        glow
+                        ? LinearGradient(colors: [Color(red: 175/255, green: 122/255, blue: 55/255), Color(red: 120/255, green: 78/255, blue: 34/255)], startPoint: .top, endPoint: .bottom)
+                        : LinearGradient(colors: [Color(red: 38/255, green: 28/255, blue: 16/255), Color(red: 26/255, green: 19/255, blue: 11/255)], startPoint: .top, endPoint: .bottom)
+                    )
+                )
+                .overlay(MartialTagShape().strokeBorder(Color(red: 222/255, green: 188/255, blue: 112/255), lineWidth: 1.3))
+                .shadow(color: Color(red: 200/255, green: 155/255, blue: 85/255).opacity(glow ? 0.6 : 0.3), radius: glow ? 10 : 5)
+        }.buttonStyle(.plain)
     }
 
     // MARK: - 注册弹窗
@@ -216,7 +248,7 @@ struct AndroidEntryView: View {
 
     private func registerField(_ label: String, text: Binding<String>, placeholder: String, secure: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.system(size: 13)).foregroundStyle(Color(red: 220/255, green: 190/255, blue: 130/255))
+            Text(label).font(.system(size: 13)).foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
             Group {
                 if secure {
                     SecureField(placeholder, text: text)
@@ -228,10 +260,10 @@ struct AndroidEntryView: View {
             }
             .font(.system(size: 15))
             .foregroundStyle(.white)
-            .tint(Color(red: 230/255, green: 190/255, blue: 110/255))
+            .tint(Color(red: 228/255, green: 195/255, blue: 125/255))
             .padding(.horizontal, 14).frame(height: 42)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(red: 200/255, green: 170/255, blue: 100/255).opacity(0.3), lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.07)))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(red: 212/255, green: 178/255, blue: 105/255).opacity(0.35), lineWidth: 1))
         }.padding(.bottom, 12)
     }
 
@@ -349,6 +381,22 @@ private struct SplashBackground: View {
         } else {
             Color(red: 20/255, green: 15/255, blue: 10/255)
         }
+    }
+}
+
+// 武侠符文标签形状：两端尖角
+private struct MartialTagShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let point: CGFloat = min(12, rect.height * 0.28)
+        p.move(to: CGPoint(x: rect.minX + point, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX - point, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        p.addLine(to: CGPoint(x: rect.maxX - point, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.minX + point, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+        p.closeSubpath()
+        return p
     }
 }
 
