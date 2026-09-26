@@ -120,7 +120,7 @@ struct AndroidEntryView: View {
                     .font(.system(size: 12)).foregroundStyle(.white).padding(.top, 2)
             }
             .padding(.horizontal, 32)
-            .padding(.top, height * 0.38)
+            .padding(.top, height * 0.46)
 
             // 选服弹窗
             if chooseServer {
