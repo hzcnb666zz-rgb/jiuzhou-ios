@@ -50,7 +50,7 @@ struct GameView: View {
             VStack(spacing: 20) {
                 Image("GameMark").resizable().scaledToFit().frame(width: 80, height: 80)
                     .accessibilityHidden(true)
-                Text("九州书剑录").font(.title2.bold())
+                Text("高武纪元").font(.title2.bold())
                 VStack(alignment: .leading, spacing: 12) {
                     TextField("服务器地址", text: $game.host).keyboardType(.URL)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()

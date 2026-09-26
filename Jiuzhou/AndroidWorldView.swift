@@ -6,12 +6,20 @@ private struct InteractionTextHeight: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
+private final class BundleImageCache {
+    static let shared = NSCache<NSString, UIImage>()
+}
+
 private struct BundleImage: View {
     let name: String
     let ext: String
     var body: some View {
-        if let path = Bundle.main.path(forResource: name, ofType: ext),
+        let cacheKey = (name + "." + ext) as NSString
+        if let cached = BundleImageCache.shared.object(forKey: cacheKey) {
+            Image(uiImage: cached).resizable()
+        } else if let path = Bundle.main.path(forResource: name, ofType: ext),
            let image = UIImage(contentsOfFile: path) {
+            BundleImageCache.shared.setObject(image, forKey: cacheKey)
             Image(uiImage: image).resizable()
         } else {
             Color.clear

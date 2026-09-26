@@ -18,6 +18,7 @@ struct AndroidEntryView: View {
     @State private var editingPassword = false
     @State private var credentialDraft = ""
     @State private var showPassword = false
+    @FocusState private var credentialFieldFocused: Bool
     @State private var keyboardHeight: CGFloat = 0
     @Environment(\.scenePhase) private var scenePhase
 
@@ -91,7 +92,7 @@ struct AndroidEntryView: View {
                         Circle().fill(Color(red: 120/255, green: 215/255, blue: 135/255)).frame(width: 7, height: 7)
                         Text("选择服务器").font(.system(size: 13)).foregroundStyle(.white.opacity(0.75))
                         Spacer()
-                        Text("九州书剑录").font(.system(size: 13)).foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
+                        Text("高武纪元").font(.system(size: 13)).foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
                         Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.7))
                     }
                     .padding(.horizontal, 11).frame(height: 38)
@@ -206,6 +207,7 @@ struct AndroidEntryView: View {
                     .font(.system(size: 15))
                     .foregroundStyle(.white)
                     .tint(.white)
+                    .focused($credentialFieldFocused)
                     if editingPassword {
                         Button { showPassword.toggle() } label: {
                             Image(systemName: showPassword ? "eye" : "eye.slash")
@@ -224,6 +226,7 @@ struct AndroidEntryView: View {
                     .padding(.top, 16)
                 HStack(spacing: 0) {
                     Button {
+                        credentialFieldFocused = false
                         editingCredential = false
                         credentialDraft = ""
                     } label: {
@@ -236,6 +239,7 @@ struct AndroidEntryView: View {
                     Button {
                         if editingPassword { game.password = credentialDraft }
                         else { game.account = credentialDraft }
+                        credentialFieldFocused = false
                         editingCredential = false
                         credentialDraft = ""
                     } label: {
@@ -252,7 +256,12 @@ struct AndroidEntryView: View {
             .offset(y: -keyboardHeight / 2)
             .animation(.easeOut(duration: 0.25), value: keyboardHeight)
         }
-        .onAppear { showPassword = false }
+        .onAppear {
+            showPassword = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                credentialFieldFocused = true
+            }
+        }
     }
 
     // MARK: - 注册弹窗
@@ -347,7 +356,7 @@ struct AndroidEntryView: View {
             VStack(spacing: 16) {
                 Text("选择服务器")
                     .font(.system(size: 20, weight: .bold)).foregroundStyle(Color(red: 240/255, green: 210/255, blue: 140/255))
-                serverItem(name: "九州书剑录", status: "流畅", dot: Color(red: 120/255, green: 220/255, blue: 130/255), zone: "1区", recommended: true)
+                serverItem(name: "高武纪元", status: "流畅", dot: Color(red: 120/255, green: 220/255, blue: 130/255), zone: "1区", recommended: true)
                 Button { chooseServer = false } label: {
                     Text("确 定")
                         .font(.system(size: 16, weight: .bold)).foregroundStyle(.white)

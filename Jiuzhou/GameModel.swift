@@ -56,7 +56,7 @@ final class GameModel: ObservableObject {
     @Published var connecting = false
     @Published var inWorld = false
     @Published var needsCharacter = false
-    @Published var room = "九州书剑录"
+    @Published var room = "高武纪元"
     @Published var description = ""
     @Published var objects: [MudAction] = []
     @Published var exits: [MudAction] = []

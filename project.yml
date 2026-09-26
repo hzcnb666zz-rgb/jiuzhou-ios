@@ -35,7 +35,7 @@ targets:
     info:
       path: Generated/Info.plist
       properties:
-        CFBundleDisplayName: 九州书剑录
+        CFBundleDisplayName: 高武纪元
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSLocalNetworkUsageDescription: 连接同一网络中电脑上的九州书剑录游戏服务器。
