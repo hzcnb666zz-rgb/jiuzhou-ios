@@ -437,8 +437,9 @@ struct AndroidEntryView: View {
             }
 
             // 居中深色磨砂卡片，标题→称呼→输入框→性别→按钮全部收进卡片
+            // 卡片下移：顶部留半屏露出整座楼，卡片顶部对齐楼底部边缘
             VStack(spacing: 0) {
-                Spacer(minLength: height * 0.10)
+                Spacer().frame(height: height * 0.50)
 
                 VStack(alignment: .leading, spacing: 14) {
                     // 标题金字 Logo（居中）
@@ -484,7 +485,7 @@ struct AndroidEntryView: View {
                 .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color(red: 210/255, green: 175/255, blue: 100/255).opacity(0.65), lineWidth: 1.2))
                 .padding(.horizontal, width * 0.12)
 
-                Spacer(minLength: height * 0.10)
+                Spacer(minLength: height * 0.06)
             }
         }
         .foregroundStyle(.white).preferredColorScheme(.dark)
