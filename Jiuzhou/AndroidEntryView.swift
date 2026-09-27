@@ -163,10 +163,10 @@ struct AndroidEntryView: View {
     }
 
     // 武侠菱形按钮
-    private func martialButton(_ title: String, glow: Bool, height: CGFloat = 40, action: @escaping () -> Void) -> some View {
+    private func martialButton(_ title: String, glow: Bool, height: CGFloat = 40, fontSize: CGFloat = 15, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: fontSize, weight: .bold))
                 .foregroundStyle(glow ? Color.white : Color(red: 235/255, green: 205/255, blue: 140/255))
                 .frame(maxWidth: .infinity).frame(height: height)
                 .background(
@@ -436,85 +436,84 @@ struct AndroidEntryView: View {
                 Color(red: 13/255, green: 16/255, blue: 26/255).ignoresSafeArea()
             }
 
-            // 居中深色磨砂卡片，标题→称呼→输入框→性别→按钮全部收进卡片
-            // 卡顶精确落在 40% 屏高（spacer 从安全区算，0.38 + 顶部刘海 ≈ 40%），整体左右居中
+            // 居中深色磨砂卡片，按已确认预览（1179×2556 基准）等比缩放：
+            // 面板 90% 宽（左右 5% 缝）/ 卡顶 40% 屏高 / 卡底约 80%
+            let u = height / 2556
             VStack(spacing: 0) {
-                Spacer().frame(height: height * 0.38)
+                Spacer().frame(height: height * 0.40)
 
-                VStack(alignment: .center, spacing: 14) {
-                    // 标题金字 Logo（居中）
+                VStack(alignment: .center, spacing: 56 * u) {
+                    // 标题金字 Logo（居中，0.46 屏宽）
                     Group {
                         if let path = Bundle.main.path(forResource: "charcreate_title", ofType: "png"),
                            let image = UIImage(contentsOfFile: path) {
                             Image(uiImage: image).resizable().scaledToFit()
-                                .frame(width: width * 0.50)
+                                .frame(width: width * 0.46)
                         } else {
                             Text("创建你的角色").font(.system(size: 21, weight: .bold))
                                 .foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.bottom, 3)
 
                     Text("你的称呼，2-4个中文字符")
-                        .font(.system(size: 12)).foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
+                        .font(.system(size: 24 * u)).foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
                         .frame(maxWidth: .infinity)
-                    TextField("", text: $characterName)
-                        .font(.system(size: 14)).foregroundStyle(.white)
-                        .tint(Color(red: 228/255, green: 195/255, blue: 125/255))
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .padding(.horizontal, 11).frame(height: 32)
-                        .background(MartialTagShape().fill(Color(red: 52/255, green: 42/255, blue: 26/255).opacity(0.88)))
-                        .overlay(MartialTagShape().stroke(Color(red: 222/255, green: 188/255, blue: 112/255).opacity(0.9), lineWidth: 1))
-                        .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(0.3), radius: 5)
-                    Text("你的性别").font(.system(size: 12)).foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
+                    ZStack(alignment: .leading) {
+                        if characterName.isEmpty {
+                            Text("请输入角色名")
+                                .font(.system(size: 28 * u)).foregroundStyle(Color(red: 190/255, green: 168/255, blue: 140/255))
+                                .padding(.leading, 15)
+                        }
+                        TextField("", text: $characterName)
+                            .font(.system(size: 28 * u)).foregroundStyle(.white)
+                            .tint(Color(red: 228/255, green: 195/255, blue: 125/255))
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .padding(.horizontal, 15).frame(height: 58 * u)
+                            .background(MartialTagShape().fill(Color(red: 52/255, green: 42/255, blue: 26/255).opacity(0.88)))
+                            .overlay(MartialTagShape().stroke(Color(red: 222/255, green: 188/255, blue: 112/255).opacity(0.9), lineWidth: 1.6))
+                            .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(0.3), radius: 5)
+                    }
+                    Text("你的性别").font(.system(size: 24 * u)).foregroundStyle(Color(red: 228/255, green: 195/255, blue: 125/255))
                         .frame(maxWidth: .infinity)
-                    HStack(spacing: 14) {
-                        genderButton("男", "男性")
-                        genderButton("女", "女性")
+                    HStack(spacing: 24 * u) {
+                        genderButton("男", "男性", u: u)
+                        genderButton("女", "女性", u: u)
                     }
 
-                    // 创建（左）/取消（右），收在卡片底部
-                    HStack(spacing: 12) {
-                        martialButton("创 建", glow: true, height: 34) { game.createCharacter(name: characterName, gender: gender) }
-                        martialButton("取 消", glow: false, height: 34) { game.logout() }
+                    // 创建（左）/取消（右），六边形金按钮
+                    HStack(spacing: 28 * u) {
+                        martialButton("创 建", glow: true, height: 64 * u, fontSize: 38 * u) { game.createCharacter(name: characterName, gender: gender) }
+                        martialButton("取 消", glow: false, height: 64 * u, fontSize: 38 * u) { game.logout() }
                     }
-                    .padding(.top, 4)
 
-                    Text(game.notice).font(.system(size: 12)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
+                    Text(game.notice).font(.system(size: 24 * u)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
                         .frame(maxWidth: .infinity)
                 }
-                .padding(22)
-                .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 25/255, green: 18/255, blue: 12/255).opacity(0.92)))
-                .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color(red: 210/255, green: 175/255, blue: 100/255).opacity(0.65), lineWidth: 1.2))
-                .padding(.horizontal, width * 0.02)
+                .padding(.top, 215 * u)
+                .padding(.horizontal, 22)
+                .padding(.bottom, 159 * u)
+                .background(RoundedRectangle(cornerRadius: 22).fill(Color(red: 25/255, green: 18/255, blue: 12/255).opacity(0.92)))
+                .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(Color(red: 210/255, green: 175/255, blue: 100/255).opacity(0.65), lineWidth: 2))
+                .padding(.horizontal, width * 0.05)
 
-                Spacer(minLength: height * 0.06)
+                Spacer(minLength: height * 0.20)
             }
         }
         .foregroundStyle(.white).preferredColorScheme(.dark)
     }
 
-    private func genderButton(_ label: String, _ value: String) -> some View {
+    private func genderButton(_ label: String, _ value: String, u: CGFloat) -> some View {
         Button {
             gender = value
         } label: {
-            HStack(spacing: 7) {
-                ZStack {
-                    Circle()
-                        .strokeBorder(gender == value ? Color(red: 255/255, green: 230/255, blue: 170/255) : Color.white.opacity(0.45), lineWidth: 1.2)
-                        .background(Circle().fill(gender == value ? Color(red: 120/255, green: 78/255, blue: 34/255).opacity(0.9) : Color.white.opacity(0.12)))
-                        .frame(width: 17, height: 17)
-                    if gender == value {
-                        Circle().fill(Color(red: 235/255, green: 205/255, blue: 140/255)).frame(width: 8, height: 8)
-                    }
-                }
-                Text(label).font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(gender == value ? Color(red: 235/255, green: 205/255, blue: 140/255) : .white.opacity(0.85))
-            }
-            .frame(maxWidth: .infinity).frame(height: 34)
-            .background(RoundedRectangle(cornerRadius: 10).fill(gender == value ? Color(red: 38/255, green: 28/255, blue: 16/255).opacity(0.95) : Color.white.opacity(0.06)))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(gender == value ? Color(red: 222/255, green: 188/255, blue: 112/255).opacity(0.85) : Color.white.opacity(0.2), lineWidth: 1))
+            Text(label)
+                .font(.system(size: 36 * u, weight: .bold))
+                .foregroundStyle(gender == value ? Color(red: 255/255, green: 235/255, blue: 180/255) : Color(red: 235/255, green: 205/255, blue: 140/255))
+                .frame(maxWidth: .infinity).frame(height: 58 * u)
+                .background(MartialTagShape().fill(gender == value ? Color(red: 70/255, green: 55/255, blue: 30/255).opacity(0.95) : Color(red: 52/255, green: 42/255, blue: 26/255).opacity(0.85)))
+                .overlay(MartialTagShape().stroke(gender == value ? Color(red: 255/255, green: 215/255, blue: 130/255) : Color(red: 222/255, green: 188/255, blue: 112/255).opacity(0.7), lineWidth: gender == value ? 2 : 1.1))
+                .shadow(color: Color(red: 200/255, green: 160/255, blue: 90/255).opacity(gender == value ? 0.45 : 0.2), radius: gender == value ? 6 : 3)
         }.buttonStyle(.plain)
     }
 }
