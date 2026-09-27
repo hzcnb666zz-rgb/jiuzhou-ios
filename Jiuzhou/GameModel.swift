@@ -537,7 +537,11 @@ final class GameModel: ObservableObject {
                 transport.send(account + "║" + password + "║123456789abcd║local@localhost")
             } else {
                 log(text)
-                if !inWorld { status = MudText.plain(text) }
+                if !inWorld {
+                    let clean = MudText.plain(text).trimmingCharacters(in: .whitespacesAndNewlines)
+                    // 不要把 "> " 之类的输入提示符覆盖掉真正的错误提示。
+                    if !clean.isEmpty && clean != ">" { status = clean }
+                }
             }
             return
         }
