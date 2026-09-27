@@ -441,7 +441,7 @@ struct AndroidEntryView: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: height * 0.38)
 
-                VStack(alignment: .center, spacing: 9) {
+                VStack(alignment: .center, spacing: 14) {
                     // 标题金字 Logo（居中）
                     Group {
                         if let path = Bundle.main.path(forResource: "charcreate_title", ofType: "png"),
@@ -484,10 +484,10 @@ struct AndroidEntryView: View {
                     Text(game.notice).font(.system(size: 12)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
                         .frame(maxWidth: .infinity)
                 }
-                .padding(14)
+                .padding(22)
                 .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 25/255, green: 18/255, blue: 12/255).opacity(0.92)))
                 .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color(red: 210/255, green: 175/255, blue: 100/255).opacity(0.65), lineWidth: 1.2))
-                .padding(.horizontal, width * 0.16)
+                .padding(.horizontal, width * 0.02)
 
                 Spacer(minLength: height * 0.06)
             }
