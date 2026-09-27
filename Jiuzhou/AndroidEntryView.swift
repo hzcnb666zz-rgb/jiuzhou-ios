@@ -21,27 +21,37 @@ struct AndroidEntryView: View {
     @FocusState private var credentialFieldFocused: Bool
     @State private var keyboardHeight: CGFloat = 0
     @State private var showCloudTransition = false
+    // 新界面要等云雾动画播完才揭晓，避免画面先跳、动画还在播。
+    @State private var revealWorld = false
+    @State private var revealCharacter = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         GeometryReader { geometry in
         ZStack {
-            if game.inWorld { AndroidWorldView(game: game) }
-            else if game.needsCharacter { character(width: geometry.size.width, height: geometry.size.height) }
+            if game.inWorld && revealWorld { AndroidWorldView(game: game) }
+            else if game.needsCharacter && revealCharacter { character(width: geometry.size.width, height: geometry.size.height) }
             else { login(width: geometry.size.width, height: geometry.size.height) }
             if accountCenter { AndroidAccountView(game: game) { accountCenter = false } }
             if let url = game.webURL { AndroidWebPanel(url: url) { game.webURL = nil } }
             if showCloudTransition {
-                CloudTransitionOverlay { showCloudTransition = false }
+                CloudTransitionOverlay {
+                    showCloudTransition = false
+                    // 云雾播完才揭晓对应界面。
+                    if game.inWorld { revealWorld = true }
+                    if game.needsCharacter { revealCharacter = true }
+                }
                     .ignoresSafeArea()
             }
         }
-        // 登录成功进入世界、注册后进入角色创建，各播一次云雾转场。
+        // 登录成功进入世界、注册后进入角色创建，各播一次云雾转场；播完才切界面。
         .onChange(of: game.inWorld) { entering in
             if entering { showCloudTransition = true }
+            else { revealWorld = false }
         }
         .onChange(of: game.needsCharacter) { needs in
             if needs { showCloudTransition = true }
+            else { revealCharacter = false }
         }
         .onAppear {
             #if DEBUG
@@ -127,7 +137,7 @@ struct AndroidEntryView: View {
                 Button("忘记密码？") { game.status = "请联系管理员找回密码" }
                     .font(.system(size: 12)).foregroundStyle(Color(red: 232/255, green: 200/255, blue: 135/255).opacity(0.9))
 
-                Text(game.status == "未连接" ? "" : game.status)
+                Text((game.status == "未连接" || game.status == "已连接") ? "" : game.status)
                     .font(.system(size: 11)).foregroundStyle(Color(red: 240/255, green: 215/255, blue: 160/255))
             }
             .frame(width: width * 0.60)
@@ -319,7 +329,7 @@ struct AndroidEntryView: View {
                 }.buttonStyle(.plain).disabled(registeringRequest)
                     .accessibilityIdentifier("register.submit")
 
-                Text(game.status == "未连接" ? "" : game.status)
+                Text((game.status == "未连接" || game.status == "已连接") ? "" : game.status)
                     .font(.system(size: 12)).foregroundStyle(.white.opacity(0.9)).padding(.top, 8)
             }
             .padding(24)
