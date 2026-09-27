@@ -83,29 +83,9 @@ struct AndroidEntryView: View {
         }
     }
 
-    // 非中性状态一律当作提示显示在顶部横幅（未连接/已连接/正在连接等中性状态除外）。
-    private var loginBannerText: String? {
-        let benign = Set(["", "未连接", "已连接", "正在连接", "请选择分区", "正在注册"])
-        let value = game.status.trimmingCharacters(in: .whitespacesAndNewlines)
-        return benign.contains(value) ? nil : value
-    }
-
     private func login(width: CGFloat, height: CGFloat) -> some View {
         ZStack(alignment: .top) {
             SplashBackground()
-
-            // 登录错误醒目横幅：错误提示固定在屏幕顶部，任何机型都不会被键盘/底部遮挡。
-            if let error = loginBannerText {
-                Text(error)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16).padding(.vertical, 9)
-                    .background(Capsule().fill(Color(red: 196/255, green: 58/255, blue: 46/255).opacity(0.94)))
-                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.28), lineWidth: 0.5))
-                    .shadow(color: .black.opacity(0.45), radius: 4, y: 1)
-                    .padding(.top, height * 0.055)
-                    .transition(.opacity)
-            }
 
             VStack(spacing: width * 0.038) {
                 // 账号（点击弹窗输入）

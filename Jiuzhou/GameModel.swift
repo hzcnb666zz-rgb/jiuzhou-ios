@@ -534,6 +534,7 @@ final class GameModel: ObservableObject {
             if text.hasPrefix("ver1.0,") { transport.send("local") }
             else if text == "版本验证成功", !sentCredentials {
                 sentCredentials = true
+                status = "正在校验账号，请稍候…"
                 transport.send(account + "║" + password + "║123456789abcd║local@localhost")
             } else {
                 log(text)
