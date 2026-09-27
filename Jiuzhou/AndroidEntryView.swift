@@ -447,7 +447,7 @@ struct AndroidEntryView: View {
                         if let path = Bundle.main.path(forResource: "charcreate_title", ofType: "png"),
                            let image = UIImage(contentsOfFile: path) {
                             Image(uiImage: image).resizable().scaledToFit()
-                                .frame(width: width * 0.50)
+                                .frame(width: width * 0.46)
                         } else {
                             Text("创建你的角色").font(.system(size: 21, weight: .bold))
                                 .foregroundStyle(Color(red: 235/255, green: 205/255, blue: 140/255))
@@ -487,7 +487,7 @@ struct AndroidEntryView: View {
                 .padding(14)
                 .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 25/255, green: 18/255, blue: 12/255).opacity(0.92)))
                 .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color(red: 210/255, green: 175/255, blue: 100/255).opacity(0.65), lineWidth: 1.2))
-                .padding(.horizontal, width * 0.16)
+                .padding(.horizontal, width * 0.25)
 
                 Spacer(minLength: height * 0.06)
             }
