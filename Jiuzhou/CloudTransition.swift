@@ -37,7 +37,7 @@ final class CloudPlayerLayerView: UIView {
 /// 自动淡入 -> 飘一会 -> 淡出 -> 回调结束。
 struct CloudTransitionOverlay: View {
     let onFinished: () -> Void
-    private let duration: TimeInterval = 2.8
+    private let duration: TimeInterval = 3.0
     @State private var player: TransitionPlayer?
     @State private var appear = false
 
@@ -48,7 +48,6 @@ struct CloudTransitionOverlay: View {
                     .blendMode(.screen)
                     .allowsHitTesting(false)
                     .opacity(appear ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.9), value: appear)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -56,9 +55,10 @@ struct CloudTransitionOverlay: View {
         .onAppear {
             if player == nil { player = TransitionPlayer(name: "wuyun", ext: "mp4") }
             player?.start()
-            appear = true
+            // 快速盖住（0.25s），让切屏发生在云后面；背后加载好后再缓缓散开（0.9s）。
+            withAnimation(.easeIn(duration: 0.25)) { appear = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                appear = false
+                withAnimation(.easeOut(duration: 0.9)) { appear = false }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.95) { onFinished() }
             }
         }
