@@ -35,12 +35,16 @@ struct AndroidEntryView: View {
             if accountCenter { AndroidAccountView(game: game) { accountCenter = false } }
             if let url = game.webURL { AndroidWebPanel(url: url) { game.webURL = nil } }
             if showCloudTransition {
-                CloudTransitionOverlay {
-                    showCloudTransition = false
-                    // 云雾播完才揭晓对应界面。
-                    if game.inWorld { revealWorld = true }
-                    if game.needsCharacter { revealCharacter = true }
-                }
+                CloudTransitionOverlay(
+                    onReveal: {
+                        // 全黑瞬间揭晓对应界面（在黑底下，切换无感）。
+                        if game.inWorld { revealWorld = true }
+                        if game.needsCharacter { revealCharacter = true }
+                    },
+                    onFinished: {
+                        showCloudTransition = false
+                    }
+                )
                     .ignoresSafeArea()
             }
         }

@@ -33,13 +33,20 @@ final class CloudPlayerLayerView: UIView {
     }
 }
 
-/// 云雾转场：铺满屏幕叠在下层画面上，黑底用滤色消失，只留云雾。
-/// 自动淡入 -> 飘一会 -> 淡出 -> 回调结束。
+/// 云雾转场：云雾盖住登录页飘一会儿 → 黑底渐入压成全黑 → 在黑底后揭晓新界面 → 黑底淡出。
+/// onReveal 在屏幕全黑时回调（新界面在黑底下揭晓，用户无感）；
+/// onFinished 在黑底完全淡出后回调（此时可把转场层移除）。
 struct CloudTransitionOverlay: View {
+    let onReveal: () -> Void
     let onFinished: () -> Void
-    private let duration: TimeInterval = 3.0
+    private let cloudAppearIn: TimeInterval = 0.25  // 云雾淡入盖住登录页
+    private let cloudSettle: TimeInterval = 2.4    // 云雾飘一会
+    private let blackIn: TimeInterval = 0.9         // 黑底渐入压成全黑
+    private let blackOut: TimeInterval = 0.9        // 黑底淡出揭晓新界面
     @State private var player: TransitionPlayer?
-    @State private var appear = false
+    @State private var cloudAppear = false
+    @State private var blackOpacity: Double = 0
+    @State private var revealed = false
 
     var body: some View {
         ZStack {
@@ -47,19 +54,30 @@ struct CloudTransitionOverlay: View {
                 CloudLayer(player: p.player)
                     .blendMode(.screen)
                     .allowsHitTesting(false)
-                    .opacity(appear ? 1 : 0)
+                    .opacity(cloudAppear ? 1 : 0)
             }
+            Color.black
+                .opacity(blackOpacity)
+                .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .onAppear {
             if player == nil { player = TransitionPlayer(name: "wuyun", ext: "mp4") }
             player?.start()
-            // 快速盖住（0.25s），让切屏发生在云后面；背后加载好后再缓缓散开（0.9s）。
-            withAnimation(.easeIn(duration: 0.25)) { appear = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                withAnimation(.easeOut(duration: 0.9)) { appear = false }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.95) { onFinished() }
+            withAnimation(.easeIn(duration: cloudAppearIn)) { cloudAppear = true }
+            // 云雾飘一会后，黑底渐入压成全黑
+            DispatchQueue.main.asyncAfter(deadline: .now() + cloudAppearIn + cloudSettle) {
+                withAnimation(.easeIn(duration: blackIn)) { blackOpacity = 1 }
+                // 全黑的瞬间揭晓新界面（此时完全被黑层盖住，切换无感）
+                DispatchQueue.main.asyncAfter(deadline: .now() + blackIn) {
+                    if !revealed { revealed = true; onReveal() }
+                    // 黑底缓缓淡出，露出新界面
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        withAnimation(.easeOut(duration: blackOut)) { blackOpacity = 0 }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + blackOut + 0.05) { onFinished() }
+                    }
+                }
             }
         }
     }
