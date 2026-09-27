@@ -433,6 +433,9 @@ struct AndroidEntryView: View {
                 if result == "注册成功" {
                     game.account = registrationAccount; game.password = registrationPassword
                     registering = false
+                    // 注册成功后自动用刚注册的正确密码登录一次，直接进入建角色。
+                    // 避免返回登录界面重新手输时敲错，把错误密码存成正式密码。
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { game.login() }
                 }
             } catch { game.status = "注册失败，请检查网络！" }
         }
