@@ -20,6 +20,7 @@ struct AndroidEntryView: View {
     @State private var showPassword = false
     @FocusState private var credentialFieldFocused: Bool
     @State private var keyboardHeight: CGFloat = 0
+    @State private var showCloudTransition = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -30,6 +31,17 @@ struct AndroidEntryView: View {
             else { login(width: geometry.size.width, height: geometry.size.height) }
             if accountCenter { AndroidAccountView(game: game) { accountCenter = false } }
             if let url = game.webURL { AndroidWebPanel(url: url) { game.webURL = nil } }
+            if showCloudTransition {
+                CloudTransitionOverlay { showCloudTransition = false }
+                    .ignoresSafeArea()
+            }
+        }
+        // 登录成功进入世界、注册后进入角色创建，各播一次云雾转场。
+        .onChange(of: game.inWorld) { entering in
+            if entering { showCloudTransition = true }
+        }
+        .onChange(of: game.needsCharacter) { needs in
+            if needs { showCloudTransition = true }
         }
         .onAppear {
             #if DEBUG
